@@ -1,4 +1,6 @@
+import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import requests
 
@@ -29,8 +31,33 @@ response.raise_for_status()
 
 results = response.json()
 
+
+output_directory = Path("data/raw")
+output_directory.mkdir(parents=True, exist_ok=True)
+
+start_label = start_time.strftime("%Y-%m-%d_%H-%M-%S_UTC")
+stop_label = stop_time.strftime("%Y-%m-%d_%H-%M-%S_UTC")
+
+filename = (
+    f"measurement-{MEASUREMENT_ID}"
+    f"_probe-{PROBE_ID}"
+    f"_{start_label}"
+    f"--{stop_label}.json"
+)
+
+output_path = output_directory / filename
+
+with output_path.open("w", encoding="utf-8") as file:
+    json.dump(
+        results,
+        file,
+        ensure_ascii=False,
+        indent=2,
+    )
+
 print(f"URL consultada: {response.url}")
 print(f"Resultados encontrados: {len(results)}")
+print(f"JSON bruto salvo em: {output_path}")
 
 for index, result in enumerate(results, start=1):
     timestamp = datetime.fromtimestamp(
