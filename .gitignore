@@ -1,0 +1,26 @@
+# Virtual environment
+.venv/
+
+# Python temporary files
+__pycache__/
+*.py[cod]
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+
+# Local configuration and secrets
+.env
+
+# Locally collected data
+data/raw/*.json
+!data/raw/.gitkeep
+
+# Internal documentation
+docs/
