@@ -31,26 +31,22 @@ def fetch_results(measurement_id, probe_id, start_time, stop_time):
     return response.json(), response.url
 
 
-def main():
-    stop_time = datetime.now(timezone.utc)
-    start_time = stop_time - timedelta(minutes=15)
-
-    results, request_url = fetch_results(
-        measurement_id=MEASUREMENT_ID,
-        probe_id=PROBE_ID,
-        start_time=start_time,
-        stop_time=stop_time,
-    )
-
-    output_directory = Path("data/raw")
+def save_raw_results(
+    results,
+    measurement_id,
+    probe_id,
+    start_time,
+    stop_time,
+    output_directory,
+):
     output_directory.mkdir(parents=True, exist_ok=True)
 
     start_label = start_time.strftime("%Y-%m-%d_%H-%M-%S_UTC")
     stop_label = stop_time.strftime("%Y-%m-%d_%H-%M-%S_UTC")
 
     filename = (
-        f"measurement-{MEASUREMENT_ID}"
-        f"_probe-{PROBE_ID}"
+        f"measurement-{measurement_id}"
+        f"_probe-{probe_id}"
         f"_{start_label}"
         f"--{stop_label}.json"
     )
@@ -64,6 +60,29 @@ def main():
             ensure_ascii=False,
             indent=2,
         )
+
+    return output_path
+
+
+def main():
+    stop_time = datetime.now(timezone.utc)
+    start_time = stop_time - timedelta(minutes=15)
+
+    results, request_url = fetch_results(
+        measurement_id=MEASUREMENT_ID,
+        probe_id=PROBE_ID,
+        start_time=start_time,
+        stop_time=stop_time,
+    )
+
+    output_path = save_raw_results(
+        results=results,
+        measurement_id=MEASUREMENT_ID,
+        probe_id=PROBE_ID,
+        start_time=start_time,
+        stop_time=stop_time,
+        output_directory=Path("data/raw"),
+    )
 
     print(f"URL consultada: {request_url}")
     print(f"Resultados encontrados: {len(results)}")
