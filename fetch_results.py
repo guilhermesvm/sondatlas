@@ -7,30 +7,39 @@ import requests
 PROBE_ID = 1017210
 MEASUREMENT_ID = 1001
 
-API_URL = (
-    f"https://atlas.ripe.net/api/v2/"
-    f"measurements/{MEASUREMENT_ID}/results/"
-)
+
+def fetch_results(measurement_id, probe_id, start_time, stop_time):
+    api_url = (
+        f"https://atlas.ripe.net/api/v2/"
+        f"measurements/{measurement_id}/results/"
+    )
+
+    params = {
+        "probe_ids": probe_id,
+        "start": int(start_time.timestamp()),
+        "stop": int(stop_time.timestamp()),
+    }
+
+    response = requests.get(
+        api_url,
+        params=params,
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    return response.json(), response.url
+
 
 stop_time = datetime.now(timezone.utc)
 start_time = stop_time - timedelta(minutes=15)
 
-params = {
-    "probe_ids": PROBE_ID,
-    "start": int(start_time.timestamp()),
-    "stop": int(stop_time.timestamp()),
-}
-
-response = requests.get(
-    API_URL,
-    params=params,
-    timeout=30,
+results, request_url = fetch_results(
+    measurement_id=MEASUREMENT_ID,
+    probe_id=PROBE_ID,
+    start_time=start_time,
+    stop_time=stop_time,
 )
-
-response.raise_for_status()
-
-results = response.json()
-
 
 output_directory = Path("data/raw")
 output_directory.mkdir(parents=True, exist_ok=True)
@@ -55,7 +64,7 @@ with output_path.open("w", encoding="utf-8") as file:
         indent=2,
     )
 
-print(f"URL consultada: {response.url}")
+print(f"URL consultada: {request_url}")
 print(f"Resultados encontrados: {len(results)}")
 print(f"JSON bruto salvo em: {output_path}")
 

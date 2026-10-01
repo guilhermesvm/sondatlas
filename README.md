@@ -19,7 +19,18 @@ The project is at the beginning of Stage 2. At this point,
 - retrieves results from the last 15 minutes;
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
+- saves the original API response as a formatted JSON file in `data/raw/`;
 - displays ping results in the console.
+
+The generated filename identifies the measurement, probe, and queried UTC
+time range. For example:
+
+```text
+measurement-1001_probe-1017210_2026-09-30_02-17-38_UTC--2026-09-30_02-32-38_UTC.json
+```
+
+Files generated in `data/raw/` are local artifacts and are not tracked by Git.
+The `.gitkeep` file only preserves the directory in the repository.
 
 ## Prerequisites
 
