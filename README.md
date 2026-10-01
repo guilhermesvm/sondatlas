@@ -20,6 +20,8 @@ The project is at the beginning of Stage 2. At this point,
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
 - saves the original API response as a formatted JSON file in `data/raw/`;
+- normalizes ping results into a stable internal structure;
+- saves normalized results as a formatted JSON file in `data/normalized/`;
 - displays ping results in the console.
 
 The generated filename identifies the measurement, probe, and queried UTC
@@ -29,8 +31,9 @@ time range. For example:
 measurement-1001_probe-1017210_2026-09-30_02-17-38_UTC--2026-09-30_02-32-38_UTC.json
 ```
 
-Files generated in `data/raw/` are local artifacts and are not tracked by Git.
-The `.gitkeep` file only preserves the directory in the repository.
+Files generated in `data/raw/` and `data/normalized/` are local artifacts and
+are not tracked by Git. The `.gitkeep` files only preserve the directories in
+the repository.
 
 ## Prerequisites
 
@@ -90,7 +93,7 @@ Probe 1017210
     -> RIPE Atlas infrastructure
     -> API REST v2
     -> Python pipeline on Windows
-    -> local storage
+    -> raw and normalized local storage
     -> InfluxDB
     -> dashboard
 ```
