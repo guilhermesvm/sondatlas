@@ -20,6 +20,7 @@ The project is at the beginning of Stage 2. At this point,
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
 - saves the original API response as a formatted JSON file in `data/raw/`;
+- normalizes ping results into a stable internal structure;
 - displays ping results in the console.
 
 The generated filename identifies the measurement, probe, and queried UTC
