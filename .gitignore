@@ -21,6 +21,8 @@ dist/
 # Locally collected data
 data/raw/*.json
 !data/raw/.gitkeep
+data/normalized/*.json
+!data/normalized/.gitkeep
 
 # Internal documentation
 docs/

@@ -64,6 +64,45 @@ def save_raw_results(
     return output_path
 
 
+def save_normalized_results(
+    results,
+    measurement_id,
+    probe_id,
+    start_time,
+    stop_time,
+    output_directory,
+):
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    start_label = start_time.strftime("%Y-%m-%d_%H-%M-%S_UTC")
+    stop_label = stop_time.strftime("%Y-%m-%d_%H-%M-%S_UTC")
+
+    filename = (
+        f"measurement-{measurement_id}"
+        f"_probe-{probe_id}"
+        f"_{start_label}"
+        f"--{stop_label}.json"
+    )
+
+    output_path = output_directory / filename
+    serializable_results = []
+
+    for result in results:
+        serializable_result = result.copy()
+        serializable_result["timestamp"] = result["timestamp"].isoformat()
+        serializable_results.append(serializable_result)
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(
+            serializable_results,
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+    return output_path
+
+
 def normalize_ping_result(result):
     packets_sent = result["sent"]
     packets_received = result["rcvd"]
@@ -121,9 +160,19 @@ def main():
         normalize_ping_result(result) for result in results
     ]
 
+    normalized_output_path = save_normalized_results(
+        results=normalized_results,
+        measurement_id=MEASUREMENT_ID,
+        probe_id=PROBE_ID,
+        start_time=start_time,
+        stop_time=stop_time,
+        output_directory=Path("data/normalized"),
+    )
+
     print(f"URL consultada: {request_url}")
     print(f"Resultados encontrados: {len(results)}")
     print(f"JSON bruto salvo em: {output_path}")
+    print(f"JSON normalizado salvo em: {normalized_output_path}")
 
     for index, result in enumerate(normalized_results, start=1):
         packet_loss_percent = result["packet_loss_percent"]
