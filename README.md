@@ -68,6 +68,15 @@ With the virtual environment active, run:
 python fetch_results.py
 ```
 
+## Running the tests
+
+The tests replace external HTTP calls with controlled responses, so they do
+not depend on Internet access or probe availability.
+
+```bash
+python -m pytest
+```
+
 To leave the virtual environment:
 
 ```bash
