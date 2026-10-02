@@ -1,16 +1,12 @@
 services:
-  influxdb3-core:
-    image: influxdb:3.11.5-core
+  influxdb2:
+    image: influxdb:2.9.1
     ports:
-      - "127.0.0.1:8181:8181"
-    command:
-      - influxdb3
-      - serve
-      - --node-id=ripe-atlas-node
-      - --object-store=file
-      - --data-dir=/var/lib/influxdb3/data
+      - "127.0.0.1:8086:8086"
     volumes:
-      - influxdb3-data:/var/lib/influxdb3
+      - influxdb2-data:/var/lib/influxdb2
+      - influxdb2-config:/etc/influxdb2
 
 volumes:
-  influxdb3-data:
+  influxdb2-data:
+  influxdb2-config:

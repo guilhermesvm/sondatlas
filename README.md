@@ -12,8 +12,9 @@ visualization in dashboards.
 
 ## Current status
 
-The project is at the beginning of Stage 2. At this point,
-`fetch_results.py`:
+The manual flow of Stage 2 is working, while continuous polling is still
+pending. A small Stage 3 integration has also begun to validate persistence
+before polling is automated. At this point, `fetch_results.py`:
 
 - queries the RIPE Atlas REST API v2;
 - retrieves results from the last 15 minutes;
@@ -22,6 +23,7 @@ The project is at the beginning of Stage 2. At this point,
 - saves the original API response as a formatted JSON file in `data/raw/`;
 - normalizes ping results into a stable internal structure;
 - saves normalized results as a formatted JSON file in `data/normalized/`;
+- writes normalized ping results to InfluxDB;
 - displays ping results in the console.
 
 The generated filename identifies the measurement, probe, and queried UTC
@@ -66,8 +68,8 @@ active.
 
 ## Starting InfluxDB
 
-The project uses InfluxDB 3 Core in a Docker container. Start the service from
-the project directory:
+The project uses InfluxDB OSS 2.9.1 in a Docker container. Start the service
+from the project directory:
 
 ```bash
 docker compose up -d
@@ -79,47 +81,21 @@ Check its status:
 docker compose ps
 ```
 
-The server is available locally at `http://localhost:8181`. Its data is stored
-in a named Docker volume, so stopping or recreating the container does not
-remove the database.
+The server and its web interface are available only on this computer at
+`http://localhost:8086`. The data and server configuration are stored in named
+Docker volumes, so stopping or recreating the container does not remove them.
 
-On the first setup, create the operator token:
+On the first start, open `http://localhost:8086` and complete the setup with:
 
-```bash
-docker compose exec influxdb3-core influxdb3 create token --admin
-```
+- an administrator username and a strong password;
+- organization name `network-measurement-platform`;
+- bucket name `network-measurement-platform`;
+- no expiration for the bucket retention period.
 
-Store the returned token securely. Load it temporarily without displaying it:
-
-```bash
-read -s -p "Operator token: " INFLUXDB3_AUTH_TOKEN
-echo
-```
-
-Create the project database:
-
-```bash
-docker compose exec \
-  -e INFLUXDB3_AUTH_TOKEN="$INFLUXDB3_AUTH_TOKEN" \
-  influxdb3-core \
-  influxdb3 create database ripe_atlas
-```
-
-Create a separate named token for the pipeline:
-
-```bash
-docker compose exec \
-  -e INFLUXDB3_AUTH_TOKEN="$INFLUXDB3_AUTH_TOKEN" \
-  influxdb3-core \
-  influxdb3 create token --admin --name ripe-atlas-pipeline
-```
-
-Store the new token securely and remove the operator token from the terminal
-session:
-
-```bash
-unset INFLUXDB3_AUTH_TOKEN
-```
+The initial setup creates an operator token. Do not use this broad token in the
+Python pipeline. In the InfluxDB interface, open **Load Data > API Tokens** and
+create a read/write token limited to the `network-measurement-platform` bucket.
+Copy it when it is shown and store it only in the local `.env` file.
 
 Stop the service without deleting the container or volume:
 
@@ -129,15 +105,27 @@ docker compose stop
 
 ## InfluxDB configuration
 
-Create a local configuration file from the tracked example:
+For a new checkout, create a local configuration file from the tracked
+example:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and replace `replace-with-your-token` with the named token created
-for the pipeline. The real `.env` file contains a secret and is not tracked by
-Git.
+If `.env` already exists from the previous InfluxDB 3 setup, edit it instead of
+copying the example over it. Its InfluxDB configuration must use the following
+keys:
+
+```dotenv
+INFLUXDB_URL=http://localhost:8086
+INFLUXDB_ORG=network-measurement-platform
+INFLUXDB_BUCKET=network-measurement-platform
+INFLUXDB_TOKEN={replace_with_your_influxdb_api_token}
+```
+
+Replace the token placeholder with the read/write token created for the
+pipeline. The URL, organization and bucket must match the values used during
+setup. The real `.env` file contains a secret and is not tracked by Git.
 
 ## Running the script
 

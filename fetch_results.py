@@ -1,11 +1,42 @@
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
+
+from influxdb_storage import write_ping_results
 
 PROBE_ID = 1017210
 MEASUREMENT_ID = 1001
+
+
+def load_influxdb_config():
+    load_dotenv()
+
+    variable_names = (
+        "INFLUXDB_URL",
+        "INFLUXDB_ORG",
+        "INFLUXDB_BUCKET",
+        "INFLUXDB_TOKEN",
+    )
+    missing_variables = [
+        name for name in variable_names if not os.getenv(name)
+    ]
+
+    if missing_variables:
+        missing_labels = ", ".join(missing_variables)
+        raise RuntimeError(
+            f"Missing required environment variables: {missing_labels}"
+        )
+
+    return {
+        "url": os.environ["INFLUXDB_URL"],
+        "org": os.environ["INFLUXDB_ORG"],
+        "bucket": os.environ["INFLUXDB_BUCKET"],
+        "token": os.environ["INFLUXDB_TOKEN"],
+    }
 
 
 def fetch_results(measurement_id, probe_id, start_time, stop_time):
@@ -169,10 +200,17 @@ def main():
         output_directory=Path("data/normalized"),
     )
 
+    influxdb_config = load_influxdb_config()
+    written_points = write_ping_results(
+        results=normalized_results,
+        **influxdb_config,
+    )
+
     print(f"URL consultada: {request_url}")
     print(f"Resultados encontrados: {len(results)}")
     print(f"JSON bruto salvo em: {output_path}")
     print(f"JSON normalizado salvo em: {normalized_output_path}")
+    print(f"Pontos enviados ao InfluxDB: {written_points}")
 
     for index, result in enumerate(normalized_results, start=1):
         packet_loss_percent = result["packet_loss_percent"]
