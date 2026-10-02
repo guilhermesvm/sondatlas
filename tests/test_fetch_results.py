@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-import fetch_results
+from ripe_atlas_tcc import ripe_atlas_client
 
 
 def test_fetch_results_builds_request_and_returns_response(monkeypatch):
@@ -35,12 +35,12 @@ def test_fetch_results_builds_request_and_returns_response(monkeypatch):
         captured_request["timeout"] = timeout
         return fake_response
 
-    monkeypatch.setattr(fetch_results.requests, "get", fake_get)
+    monkeypatch.setattr(ripe_atlas_client.requests, "get", fake_get)
 
     start_time = datetime(2026, 9, 30, 0, 0, tzinfo=timezone.utc)
     stop_time = datetime(2026, 9, 30, 0, 15, tzinfo=timezone.utc)
 
-    results, request_url = fetch_results.fetch_results(
+    results, request_url = ripe_atlas_client.fetch_results(
         measurement_id=1001,
         probe_id=1017210,
         start_time=start_time,

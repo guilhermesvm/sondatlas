@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from fetch_results import normalize_ping_result
+from ripe_atlas_tcc.normalization import normalize_ping_result
 
 
 def test_normalize_ping_result_with_all_packets_received():

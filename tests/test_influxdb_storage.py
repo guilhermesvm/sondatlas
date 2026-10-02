@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-import influxdb_storage
+from ripe_atlas_tcc import influxdb_storage
 
 
 def make_normalized_result():

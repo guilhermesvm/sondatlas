@@ -37,6 +37,22 @@ Files generated in `data/raw/` and `data/normalized/` are local artifacts and
 are not tracked by Git. The `.gitkeep` files only preserve the directories in
 the repository.
 
+## Project structure
+
+```text
+src/ripe_atlas_tcc/
+    pipeline.py             coordinates one ingestion run
+    settings.py             loads project and InfluxDB configuration
+    ripe_atlas_client.py    communicates with the RIPE Atlas API
+    normalization.py        normalizes ping results
+    json_storage.py         stores raw and normalized JSON files
+    influxdb_storage.py     writes normalized points to InfluxDB
+    console_output.py       formats terminal output
+```
+
+The root `fetch_results.py` file is a compatibility entry point that delegates
+execution to the package.
+
 ## Prerequisites
 
 - Python 3.11 or later;
@@ -57,12 +73,14 @@ Activate the virtual environment in Git Bash:
 source .venv/Scripts/activate
 ```
 
-Install the project and development dependencies:
+Install the project and development dependencies in editable mode:
 
 ```bash
-python -m pip install ".[dev]"
+python -m pip install -e ".[dev]"
 ```
 
+Editable mode makes the virtual environment reference the source code in
+`src/`, so local code changes are available without reinstalling the project.
 The `(.venv)` prefix in the terminal indicates that the virtual environment is
 active.
 
@@ -133,6 +151,12 @@ With the virtual environment active, run:
 
 ```bash
 python fetch_results.py
+```
+
+The package entry point provides an equivalent command:
+
+```bash
+python -m ripe_atlas_tcc
 ```
 
 ## Running the tests
