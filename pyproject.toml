@@ -9,6 +9,8 @@ description = "Data ingestion pipeline for results from RIPE Atlas probe 1017210
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "influxdb3-python>=0.21,<1",
+    "python-dotenv>=1.1,<2",
     "requests>=2.32,<3",
 ]
 
