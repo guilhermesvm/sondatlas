@@ -25,6 +25,8 @@ from ripe_atlas_tcc.settings import (
     MEASUREMENT_ID,
     MIN_COLLECTION_INTERVAL_MINUTES,
     PROBE_ID,
+    RIPE_API_MAX_ATTEMPTS,
+    RIPE_API_RETRY_BASE_DELAY_SECONDS,
     load_influxdb_config,
 )
 
@@ -61,6 +63,8 @@ def main():
         probe_id=PROBE_ID,
         start_time=start_time,
         stop_time=stop_time,
+        max_attempts=RIPE_API_MAX_ATTEMPTS,
+        retry_base_delay_seconds=RIPE_API_RETRY_BASE_DELAY_SECONDS,
     )
 
     raw_output_path = save_raw_results(

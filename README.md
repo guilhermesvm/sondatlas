@@ -21,6 +21,7 @@ before polling is automated. At this point, `fetch_results.py`:
 - recovers all safely available results after an interruption;
 - keeps a 5-minute safety delay before collecting each window;
 - records the last successfully processed window in a local checkpoint;
+- retries temporary RIPE Atlas API failures with limited exponential delays;
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
 - saves the original API response as a formatted JSON file in `data/raw/`;
