@@ -1,10 +1,14 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 PROBE_ID = 1017210
 MEASUREMENT_ID = 1001
-COLLECTION_WINDOW_MINUTES = 15
+INITIAL_LOOKBACK_MINUTES = 15
+MIN_COLLECTION_INTERVAL_MINUTES = 5
+COLLECTION_DELAY_MINUTES = 5
+COLLECTION_STATE_PATH = Path("data/state/collection_state.json")
 
 
 def load_influxdb_config():

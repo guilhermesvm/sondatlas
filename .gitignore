@@ -23,6 +23,9 @@ data/raw/*.json
 !data/raw/.gitkeep
 data/normalized/*.json
 !data/normalized/.gitkeep
+data/state/*
+!data/state/.gitkeep
 
 # Internal documentation
 docs/
+AGENTS.md
