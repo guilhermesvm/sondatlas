@@ -17,7 +17,10 @@ pending. A small Stage 3 integration has also begun to validate persistence
 before polling is automated. At this point, `fetch_results.py`:
 
 - queries the RIPE Atlas REST API v2;
-- retrieves results from the last 15 minutes;
+- retrieves a 15-minute initial history and later resumes from its checkpoint;
+- recovers all safely available results after an interruption;
+- keeps a 5-minute safety delay before collecting each window;
+- records the last successfully processed window in a local checkpoint;
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
 - saves the original API response as a formatted JSON file in `data/raw/`;
@@ -37,11 +40,20 @@ Files generated in `data/raw/` and `data/normalized/` are local artifacts and
 are not tracked by Git. The `.gitkeep` files only preserve the directories in
 the repository.
 
+The local checkpoint is stored in `data/state/collection_state.json`. It keeps
+separate progress for each measurement and probe and is updated only after the
+complete window has been successfully persisted. This allows later executions
+to resume from the end of the previous window instead of recalculating a
+rolling time range. A new request is made only when at least five minutes are
+available, and it recovers the complete safe backlog. The generated state file
+is not tracked by Git.
+
 ## Project structure
 
 ```text
 src/ripe_atlas_tcc/
     pipeline.py             coordinates one ingestion run
+    collection_state.py     calculates windows and stores collection progress
     settings.py             loads project and InfluxDB configuration
     ripe_atlas_client.py    communicates with the RIPE Atlas API
     normalization.py        normalizes ping results
@@ -167,6 +179,22 @@ not depend on Internet access or probe availability.
 ```bash
 python -m pytest
 ```
+
+GitHub Actions also runs the test suite automatically after every push and for
+every pull request. Its workflow is defined in `.github/workflows/tests.yml`.
+
+## Removing collected JSON files
+
+To remove all generated `.json` files from `data/raw/` and
+`data/normalized/`, run:
+
+```bash
+python scripts/cleanup_json.py
+```
+
+This operation permanently removes the local raw and normalized JSON files.
+Archive any data required for later auditing before running it. The command
+does not remove `.gitkeep` files or the collection checkpoint in `data/state/`.
 
 To leave the virtual environment:
 
