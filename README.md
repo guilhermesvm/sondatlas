@@ -158,6 +158,15 @@ Replace the token placeholder with the read/write token created for the
 pipeline. The URL, organization and bucket must match the values used during
 setup. The real `.env` file contains a secret and is not tracked by Git.
 
+Validate that Python can reach InfluxDB and access the configured bucket:
+
+```bash
+python scripts/check_influxdb.py
+```
+
+The command checks the server health, authentication and bucket access without
+writing test data or displaying the token.
+
 ## Running the script
 
 With the virtual environment active, run:

@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
+
+import pytest
 
 from ripe_atlas_tcc import influxdb_storage
 
@@ -21,6 +24,82 @@ def make_normalized_result():
         "rtt_avg_ms": 19.86,
         "rtt_max_ms": 21.12,
     }
+
+
+def make_fake_health_client(status="pass", bucket_name="test-bucket"):
+    class FakeBucketsApi:
+        def find_bucket_by_name(self, requested_bucket):
+            if bucket_name is None:
+                return None
+            return SimpleNamespace(name=bucket_name)
+
+    class FakeClient:
+        def __init__(self, url, token, org):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+        def health(self):
+            return SimpleNamespace(status=status)
+
+        def buckets_api(self):
+            return FakeBucketsApi()
+
+    return FakeClient
+
+
+def test_check_influxdb_connection_validates_health_and_bucket(monkeypatch):
+    monkeypatch.setattr(
+        influxdb_storage,
+        "InfluxDBClient",
+        make_fake_health_client(
+            bucket_name="network-measurement-platform"
+        ),
+    )
+
+    result = influxdb_storage.check_influxdb_connection(
+        url="http://localhost:8086",
+        token="test-token",
+        org="network-measurement-platform",
+        bucket="network-measurement-platform",
+    )
+
+    assert result == {
+        "status": "pass",
+        "bucket": "network-measurement-platform",
+    }
+
+
+@pytest.mark.parametrize(
+    ("status", "bucket_name", "expected_message"),
+    [
+        ("fail", "test-bucket", "InfluxDB health check returned: fail"),
+        ("pass", None, "InfluxDB bucket not found: test-bucket"),
+    ],
+)
+def test_check_influxdb_connection_reports_failures(
+    monkeypatch,
+    status,
+    bucket_name,
+    expected_message,
+):
+    monkeypatch.setattr(
+        influxdb_storage,
+        "InfluxDBClient",
+        make_fake_health_client(status=status, bucket_name=bucket_name),
+    )
+
+    with pytest.raises(RuntimeError, match=expected_message):
+        influxdb_storage.check_influxdb_connection(
+            url="http://localhost:8086",
+            token="test-token",
+            org="test-org",
+            bucket="test-bucket",
+        )
 
 
 def test_build_ping_point_maps_tags_fields_and_timestamp():

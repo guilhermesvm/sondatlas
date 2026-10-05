@@ -4,6 +4,24 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 INFLUXDB_MEASUREMENT = "ripe_atlas_ping"
 
 
+def check_influxdb_connection(url, token, org, bucket):
+    with InfluxDBClient(url=url, token=token, org=org) as client:
+        health = client.health()
+        if health.status != "pass":
+            raise RuntimeError(
+                f"InfluxDB health check returned: {health.status}"
+            )
+
+        bucket_info = client.buckets_api().find_bucket_by_name(bucket)
+        if bucket_info is None:
+            raise RuntimeError(f"InfluxDB bucket not found: {bucket}")
+
+    return {
+        "status": health.status,
+        "bucket": bucket_info.name,
+    }
+
+
 def build_ping_point(result):
     tags = {
         "measurement_id": str(result["measurement_id"]),
