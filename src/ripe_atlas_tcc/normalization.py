@@ -1,6 +1,13 @@
 from datetime import datetime, timezone
 
 
+def normalize_rtt(value):
+    if value is None or value < 0:
+        return None
+
+    return float(value)
+
+
 def normalize_ping_result(result):
     packets_sent = result["sent"]
     packets_received = result["rcvd"]
@@ -28,7 +35,7 @@ def normalize_ping_result(result):
         "packets_received": packets_received,
         "duplicate_packets": result.get("dup", 0),
         "packet_loss_percent": packet_loss_percent,
-        "rtt_min_ms": result.get("min"),
-        "rtt_avg_ms": result.get("avg"),
-        "rtt_max_ms": result.get("max"),
+        "rtt_min_ms": normalize_rtt(result.get("min")),
+        "rtt_avg_ms": normalize_rtt(result.get("avg")),
+        "rtt_max_ms": normalize_rtt(result.get("max")),
     }

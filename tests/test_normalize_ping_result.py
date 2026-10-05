@@ -77,6 +77,9 @@ def test_normalize_ping_result_with_total_packet_loss():
         "timestamp": 1790814762,
         "sent": 3,
         "rcvd": 0,
+        "min": -1,
+        "avg": -1,
+        "max": -1,
     }
 
     normalized = normalize_ping_result(raw_result)
@@ -94,8 +97,36 @@ def test_normalize_ping_result_without_sent_packets():
         "timestamp": 1790814762,
         "sent": 0,
         "rcvd": 0,
+        "min": -1,
+        "avg": -1,
+        "max": -1,
     }
 
     normalized = normalize_ping_result(raw_result)
 
     assert normalized["packet_loss_percent"] is None
+    assert normalized["rtt_min_ms"] is None
+    assert normalized["rtt_avg_ms"] is None
+    assert normalized["rtt_max_ms"] is None
+
+
+def test_normalize_ping_result_converts_valid_integer_rtts_to_float():
+    raw_result = {
+        "msm_id": 1001,
+        "prb_id": 1017210,
+        "timestamp": 1790814762,
+        "sent": 3,
+        "rcvd": 3,
+        "min": 18,
+        "avg": 20,
+        "max": 22,
+    }
+
+    normalized = normalize_ping_result(raw_result)
+
+    assert normalized["rtt_min_ms"] == 18.0
+    assert normalized["rtt_avg_ms"] == 20.0
+    assert normalized["rtt_max_ms"] == 22.0
+    assert isinstance(normalized["rtt_min_ms"], float)
+    assert isinstance(normalized["rtt_avg_ms"], float)
+    assert isinstance(normalized["rtt_max_ms"], float)
