@@ -23,7 +23,11 @@ def test_normalize_ping_result_with_all_packets_received():
         "max": 21.117047,
     }
 
-    normalized = normalize_ping_result(raw_result)
+    normalized = normalize_ping_result(
+        raw_result,
+        target_name="K-root",
+        measurement_category="built-in",
+    )
 
     assert normalized == {
         "measurement_id": 1001,
@@ -38,6 +42,8 @@ def test_normalize_ping_result_with_all_packets_received():
             tzinfo=timezone.utc,
         ),
         "measurement_type": "ping",
+        "target_name": "K-root",
+        "measurement_category": "built-in",
         "address_family": 4,
         "destination_address": "193.0.14.129",
         "destination_name": "193.0.14.129",

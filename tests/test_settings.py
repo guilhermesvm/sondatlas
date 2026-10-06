@@ -3,6 +3,21 @@ import pytest
 from ripe_atlas_tcc import settings
 
 
+def test_ping_measurement_catalog_identifies_targets():
+    assert settings.PING_MEASUREMENTS == (
+        {
+            "measurement_id": 1001,
+            "target_name": "K-root",
+            "measurement_category": "built-in",
+        },
+        {
+            "measurement_id": 86206926,
+            "target_name": "Google",
+            "measurement_category": "well-known",
+        },
+    )
+
+
 def test_load_influxdb_config_returns_required_values(monkeypatch):
     monkeypatch.setattr(settings, "load_dotenv", lambda: None)
     monkeypatch.setenv("INFLUXDB_URL", "http://localhost:8086")

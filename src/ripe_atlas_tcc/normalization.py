@@ -8,7 +8,11 @@ def normalize_rtt(value):
     return float(value)
 
 
-def normalize_ping_result(result):
+def normalize_ping_result(
+    result,
+    target_name=None,
+    measurement_category=None,
+):
     packets_sent = result["sent"]
     packets_received = result["rcvd"]
 
@@ -27,6 +31,8 @@ def normalize_ping_result(result):
             tz=timezone.utc,
         ),
         "measurement_type": result.get("type"),
+        "target_name": target_name,
+        "measurement_category": measurement_category,
         "address_family": result.get("af"),
         "destination_address": result.get("dst_addr"),
         "destination_name": result.get("dst_name"),

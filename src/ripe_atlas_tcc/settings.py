@@ -4,7 +4,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 PROBE_ID = 1017210
-MEASUREMENT_ID = 1001
+PING_MEASUREMENTS = (
+    {
+        "measurement_id": 1001,
+        "target_name": "K-root",
+        "measurement_category": "built-in",
+    },
+    {
+        "measurement_id": 86206926,
+        "target_name": "Google",
+        "measurement_category": "well-known",
+    },
+)
 INITIAL_LOOKBACK_MINUTES = 15
 MIN_COLLECTION_INTERVAL_MINUTES = 5
 COLLECTION_DELAY_MINUTES = 5

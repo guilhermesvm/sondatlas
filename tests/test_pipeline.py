@@ -22,7 +22,7 @@ def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "print_no_collection_interval",
-        lambda available_at: captured.update(available_at=available_at),
+        lambda **kwargs: captured.update(kwargs),
     )
     monkeypatch.setattr(
         pipeline,
@@ -30,12 +30,17 @@ def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
         lambda **kwargs: pytest.fail("The API should not be called"),
     )
 
-    available_at = pipeline.run_collection_cycle()
+    available_at = pipeline.run_measurement_cycle(
+        measurement=pipeline.PING_MEASUREMENTS[0],
+        current_time=datetime(2026, 10, 2, 12, 20, tzinfo=timezone.utc),
+    )
 
     assert captured == {
         "available_at": datetime(
             2026, 10, 2, 12, 25, tzinfo=timezone.utc
         ),
+        "measurement_id": 1001,
+        "target_name": "K-root",
     }
     assert available_at == captured["available_at"]
 
@@ -71,7 +76,7 @@ def test_main_does_not_advance_checkpoint_when_influxdb_write_fails(
     monkeypatch.setattr(
         pipeline,
         "normalize_ping_result",
-        lambda result: result,
+        lambda result, **kwargs: result,
     )
     monkeypatch.setattr(
         pipeline,
@@ -109,7 +114,10 @@ def test_main_does_not_advance_checkpoint_when_influxdb_write_fails(
     )
 
     with pytest.raises(RuntimeError, match="write failed"):
-        pipeline.run_collection_cycle()
+        pipeline.run_measurement_cycle(
+            measurement=pipeline.PING_MEASUREMENTS[0],
+            current_time=datetime.now(timezone.utc),
+        )
 
     assert checkpoint_was_saved is False
 
@@ -131,6 +139,42 @@ def test_main_runs_one_cycle_by_default(monkeypatch):
     pipeline.main([])
 
     assert events == ["cycle"]
+
+
+def test_collection_cycle_processes_each_catalog_measurement(monkeypatch):
+    captured = []
+    google_available_at = datetime(
+        2026, 10, 2, 12, 25, tzinfo=timezone.utc
+    )
+
+    def fake_measurement_cycle(measurement, current_time, show_wait_message):
+        captured.append(
+            {
+                "measurement": measurement,
+                "current_time": current_time,
+                "show_wait_message": show_wait_message,
+            }
+        )
+        if measurement["measurement_id"] == 86206926:
+            return google_available_at
+        return None
+
+    monkeypatch.setattr(
+        pipeline,
+        "run_measurement_cycle",
+        fake_measurement_cycle,
+    )
+
+    waiting_windows = pipeline.run_collection_cycle(
+        show_wait_message=False
+    )
+
+    assert [
+        item["measurement"] for item in captured
+    ] == list(pipeline.PING_MEASUREMENTS)
+    assert captured[0]["current_time"] == captured[1]["current_time"]
+    assert all(not item["show_wait_message"] for item in captured)
+    assert waiting_windows == {86206926: google_available_at}
 
 
 def test_main_runs_polling_when_requested(monkeypatch):
@@ -166,7 +210,11 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
         pipeline,
         "run_collection_cycle",
         lambda **kwargs: (
-            events.append(("cycle", kwargs)) or available_at
+            events.append(("cycle", kwargs))
+            or {
+                1001: available_at,
+                86206926: available_at,
+            }
         ),
     )
 
@@ -186,7 +234,7 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "print_no_collection_interval",
-        lambda value: events.append(("waiting", value)),
+        lambda **kwargs: events.append(("waiting", kwargs)),
     )
     monkeypatch.setattr(
         pipeline,
@@ -199,7 +247,22 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
     assert events == [
         ("started", 30),
         ("cycle", {"show_wait_message": False}),
-        ("waiting", available_at),
+        (
+            "waiting",
+            {
+                "available_at": available_at,
+                "measurement_id": 1001,
+                "target_name": "K-root",
+            },
+        ),
+        (
+            "waiting",
+            {
+                "available_at": available_at,
+                "measurement_id": 86206926,
+                "target_name": "Google",
+            },
+        ),
         ("sleep", 30),
         ("cycle", {"show_wait_message": False}),
         ("sleep", 30),

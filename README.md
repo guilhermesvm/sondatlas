@@ -27,7 +27,9 @@ point, `fetch_results.py`:
 - announces polling startup and each upcoming collection window once;
 - shuts down cleanly when interrupted with `Ctrl+C`;
 - filters results from probe `1017210`;
-- uses built-in measurement `1001`;
+- collects K-root built-in measurement `1001` and Google well-known
+  measurement `86206926`;
+- maintains an independent checkpoint for each measurement;
 - saves the original API response as a formatted JSON file in `data/raw/`;
 - normalizes ping results into a stable internal structure;
 - saves normalized results as a formatted JSON file in `data/normalized/`;
@@ -59,7 +61,7 @@ is not tracked by Git.
 src/ripe_atlas_tcc/
     pipeline.py             coordinates one ingestion run
     collection_state.py     calculates windows and stores collection progress
-    settings.py             loads project and InfluxDB configuration
+    settings.py             defines the ping catalog and loads configuration
     ripe_atlas_client.py    communicates with the RIPE Atlas API
     normalization.py        normalizes ping results
     json_storage.py         stores raw and normalized JSON files

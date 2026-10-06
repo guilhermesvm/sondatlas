@@ -26,6 +26,8 @@ def build_ping_point(result):
     tags = {
         "measurement_id": str(result["measurement_id"]),
         "probe_id": str(result["probe_id"]),
+        "target_name": result["target_name"],
+        "measurement_category": result["measurement_category"],
         "address_family": (
             str(result["address_family"])
             if result["address_family"] is not None

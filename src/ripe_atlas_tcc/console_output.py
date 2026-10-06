@@ -1,10 +1,13 @@
 def print_run_summary(
+    target_name,
+    measurement_category,
     request_url,
     results_count,
     raw_output_path,
     normalized_output_path,
     written_points,
 ):
+    print(f"Alvo lógico: {target_name} ({measurement_category})")
     print(f"URL consultada: {request_url}")
     print(f"Resultados encontrados: {results_count}")
     print(f"JSON bruto salvo em: {raw_output_path}")
@@ -12,10 +15,15 @@ def print_run_summary(
     print(f"Pontos enviados ao InfluxDB: {written_points}")
 
 
-def print_no_collection_interval(available_at):
+def print_no_collection_interval(
+    available_at,
+    measurement_id,
+    target_name,
+):
     print("Ainda não há um novo intervalo mínimo para coleta.")
     print(
-        "Próxima janela poderá ser consultada a partir de: "
+        f"Measurement {measurement_id} ({target_name}): "
+        "a próxima janela poderá ser consultada a partir de: "
         f"{available_at.isoformat()} (UTC)"
     )
     print("-" * 60)
@@ -28,7 +36,7 @@ def print_polling_stopped():
 def print_polling_started(interval_seconds):
     print(
         "Polling iniciado. "
-        f"Verificando novas janelas a cada {interval_seconds} segundo(s)."
+        f"Verificando novas janelas a cada {interval_seconds} segundo(s).\n"
     )
 
 

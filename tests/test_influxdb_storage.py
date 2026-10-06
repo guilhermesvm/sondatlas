@@ -12,6 +12,8 @@ def make_normalized_result():
         "probe_id": 1017210,
         "timestamp": datetime(2026, 10, 1, 0, 32, 42, tzinfo=timezone.utc),
         "measurement_type": "ping",
+        "target_name": "K-root",
+        "measurement_category": "built-in",
         "address_family": 4,
         "destination_address": "193.0.14.129",
         "destination_name": "k.root-servers.net",
@@ -112,6 +114,8 @@ def test_build_ping_point_maps_tags_fields_and_timestamp():
         "tags": {
             "measurement_id": "1001",
             "probe_id": "1017210",
+            "target_name": "K-root",
+            "measurement_category": "built-in",
             "address_family": "4",
             "protocol": "ICMP",
             "destination_address": "193.0.14.129",
@@ -135,6 +139,8 @@ def test_build_ping_point_omits_unavailable_values():
     normalized_result.update(
         {
             "address_family": None,
+            "target_name": None,
+            "measurement_category": None,
             "destination_name": None,
             "packet_loss_percent": None,
             "rtt_min_ms": None,
@@ -146,6 +152,8 @@ def test_build_ping_point_omits_unavailable_values():
     point = influxdb_storage.build_ping_point(normalized_result)
 
     assert "address_family" not in point["tags"]
+    assert "target_name" not in point["tags"]
+    assert "measurement_category" not in point["tags"]
     assert "destination_name" not in point["tags"]
     assert "packet_loss_percent" not in point["fields"]
     assert "rtt_min_ms" not in point["fields"]
