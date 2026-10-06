@@ -11,6 +11,7 @@ from ripe_atlas_tcc.collection_state import (
 from ripe_atlas_tcc.console_output import (
     print_no_collection_interval,
     print_ping_results,
+    print_polling_started,
     print_polling_stopped,
     print_run_summary,
 )
@@ -35,7 +36,7 @@ from ripe_atlas_tcc.settings import (
 )
 
 
-def run_collection_cycle():
+def run_collection_cycle(show_wait_message=True):
     current_time = datetime.now(timezone.utc)
     last_successful_stop = load_last_successful_stop(
         state_path=COLLECTION_STATE_PATH,
@@ -57,8 +58,9 @@ def run_collection_cycle():
                 + COLLECTION_DELAY_MINUTES
             )
         )
-        print_no_collection_interval(available_at)
-        return
+        if show_wait_message:
+            print_no_collection_interval(available_at)
+        return available_at
 
     start_time, stop_time = collection_window
 
@@ -118,10 +120,20 @@ def run_collection_cycle():
 
 def run_polling():
     polling_interval_seconds = load_polling_interval_seconds()
+    announced_available_at = None
 
     try:
+        print_polling_started(polling_interval_seconds)
+
         while True:
-            run_collection_cycle()
+            available_at = run_collection_cycle(show_wait_message=False)
+
+            if available_at is None:
+                announced_available_at = None
+            elif available_at != announced_available_at:
+                print_no_collection_interval(available_at)
+                announced_available_at = available_at
+
             time.sleep(polling_interval_seconds)
     except KeyboardInterrupt:
         print_polling_stopped()

@@ -13,7 +13,7 @@ visualization in dashboards.
 ## Current status
 
 The Stage 2 pipeline supports one-off and continuous execution, while
-operational logging and support for additional measurements are still pending.
+structured logging and support for additional measurements are still pending.
 A small Stage 3 integration has also begun to validate persistence. At this
 point, `fetch_results.py`:
 
@@ -24,6 +24,7 @@ point, `fetch_results.py`:
 - records the last successfully processed window in a local checkpoint;
 - retries temporary RIPE Atlas API failures with limited exponential delays;
 - can repeat collection cycles at a configurable polling interval;
+- announces polling startup and each upcoming collection window once;
 - shuts down cleanly when interrupted with `Ctrl+C`;
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
@@ -195,7 +196,8 @@ python -m ripe_atlas_tcc --poll
 Each cycle checks the checkpoint and collects only when a complete safe
 interval is available. The default polling interval is 60 seconds and can be
 changed with `POLLING_INTERVAL_SECONDS` in `.env`. Press `Ctrl+C` to stop
-polling.
+polling. While waiting, the time from which the next complete window can be
+queried is printed only once instead of being repeated at every check.
 
 ## Running the tests
 

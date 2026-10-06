@@ -30,13 +30,14 @@ def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
         lambda **kwargs: pytest.fail("The API should not be called"),
     )
 
-    pipeline.run_collection_cycle()
+    available_at = pipeline.run_collection_cycle()
 
     assert captured == {
         "available_at": datetime(
             2026, 10, 2, 12, 25, tzinfo=timezone.utc
         ),
     }
+    assert available_at == captured["available_at"]
 
 
 def test_main_does_not_advance_checkpoint_when_influxdb_write_fails(
@@ -151,8 +152,10 @@ def test_main_runs_polling_when_requested(monkeypatch):
     assert events == ["polling"]
 
 
-def test_run_polling_stops_on_keyboard_interrupt(monkeypatch):
+def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
     events = []
+    sleep_count = 0
+    available_at = datetime(2026, 10, 2, 12, 25, tzinfo=timezone.utc)
 
     monkeypatch.setattr(
         pipeline,
@@ -162,14 +165,29 @@ def test_run_polling_stops_on_keyboard_interrupt(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_collection_cycle",
-        lambda: events.append("cycle"),
+        lambda **kwargs: (
+            events.append(("cycle", kwargs)) or available_at
+        ),
     )
 
     def stop_during_sleep(seconds):
+        nonlocal sleep_count
+        sleep_count += 1
         events.append(("sleep", seconds))
-        raise KeyboardInterrupt
+        if sleep_count == 2:
+            raise KeyboardInterrupt
 
     monkeypatch.setattr(pipeline.time, "sleep", stop_during_sleep)
+    monkeypatch.setattr(
+        pipeline,
+        "print_polling_started",
+        lambda seconds: events.append(("started", seconds)),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "print_no_collection_interval",
+        lambda value: events.append(("waiting", value)),
+    )
     monkeypatch.setattr(
         pipeline,
         "print_polling_stopped",
@@ -178,4 +196,33 @@ def test_run_polling_stops_on_keyboard_interrupt(monkeypatch):
 
     pipeline.run_polling()
 
-    assert events == ["cycle", ("sleep", 30), "stopped"]
+    assert events == [
+        ("started", 30),
+        ("cycle", {"show_wait_message": False}),
+        ("waiting", available_at),
+        ("sleep", 30),
+        ("cycle", {"show_wait_message": False}),
+        ("sleep", 30),
+        "stopped",
+    ]
+
+
+def test_run_polling_keeps_operational_errors_visible(monkeypatch):
+    monkeypatch.setattr(
+        pipeline,
+        "load_polling_interval_seconds",
+        lambda: 30,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "print_polling_started",
+        lambda seconds: None,
+    )
+
+    def fail_collection(**kwargs):
+        raise RuntimeError("collection failed")
+
+    monkeypatch.setattr(pipeline, "run_collection_cycle", fail_collection)
+
+    with pytest.raises(RuntimeError, match="collection failed"):
+        pipeline.run_polling()

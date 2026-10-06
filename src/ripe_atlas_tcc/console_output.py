@@ -14,11 +14,22 @@ def print_run_summary(
 
 def print_no_collection_interval(available_at):
     print("Ainda não há um novo intervalo mínimo para coleta.")
-    print(f"Próxima coleta disponível a partir de: {available_at.isoformat()}")
+    print(
+        "Próxima janela poderá ser consultada a partir de: "
+        f"{available_at.isoformat()} (UTC)"
+    )
+    print("-" * 60)
 
 
 def print_polling_stopped():
     print("Polling encerrado pelo usuário.")
+
+
+def print_polling_started(interval_seconds):
+    print(
+        "Polling iniciado. "
+        f"Verificando novas janelas a cada {interval_seconds} segundo(s)."
+    )
 
 
 def print_ping_results(results):
