@@ -11,6 +11,29 @@ COLLECTION_DELAY_MINUTES = 5
 COLLECTION_STATE_PATH = Path("data/state/collection_state.json")
 RIPE_API_MAX_ATTEMPTS = 3
 RIPE_API_RETRY_BASE_DELAY_SECONDS = 1
+DEFAULT_POLLING_INTERVAL_SECONDS = 60
+
+
+def load_polling_interval_seconds():
+    load_dotenv()
+    configured_value = os.getenv(
+        "POLLING_INTERVAL_SECONDS",
+        str(DEFAULT_POLLING_INTERVAL_SECONDS),
+    )
+
+    try:
+        polling_interval_seconds = int(configured_value)
+    except ValueError as error:
+        raise RuntimeError(
+            "POLLING_INTERVAL_SECONDS must be a positive integer"
+        ) from error
+
+    if polling_interval_seconds <= 0:
+        raise RuntimeError(
+            "POLLING_INTERVAL_SECONDS must be a positive integer"
+        )
+
+    return polling_interval_seconds
 
 
 def load_influxdb_config():

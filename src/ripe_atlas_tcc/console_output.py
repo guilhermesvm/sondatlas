@@ -17,6 +17,10 @@ def print_no_collection_interval(available_at):
     print(f"Próxima coleta disponível a partir de: {available_at.isoformat()}")
 
 
+def print_polling_stopped():
+    print("Polling encerrado pelo usuário.")
+
+
 def print_ping_results(results):
     for index, result in enumerate(results, start=1):
         packet_loss_percent = result["packet_loss_percent"]

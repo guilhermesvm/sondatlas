@@ -30,7 +30,7 @@ def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
         lambda **kwargs: pytest.fail("The API should not be called"),
     )
 
-    pipeline.main()
+    pipeline.run_collection_cycle()
 
     assert captured == {
         "available_at": datetime(
@@ -108,6 +108,74 @@ def test_main_does_not_advance_checkpoint_when_influxdb_write_fails(
     )
 
     with pytest.raises(RuntimeError, match="write failed"):
-        pipeline.main()
+        pipeline.run_collection_cycle()
 
     assert checkpoint_was_saved is False
+
+
+def test_main_runs_one_cycle_by_default(monkeypatch):
+    events = []
+
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda: events.append("cycle"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "run_polling",
+        lambda: events.append("polling"),
+    )
+
+    pipeline.main([])
+
+    assert events == ["cycle"]
+
+
+def test_main_runs_polling_when_requested(monkeypatch):
+    events = []
+
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda: events.append("cycle"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "run_polling",
+        lambda: events.append("polling"),
+    )
+
+    pipeline.main(["--poll"])
+
+    assert events == ["polling"]
+
+
+def test_run_polling_stops_on_keyboard_interrupt(monkeypatch):
+    events = []
+
+    monkeypatch.setattr(
+        pipeline,
+        "load_polling_interval_seconds",
+        lambda: 30,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda: events.append("cycle"),
+    )
+
+    def stop_during_sleep(seconds):
+        events.append(("sleep", seconds))
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(pipeline.time, "sleep", stop_during_sleep)
+    monkeypatch.setattr(
+        pipeline,
+        "print_polling_stopped",
+        lambda: events.append("stopped"),
+    )
+
+    pipeline.run_polling()
+
+    assert events == ["cycle", ("sleep", 30), "stopped"]

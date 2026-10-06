@@ -37,3 +37,32 @@ def test_load_influxdb_config_reports_missing_variables(monkeypatch):
         "Missing required environment variables: "
         "INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN"
     )
+
+
+def test_load_polling_interval_seconds_uses_default(monkeypatch):
+    monkeypatch.setattr(settings, "load_dotenv", lambda: None)
+    monkeypatch.delenv("POLLING_INTERVAL_SECONDS", raising=False)
+
+    assert settings.load_polling_interval_seconds() == 60
+
+
+def test_load_polling_interval_seconds_reads_environment(monkeypatch):
+    monkeypatch.setattr(settings, "load_dotenv", lambda: None)
+    monkeypatch.setenv("POLLING_INTERVAL_SECONDS", "30")
+
+    assert settings.load_polling_interval_seconds() == 30
+
+
+@pytest.mark.parametrize("configured_value", ["0", "-1", "invalid"])
+def test_load_polling_interval_seconds_rejects_invalid_values(
+    monkeypatch,
+    configured_value,
+):
+    monkeypatch.setattr(settings, "load_dotenv", lambda: None)
+    monkeypatch.setenv("POLLING_INTERVAL_SECONDS", configured_value)
+
+    with pytest.raises(
+        RuntimeError,
+        match="POLLING_INTERVAL_SECONDS must be a positive integer",
+    ):
+        settings.load_polling_interval_seconds()

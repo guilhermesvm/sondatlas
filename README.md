@@ -12,9 +12,10 @@ visualization in dashboards.
 
 ## Current status
 
-The manual flow of Stage 2 is working, while continuous polling is still
-pending. A small Stage 3 integration has also begun to validate persistence
-before polling is automated. At this point, `fetch_results.py`:
+The Stage 2 pipeline supports one-off and continuous execution, while
+operational logging and support for additional measurements are still pending.
+A small Stage 3 integration has also begun to validate persistence. At this
+point, `fetch_results.py`:
 
 - queries the RIPE Atlas REST API v2;
 - retrieves a 15-minute initial history and later resumes from its checkpoint;
@@ -22,6 +23,8 @@ before polling is automated. At this point, `fetch_results.py`:
 - keeps a 5-minute safety delay before collecting each window;
 - records the last successfully processed window in a local checkpoint;
 - retries temporary RIPE Atlas API failures with limited exponential delays;
+- can repeat collection cycles at a configurable polling interval;
+- shuts down cleanly when interrupted with `Ctrl+C`;
 - filters results from probe `1017210`;
 - uses built-in measurement `1001`;
 - saves the original API response as a formatted JSON file in `data/raw/`;
@@ -152,6 +155,7 @@ INFLUXDB_URL=http://localhost:8086
 INFLUXDB_ORG=network-measurement-platform
 INFLUXDB_BUCKET=network-measurement-platform
 INFLUXDB_TOKEN={replace_with_your_influxdb_api_token}
+POLLING_INTERVAL_SECONDS=60
 ```
 
 Replace the token placeholder with the read/write token created for the
@@ -169,7 +173,7 @@ writing test data or displaying the token.
 
 ## Running the script
 
-With the virtual environment active, run:
+With the virtual environment active, run one collection cycle:
 
 ```bash
 python fetch_results.py
@@ -180,6 +184,18 @@ The package entry point provides an equivalent command:
 ```bash
 python -m ripe_atlas_tcc
 ```
+
+Add `--poll` to either command to keep the pipeline running continuously:
+
+```bash
+python fetch_results.py --poll
+python -m ripe_atlas_tcc --poll
+```
+
+Each cycle checks the checkpoint and collects only when a complete safe
+interval is available. The default polling interval is 60 seconds and can be
+changed with `POLLING_INTERVAL_SECONDS` in `.env`. Press `Ctrl+C` to stop
+polling.
 
 ## Running the tests
 

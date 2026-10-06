@@ -1,3 +1,5 @@
+import argparse
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -9,6 +11,7 @@ from ripe_atlas_tcc.collection_state import (
 from ripe_atlas_tcc.console_output import (
     print_no_collection_interval,
     print_ping_results,
+    print_polling_stopped,
     print_run_summary,
 )
 from ripe_atlas_tcc.influxdb_storage import write_ping_results
@@ -28,10 +31,11 @@ from ripe_atlas_tcc.settings import (
     RIPE_API_MAX_ATTEMPTS,
     RIPE_API_RETRY_BASE_DELAY_SECONDS,
     load_influxdb_config,
+    load_polling_interval_seconds,
 )
 
 
-def main():
+def run_collection_cycle():
     current_time = datetime.now(timezone.utc)
     last_successful_stop = load_last_successful_stop(
         state_path=COLLECTION_STATE_PATH,
@@ -110,3 +114,31 @@ def main():
         written_points=written_points,
     )
     print_ping_results(normalized_results)
+
+
+def run_polling():
+    polling_interval_seconds = load_polling_interval_seconds()
+
+    try:
+        while True:
+            run_collection_cycle()
+            time.sleep(polling_interval_seconds)
+    except KeyboardInterrupt:
+        print_polling_stopped()
+
+
+def main(arguments=None):
+    parser = argparse.ArgumentParser(
+        description="Collect RIPE Atlas measurement results."
+    )
+    parser.add_argument(
+        "--poll",
+        action="store_true",
+        help="keep collecting continuously",
+    )
+    options = parser.parse_args(arguments)
+
+    if options.poll:
+        run_polling()
+    else:
+        run_collection_cycle()
