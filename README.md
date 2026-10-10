@@ -68,6 +68,7 @@ src/ripe_atlas_tcc/
     normalization.py        normalizes ping results
     json_storage.py         stores raw and normalized JSON files
     influxdb_storage.py     writes normalized points to InfluxDB
+    influxdb_queries.py     reads ping history by probe, measurement, and period
     console_output.py       formats terminal output
 ```
 
@@ -236,6 +237,42 @@ that no pipeline process is running before removing that lock file manually.
 
 The initial backfill is intended for a new empty bucket. The existing prototype
 bucket should be preserved until the complete load is validated.
+
+## Reading stored ping history
+
+Use `query_ping_results()` to read individual pings from the configured bucket:
+
+```python
+from datetime import datetime, timezone
+
+from ripe_atlas_tcc.influxdb_queries import query_ping_results
+from ripe_atlas_tcc.settings import load_influxdb_config
+
+records = query_ping_results(
+    probe_id=1017210,
+    measurement_id=1001,  # Use 86206926 for Google.
+    start_time=datetime(2026, 8, 26, 2, 3, 41, tzinfo=timezone.utc),
+    stop_time=datetime(2026, 10, 10, 19, 13, 27, tzinfo=timezone.utc),
+    **load_influxdb_config(),
+)
+print(len(records))
+```
+
+IDs must be positive integers and dates must include a timezone, with start
+strictly before stop. The interval includes start and excludes stop. Inputs
+are bound through the official client's query parameters rather than inserted
+into the Flux expression.
+
+The function returns plain dictionaries ordered chronologically, with ISO 8601
+UTC timestamps, integer IDs, destination metadata, packet counts, loss, and
+minimum/average/maximum RTT. Distinct destination IPs retain their own records.
+Missing fields are `None` (`null` in JSON); an empty period returns `[]`.
+Client failures raise `RuntimeError` with safe query context. The function
+reads existing data without aggregating, filling gaps, or writing to the database.
+
+The validated backfill interval above contains 8,195 K-root records and 7,561
+Google records for probe `1017210`. An HTTP API and React interface are planned
+as subsequent increments.
 
 ## Running the tests
 

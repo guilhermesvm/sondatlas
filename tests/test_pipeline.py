@@ -5,6 +5,11 @@ import pytest
 from ripe_atlas_tcc import pipeline
 
 
+@pytest.fixture(autouse=True)
+def isolate_execution_lock(monkeypatch, tmp_path):
+    monkeypatch.setattr(pipeline, "EXECUTION_LOCK_PATH", tmp_path / "pipeline.lock")
+
+
 def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
     last_stop = datetime(2026, 10, 2, 12, 15, tzinfo=timezone.utc)
     captured = {}
