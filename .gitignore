@@ -29,3 +29,8 @@ data/state/*
 # Internal documentation
 docs/
 AGENTS.md
+
+# Frontend dependencies and generated artifacts
+node_modules/
+frontend/dist/
+frontend/coverage/
