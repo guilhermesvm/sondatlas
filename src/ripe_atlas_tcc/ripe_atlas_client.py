@@ -1,8 +1,19 @@
+from datetime import datetime, timezone
 import time
 
 import requests
 
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def fetch_probe_first_connected(probe_id):
+    response = requests.get(
+        f"https://atlas.ripe.net/api/v2/probes/{probe_id}/",
+        timeout=30,
+    )
+    response.raise_for_status()
+    first_connected = response.json()["first_connected"]
+    return datetime.fromtimestamp(first_connected, tz=timezone.utc)
 
 
 def retry_delay_seconds(response, attempt, base_delay_seconds):

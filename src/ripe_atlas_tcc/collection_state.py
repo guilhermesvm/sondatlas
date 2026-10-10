@@ -55,6 +55,13 @@ def save_last_successful_stop(
     probe_id,
     stop_time,
 ):
+    save_last_successful_stops(
+        state_path,
+        [(measurement_id, probe_id, stop_time)],
+    )
+
+
+def save_last_successful_stops(state_path, checkpoints):
     if state_path.exists():
         state = json.loads(state_path.read_text(encoding="utf-8"))
         if state.get("version") != STATE_VERSION:
@@ -62,11 +69,14 @@ def save_last_successful_stop(
     else:
         state = {"version": STATE_VERSION, "checkpoints": {}}
 
-    state.setdefault("checkpoints", {})[
-        checkpoint_key(measurement_id, probe_id)
-    ] = {
-        "last_successful_stop": stop_time.astimezone(timezone.utc).isoformat()
-    }
+    for measurement_id, probe_id, stop_time in checkpoints:
+        state.setdefault("checkpoints", {})[
+            checkpoint_key(measurement_id, probe_id)
+        ] = {
+            "last_successful_stop": (
+                stop_time.astimezone(timezone.utc).isoformat()
+            )
+        }
 
     state_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = state_path.with_name(f".{state_path.name}.tmp")

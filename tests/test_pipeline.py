@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -196,6 +196,25 @@ def test_main_runs_polling_when_requested(monkeypatch):
     assert events == ["polling"]
 
 
+def test_main_runs_all_time_backfill_when_requested(monkeypatch):
+    events = []
+
+    monkeypatch.setattr(
+        pipeline,
+        "run_all_time_backfill",
+        lambda: events.append("all-time"),
+    )
+
+    pipeline.main(["--all-time"])
+
+    assert events == ["all-time"]
+
+
+def test_main_rejects_poll_with_all_time():
+    with pytest.raises(SystemExit):
+        pipeline.main(["--poll", "--all-time"])
+
+
 def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
     events = []
     sleep_count = 0
@@ -289,3 +308,221 @@ def test_run_polling_keeps_operational_errors_visible(monkeypatch):
 
     with pytest.raises(RuntimeError, match="collection failed"):
         pipeline.run_polling()
+
+
+def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(
+    monkeypatch,
+    tmp_path,
+):
+    start_time = datetime(2026, 8, 26, tzinfo=timezone.utc)
+    current_time = datetime(2026, 8, 28, 12, 5, tzinfo=timezone.utc)
+    expected_stop = datetime(2026, 8, 28, 12, 0, tzinfo=timezone.utc)
+    backfill_state_path = tmp_path / "backfill_state.json"
+    collection_state_path = tmp_path / "collection_state.json"
+    captured_blocks = []
+    compact_summaries = []
+
+    monkeypatch.setattr(
+        pipeline, "BACKFILL_STATE_PATH", backfill_state_path
+    )
+    monkeypatch.setattr(
+        pipeline, "COLLECTION_STATE_PATH", collection_state_path
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "load_influxdb_config",
+        lambda: {
+            "url": "http://localhost:8086",
+            "token": "test-token",
+            "org": "test-org",
+            "bucket": "test-bucket",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "fetch_probe_first_connected",
+        lambda probe_id: start_time,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: (captured_blocks.append(kwargs) or (3, 3)),
+    )
+    monkeypatch.setattr(pipeline, "print_backfill_started", lambda *args: None)
+    monkeypatch.setattr(
+        pipeline,
+        "print_backfill_block",
+        lambda **kwargs: compact_summaries.append(kwargs),
+    )
+    monkeypatch.setattr(
+        pipeline, "print_backfill_completed", lambda *args: None
+    )
+
+    pipeline.run_all_time_backfill(current_time=current_time)
+
+    expected_windows = [
+        (start_time, start_time + timedelta(days=1)),
+        (
+            start_time + timedelta(days=1),
+            start_time + timedelta(days=2),
+        ),
+        (start_time + timedelta(days=2), expected_stop),
+    ]
+    for measurement_id in (1001, 86206926):
+        assert [
+            (block["start_time"], block["stop_time"])
+            for block in captured_blocks
+            if block["measurement"]["measurement_id"] == measurement_id
+        ] == expected_windows
+
+    assert [
+        (
+            summary["target_name"],
+            summary["block_number"],
+            summary["total_blocks"],
+        )
+        for summary in compact_summaries
+    ] == [
+        ("K-root", 1, 3),
+        ("K-root", 2, 3),
+        ("K-root", 3, 3),
+        ("Google", 1, 3),
+        ("Google", 2, 3),
+        ("Google", 3, 3),
+    ]
+
+    state = pipeline.load_backfill_state(backfill_state_path)
+    assert state["status"] == "complete"
+    assert datetime.fromisoformat(state["stop_time"]) == expected_stop
+    for measurement in pipeline.PING_MEASUREMENTS:
+        assert pipeline.load_last_successful_stop(
+            collection_state_path,
+            measurement["measurement_id"],
+            pipeline.PROBE_ID,
+        ) == expected_stop
+
+
+def test_all_time_backfill_resumes_from_own_progress(monkeypatch, tmp_path):
+    start_time = datetime(2026, 8, 26, tzinfo=timezone.utc)
+    stop_time = datetime(2026, 8, 28, tzinfo=timezone.utc)
+    backfill_state_path = tmp_path / "backfill_state.json"
+    captured_blocks = []
+    compact_summaries = []
+    state = pipeline.create_backfill_state(
+        state_path=backfill_state_path,
+        probe_id=pipeline.PROBE_ID,
+        bucket="test-bucket",
+        start_time=start_time,
+        stop_time=stop_time,
+        measurement_ids=(1001, 86206926),
+    )
+    pipeline.save_backfill_progress(
+        backfill_state_path,
+        state,
+        1001,
+        start_time + timedelta(days=1),
+    )
+
+    monkeypatch.setattr(
+        pipeline, "BACKFILL_STATE_PATH", backfill_state_path
+    )
+    monkeypatch.setattr(
+        pipeline, "COLLECTION_STATE_PATH", tmp_path / "collection_state.json"
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "load_influxdb_config",
+        lambda: {
+            "url": "test",
+            "token": "test",
+            "org": "test",
+            "bucket": "test-bucket",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "fetch_probe_first_connected",
+        lambda probe_id: pytest.fail("Probe should not be fetched on resume"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: (captured_blocks.append(kwargs) or (3, 3)),
+    )
+    monkeypatch.setattr(pipeline, "print_backfill_started", lambda *args: None)
+    monkeypatch.setattr(
+        pipeline,
+        "print_backfill_block",
+        lambda **kwargs: compact_summaries.append(kwargs),
+    )
+    monkeypatch.setattr(
+        pipeline, "print_backfill_completed", lambda *args: None
+    )
+
+    pipeline.run_all_time_backfill()
+
+    assert [
+        block["measurement"]["measurement_id"]
+        for block in captured_blocks
+    ] == [1001, 86206926, 86206926]
+    assert [
+        (
+            summary["target_name"],
+            summary["block_number"],
+            summary["total_blocks"],
+        )
+        for summary in compact_summaries
+    ] == [
+        ("K-root", 2, 2),
+        ("Google", 1, 2),
+        ("Google", 2, 2),
+    ]
+
+
+def test_failed_backfill_does_not_promote_operational_checkpoints(
+    monkeypatch,
+    tmp_path,
+):
+    start_time = datetime(2026, 8, 26, tzinfo=timezone.utc)
+    backfill_state_path = tmp_path / "backfill_state.json"
+    collection_state_path = tmp_path / "collection_state.json"
+
+    monkeypatch.setattr(
+        pipeline, "BACKFILL_STATE_PATH", backfill_state_path
+    )
+    monkeypatch.setattr(
+        pipeline, "COLLECTION_STATE_PATH", collection_state_path
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "load_influxdb_config",
+        lambda: {
+            "url": "test",
+            "token": "test",
+            "org": "test",
+            "bucket": "test-bucket",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "fetch_probe_first_connected",
+        lambda probe_id: start_time,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("write failed")),
+    )
+    monkeypatch.setattr(pipeline, "print_backfill_started", lambda *args: None)
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        pipeline.run_all_time_backfill(
+            current_time=start_time + timedelta(days=1, minutes=5)
+        )
+
+    assert not collection_state_path.exists()
+    state = pipeline.load_backfill_state(backfill_state_path)
+    assert state["status"] == "in_progress"
+    assert state["measurements"]["1001"]["next_start"] == (
+        start_time.isoformat()
+    )

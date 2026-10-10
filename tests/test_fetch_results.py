@@ -6,6 +6,28 @@ import requests
 from ripe_atlas_tcc import ripe_atlas_client
 
 
+def test_fetch_probe_first_connected_returns_utc_datetime(monkeypatch):
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"first_connected": 1787709821}
+
+    monkeypatch.setattr(
+        ripe_atlas_client.requests,
+        "get",
+        lambda url, timeout: FakeResponse(),
+    )
+
+    first_connected = ripe_atlas_client.fetch_probe_first_connected(1017210)
+
+    assert first_connected == datetime.fromtimestamp(
+        1787709821,
+        tz=timezone.utc,
+    )
+
+
 def test_fetch_results_builds_request_and_returns_response(monkeypatch):
     expected_results = [
         {

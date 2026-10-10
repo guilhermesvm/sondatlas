@@ -60,7 +60,9 @@ is not tracked by Git.
 ```text
 src/ripe_atlas_tcc/
     pipeline.py             coordinates one ingestion run
+    backfill_state.py       stores resumable historical-load progress
     collection_state.py     calculates windows and stores collection progress
+    execution_lock.py       prevents concurrent pipeline processes
     settings.py             defines the ping catalog and loads configuration
     ripe_atlas_client.py    communicates with the RIPE Atlas API
     normalization.py        normalizes ping results
@@ -200,6 +202,40 @@ interval is available. The default polling interval is 60 seconds and can be
 changed with `POLLING_INTERVAL_SECONDS` in `.env`. Press `Ctrl+C` to stop
 polling. While waiting, the time from which the next complete window can be
 queried is printed only once instead of being repeated at every check.
+
+## Initializing all available history
+
+Use the manual `--all-time` mode to initialize an empty bucket with the
+available K-root and Google history since the probe first connected:
+
+```bash
+python fetch_results.py --all-time
+```
+
+The equivalent package command is:
+
+```bash
+python -m ripe_atlas_tcc --all-time
+```
+
+The command fixes one safe end time when it starts and processes each
+measurement in daily blocks. Progress is stored separately in
+`data/state/backfill_state.json`, so an interrupted execution can resume from
+its last completed block. Operational checkpoints are updated only after the
+entire backfill succeeds.
+
+During the load, the terminal prints one compact line per block with the
+target, overall block number, date interval, results found, and points written.
+The block number remains relative to the complete historical interval when an
+interrupted backfill is resumed.
+
+Do not run normal collection or polling concurrently with the backfill. A
+local lock prevents commands from this project from overlapping. If a process
+is forcibly terminated and leaves `data/state/pipeline.lock` behind, confirm
+that no pipeline process is running before removing that lock file manually.
+
+The initial backfill is intended for a new empty bucket. The existing prototype
+bucket should be preserved until the complete load is validated.
 
 ## Running the tests
 

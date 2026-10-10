@@ -1,3 +1,14 @@
+from datetime import timezone
+
+
+def format_utc_timestamp(value):
+    return (
+        value.astimezone(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
 def print_run_summary(
     target_name,
     measurement_category,
@@ -37,6 +48,40 @@ def print_polling_started(interval_seconds):
     print(
         "Polling iniciado. "
         f"Verificando novas janelas a cada {interval_seconds} segundo(s).\n"
+    )
+
+
+def print_backfill_started(start_time, stop_time):
+    print(
+        "Backfill all-time iniciado: "
+        f"{format_utc_timestamp(start_time)} → "
+        f"{format_utc_timestamp(stop_time)}"
+    )
+
+
+def print_backfill_block(
+    target_name,
+    block_number,
+    total_blocks,
+    start_time,
+    stop_time,
+    results_count,
+    written_points,
+):
+    start_label = start_time.astimezone(timezone.utc).date().isoformat()
+    stop_label = stop_time.astimezone(timezone.utc).date().isoformat()
+    print(
+        f"[{target_name}] Bloco {block_number}/{total_blocks} | "
+        f"{start_label} → {stop_label} | "
+        f"{results_count} resultados | {written_points} pontos"
+    )
+
+
+def print_backfill_completed(stop_time):
+    print(
+        "Backfill all-time concluído. "
+        "Checkpoints promovidos para "
+        f"{format_utc_timestamp(stop_time)}"
     )
 
 

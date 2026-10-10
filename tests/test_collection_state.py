@@ -5,6 +5,7 @@ from ripe_atlas_tcc.collection_state import (
     calculate_collection_window,
     load_last_successful_stop,
     save_last_successful_stop,
+    save_last_successful_stops,
 )
 
 
@@ -94,3 +95,23 @@ def test_checkpoint_is_separate_for_each_measurement(tmp_path):
 
     assert load_last_successful_stop(state_path, 1001, 1017210) == ping_stop
     assert load_last_successful_stop(state_path, 5001, 1017210) == traceroute_stop
+
+
+def test_save_multiple_checkpoints_in_one_state_write(tmp_path):
+    state_path = tmp_path / "collection_state.json"
+    stop_time = datetime(2026, 10, 2, 12, 15, tzinfo=timezone.utc)
+
+    save_last_successful_stops(
+        state_path,
+        [
+            (1001, 1017210, stop_time),
+            (86206926, 1017210, stop_time),
+        ],
+    )
+
+    assert load_last_successful_stop(
+        state_path, 1001, 1017210
+    ) == stop_time
+    assert load_last_successful_stop(
+        state_path, 86206926, 1017210
+    ) == stop_time
