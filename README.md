@@ -69,6 +69,7 @@ src/ripe_atlas_tcc/
     json_storage.py         stores raw and normalized JSON files
     influxdb_storage.py     writes normalized points to InfluxDB
     influxdb_queries.py     reads ping history by probe, measurement, and period
+    api.py                  exposes read-only HTTP endpoints for ping history
     console_output.py       formats terminal output
 ```
 
@@ -271,8 +272,96 @@ Client failures raise `RuntimeError` with safe query context. The function
 reads existing data without aggregating, filling gaps, or writing to the database.
 
 The validated backfill interval above contains 8,195 K-root records and 7,561
-Google records for probe `1017210`. An HTTP API and React interface are planned
-as subsequent increments.
+Google records for probe `1017210`. A small HTTP API exposes this query;
+the React interface is the next increment.
+
+## Running the read-only HTTP API
+
+Update the editable installation to include the API and test dependencies:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Start the API from the project directory with the virtual environment active:
+
+```bash
+python -m uvicorn ripe_atlas_tcc.api:app --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000/docs` for the interactive API documentation. Keep
+this terminal open and use a second terminal for requests; press `Ctrl+C` to
+stop the server. The API is local, has no authentication, and is intended for
+this development environment.
+
+The backend loads `INFLUXDB_URL`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET`, and
+`INFLUXDB_TOKEN` using the existing configuration loader. Credentials stay on
+the server and are not accepted as request parameters or returned in responses.
+For a separately deployed API process, provide a token limited to reading the
+historical bucket as its `INFLUXDB_TOKEN`; the ingestion process still needs its
+own read/write token. No database writes or collection commands are exposed.
+
+List the configured targets for the current probe:
+
+```bash
+curl "http://127.0.0.1:8000/targets?probe_id=1017210"
+```
+
+```json
+{
+  "probe_id": 1017210,
+  "targets": [
+    {"measurement_id": 1001, "target_name": "K-root", "measurement_category": "built-in"},
+    {"measurement_id": 86206926, "target_name": "Google", "measurement_category": "well-known"}
+  ]
+}
+```
+
+This endpoint describes the collection catalog, not whether a particular
+period contains records; it does not query the database.
+
+Read the validated backfill interval (use `86206926` for Google):
+
+```bash
+curl --get "http://127.0.0.1:8000/ping" \
+  --data-urlencode "probe_id=1017210" \
+  --data-urlencode "measurement_id=1001" \
+  --data-urlencode "start=2026-08-26T02:03:41Z" \
+  --data-urlencode "stop=2026-10-10T19:13:27Z"
+```
+
+The JSON response has `probe_id`, `measurement_id`, `start`, `stop`, `count`,
+and `results`. The latter contains the same ordered individual records as
+`query_ping_results()`. Unavailable metrics remain `null`. The probe defaults
+to `1017210`; measurement, start, and stop are required. Only the current probe
+and configured ping measurements are supported.
+
+Use ISO 8601 timestamps with a timezone, with `start < stop`. Bounds are
+normalized to UTC and the interval is `[start, stop)`. A request may span at
+most 60 days, including the current backfill. Longer periods must be requested
+in separate intervals; this increment does not aggregate or paginate results.
+
+| Status | Meaning |
+|---|---|
+| `200` | Query succeeded, including an empty period (`count: 0`, `results: []`) |
+| `404` | Probe or measurement is not in the configured catalog |
+| `422` | Missing/invalid parameter, timezone, period order, or period over 60 days |
+| `503` | Database/configuration failure; response omits credentials and raw client errors |
+
+Real HTTP validation confirmed 8,195 K-root and 7,561 Google records in the
+backfill interval, matching counts and temporal bounds from the previous
+increment. It also confirmed an empty period returns `200` and a timestamp
+without timezone returns `422`.
+
+Run only the controlled HTTP tests, or run the complete suite:
+
+```bash
+python -m pytest -q tests/test_api.py
+python -m pytest -q
+```
+
+The HTTP tests replace the database query and configuration with controlled
+implementations; they do not access InfluxDB or read the real local secrets.
 
 ## Running the tests
 

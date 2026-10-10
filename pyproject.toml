@@ -9,14 +9,18 @@ description = "Data ingestion pipeline for results from RIPE Atlas probe 1017210
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.143,<1",
     "influxdb-client>=1.50,<2",
     "python-dotenv>=1.1,<2",
     "requests>=2.32,<3",
+    "uvicorn>=0.30,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "httpx2>=2.13,<3",
     "pytest>=8,<10",
+    "starlette>=1.7,<2",
 ]
 
 [tool.setuptools]
