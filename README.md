@@ -12,10 +12,16 @@ visualization in dashboards.
 
 ## Current status
 
-The Stage 2 pipeline supports one-off and continuous execution, while
-structured logging and support for additional measurements are still pending.
-A small Stage 3 integration has also begun to validate persistence. At this
-point, `fetch_results.py`:
+The local prototype ingests K-root and Google pings, stores their history in
+InfluxDB, and exposes it through a read-only HTTP API and React dashboard with
+period summaries and target comparison. Collection supports one-off execution,
+continuous polling, and resumable all-time backfill.
+
+Probe and measurement configuration remains fixed in Python. Only InfluxDB
+currently runs through Docker Compose; full-stack container distribution and
+reproduction in a fresh installation have not been validated.
+
+At this point, `fetch_results.py`:
 
 - queries the RIPE Atlas REST API v2;
 - retrieves a 15-minute initial history and later resumes from its checkpoint;
@@ -236,8 +242,18 @@ interrupted backfill is resumed.
 
 Do not run normal collection or polling concurrently with the backfill. A
 local lock prevents commands from this project from overlapping. If a process
-is forcibly terminated and leaves `data/state/pipeline.lock` behind, confirm
-that no pipeline process is running before removing that lock file manually.
+is forcibly terminated and leaves `data/state/pipeline.lock` behind, the next
+execution checks the recorded PID and recovers the lock only if that process
+has ended. A live PID (even if reused by an unrelated process), an invalid lock
+or an inconclusive process check blocks collection without deleting the lock.
+Manual removal is only appropriate after confirming no pipeline is running.
+
+A native OS lock on the auxiliary `data/state/pipeline.lock.guard` also prevents
+simultaneous recovery attempts. This auxiliary file stays on disk; its presence
+does not mean the pipeline is running. Do not delete it during execution. The
+OS releases its lock when the owning process ends, even after an abrupt exit.
+This uses the Python standard library on Windows and Unix; commands, checkpoints
+and collection behavior remain unchanged.
 
 The initial backfill is intended for a new empty bucket. The existing prototype
 bucket should be preserved until the complete load is validated.
