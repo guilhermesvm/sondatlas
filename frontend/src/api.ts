@@ -73,3 +73,52 @@ export function fetchHistory(
   })
   return readJson(`/api/ping?${params}`, signal)
 }
+
+export interface CountryCount {
+  country_code: string
+  probes: number
+  share_percent: number | null
+}
+
+export interface ProbeDistribution {
+  collection_id: string
+  started_at_utc: string
+  finished_at_utc: string
+  source: string
+  scope: string
+  total_probes: number
+  brazil: CountryCount
+  top_countries: CountryCount[]
+  duplicate_records: number
+  api_count_min: number | null
+  api_count_max: number | null
+  count_mismatch: boolean
+}
+
+export async function fetchDistribution(signal: AbortSignal, refresh = false): Promise<ProbeDistribution | null> {
+  const timeout = AbortSignal.timeout(240000)
+  const combined = AbortSignal.any([signal, timeout])
+  let response: Response
+  try {
+    response = await fetch(`/api/probe-distribution${refresh ? '/refresh' : ''}`, {
+      method: refresh ? 'POST' : 'GET', signal: combined,
+    })
+    if (!response.ok) {
+      const messages: Record<number, string> = {
+        404: 'A API em execução ainda não disponibiliza a distribuição global. Reinicie o backend para carregar as novas rotas.',
+        409: 'Já há uma coleta global em andamento ou seu bloqueio não pôde ser verificado. Aguarde e tente novamente.',
+        503: refresh ? 'A atualização falhou. A coleta anterior foi preservada. Tente novamente.' : 'Não foi possível ler a coleta salva. Tente novamente.',
+        504: 'A atualização excedeu o limite de tempo. A coleta anterior foi preservada. Tente novamente.',
+      }
+      throw new Error(messages[response.status] ?? 'Não foi possível consultar a distribuição. Tente novamente.')
+    }
+    const payload = await response.json() as { distribution: ProbeDistribution | null }
+    if (!('distribution' in payload) || (refresh && !payload.distribution)) throw new Error('A API retornou uma resposta inválida.')
+    return payload.distribution
+  } catch (error) {
+    if (signal.aborted) throw error
+    if (timeout.aborted) throw new Error('A API demorou demais para responder. Leia a coleta salva antes de tentar atualizar novamente; a coleta no backend pode ainda estar em andamento.')
+    if (error instanceof TypeError) throw new Error('Não foi possível acessar a API. Verifique o backend e tente novamente; a coleta anterior não foi substituída nesta tela.')
+    throw error
+  }
+}

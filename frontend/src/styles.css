@@ -47,6 +47,23 @@ input, select { min-width: 0; width: 100%; border: 1px solid #bccfd4; background
 .record-selector { display: flex; flex-direction: row; align-items: center; gap: 12px; width: 100%; max-width: 460px; margin-top: 4px; font-size: 13px; color: #526d78; }.record-selector span { flex-shrink: 0; }
 .record-selector input { flex: 1; min-width: 0; height: 24px; padding: 0; border: 0; accent-color: #65858c; background: transparent; }.record-selector input:focus-visible { accent-color: #127f78; }
 .reading-note { font-size: 13px; color: #526d78; margin: 10px 0; }
+.area-navigation { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid #dce6e8; padding-bottom: 8px; }
+.area-navigation button { background: transparent; border: 0; border-radius: 5px; padding: 8px 16px; color: #365460; }
+.area-navigation button[aria-pressed="true"] { background: #e1eeec; color: #0b6a64; font-weight: 600; }
+.distribution-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.distribution-heading h1 { margin-bottom: 0; }.distribution-heading .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.distribution-chart { margin-top: 16px; padding: 14px 18px; background: white; border: 1px solid #dce6e8; border-radius: 8px; }
+.distribution-chart h2, .distribution-heading + .result-count { margin-top: 0; }
+.country-bars { list-style: none; margin: 14px 0 0; padding: 0; }
+.country-bars li { display: grid; grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) 65px; gap: 12px; align-items: center; margin: 10px 0; font-size: 14px; }
+.country-name small { color: #526d78; }.country-count { text-align: right; font-variant-numeric: tabular-nums; }
+.bar-track { height: 22px; border-left: 1px solid #bccfd4; background: #f5f7f8; }.bar-track span { display: block; height: 100%; background: #7895a5; }
+.brazil .bar-track span { background: #127f78; }.brazil .country-name, .brazil .country-count { font-weight: 600; }
+.distribution-chart + .reading-note { margin-top: 12px; }
+@media (max-width: 650px) { .country-bars li { grid-template-columns: minmax(95px, 120px) minmax(0, 1fr) 50px; gap: 8px; }.distribution-chart { padding: 12px; } }
 .measurement-about { margin-top: 10px; }.measurement-about summary { font-size: 14px; padding: 6px 0; }.about-content { font-size: 14px; color: #365460; overflow-wrap: anywhere; }.about-content p { margin: 8px 0; }
 @media (max-width: 650px) {
   .summary-grid { grid-template-columns: 1fr; }.target-summary { padding: 12px; }

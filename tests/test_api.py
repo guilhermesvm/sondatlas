@@ -179,3 +179,65 @@ def test_api_has_no_write_routes(backend):
     client, _, _ = backend
     assert client.post("/ping", json=PARAMS).status_code == 405
     assert client.delete("/targets").status_code == 405
+
+
+def test_distribution_contract_and_failures_preserve_saved_data(backend, monkeypatch, tmp_path):
+    client, captured, _ = backend
+    study = api.probe_distribution
+    monkeypatch.setattr(study, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(study, "_run_collection", study._collect_summary)
+    assert client.get("/probe-distribution").json() == {"distribution": None}
+    data = {
+        "started_at_utc": "2026-10-11T12:00:00Z", "finished_at_utc": "2026-10-11T12:01:00Z",
+        "source": study.QUERY_URL, "pages": [{"response": {
+            "count": 1, "next": None, "results": [{"id": 1, "country_code": "BR", "asn_v4": None}],
+        }}],
+    }
+    monkeypatch.setattr(study, "fetch_snapshot", lambda deadline: data)
+    response = client.post("/probe-distribution/refresh")
+    assert response.status_code == 200
+    saved = response.json()
+    assert saved["distribution"]["total_probes"] == 1
+    assert "pages" not in saved["distribution"]
+    assert client.get("/probe-distribution").json() == saved
+    with study.execution_lock(tmp_path / ".refresh.lock"):
+        assert client.post("/probe-distribution/refresh").status_code == 409
+        assert client.get("/probe-distribution").json() == saved
+        assert client.get("/ping", params=PARAMS).status_code == 200
+    for exception, status in [(ValueError("private details"), 503), (TimeoutError("private details"), 504)]:
+        def fail(deadline):
+            raise exception
+        monkeypatch.setattr(study, "fetch_snapshot", fail)
+        response = client.post("/probe-distribution/refresh")
+        assert response.status_code == status
+        assert "private details" not in response.text
+        assert client.get("/probe-distribution").json() == saved
+    assert captured["query"]["measurement_id"] == 1001
+
+
+def test_distribution_refresh_does_not_block_ping_or_accept_concurrent_collection(backend, monkeypatch, tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    client, _, _ = backend
+    study = api.probe_distribution
+    monkeypatch.setattr(study, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(study, "_run_collection", study._collect_summary)
+    started, finish = Event(), Event()
+
+    def collect(deadline):
+        started.set()
+        assert finish.wait(5)
+        raise ValueError("controlled failure")
+
+    monkeypatch.setattr(study, "fetch_snapshot", collect)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        pending = executor.submit(client.post, "/probe-distribution/refresh")
+        try:
+            assert started.wait(5)
+            assert client.get("/ping", params=PARAMS).status_code == 200
+            assert client.get("/probe-distribution").json() == {"distribution": None}
+            assert client.post("/probe-distribution/refresh").status_code == 409
+        finally:
+            finish.set()
+        assert pending.result(timeout=5).status_code == 503

@@ -4,6 +4,9 @@ from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query
 
+import requests
+
+from ripe_atlas_tcc import probe_distribution
 from ripe_atlas_tcc.influxdb_queries import query_ping_results
 from ripe_atlas_tcc.settings import (
     PING_MEASUREMENTS,
@@ -16,7 +19,7 @@ logger = logging.getLogger(__name__)
 MAX_QUERY_DAYS = 60
 app = FastAPI(
     title="RIPE Atlas Ping History",
-    description="Read stored ping results for the configured probe and targets.",
+    description="Read stored ping results and manually refresh the public probe distribution. Local use only.",
     version="0.1.0",
 )
 
@@ -33,6 +36,44 @@ def get_targets(probe_id: Annotated[int, Query(gt=0)] = PROBE_ID):
         "probe_id": probe_id,
         "targets": [dict(measurement) for measurement in PING_MEASUREMENTS],
     }
+
+
+@app.get(
+    "/probe-distribution",
+    summary="Read the last successful local probe distribution (no external request)",
+    description="Returns an object with distribution: null when there is no saved collection, not a zero probe count. Otherwise distribution contains collection_id, UTC start/end times, source/scope, total_probes, Brazil count/share, top_countries, duplicate_records and API count consistency metadata. Raw probe pages are never returned.",
+    responses={503: {"description": "Saved collection cannot be read"}},
+)
+def get_probe_distribution():
+    try:
+        return {"distribution": probe_distribution.read_distribution()}
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        logger.warning("Saved probe distribution unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Saved probe distribution is unavailable") from None
+
+
+@app.post(
+    "/probe-distribution/refresh",
+    summary="Collect public connected probes and atomically replace the last summary",
+    description="Waits for collection and summary saving in a supervised temporary child process. A 180-second budget covers startup, downloads and summary persistence; on timeout the process is killed and awaited before releasing the separate local lock that prevents concurrent API refreshes. OS cleanup/publication adds overhead. Only successful summaries replace latest.json; failures preserve the previous summary. Does not generate raw snapshots, dated folders, SVG or Markdown. Does not write to InfluxDB.",
+    responses={
+        200: {"description": "Object with distribution containing the new saved summary, in the same format as GET /probe-distribution"},
+        409: {"description": "Another distribution collection is running (or its lock cannot be verified)"},
+        503: {"description": "Collection or persistence failed; previous collection is preserved"},
+        504: {"description": "Time budget exceeded; previous collection is preserved"},
+    },
+)
+def refresh_probe_distribution():
+    try:
+        return {"distribution": probe_distribution.refresh_distribution()}
+    except probe_distribution.DistributionBusy:
+        raise HTTPException(status_code=409, detail="Another probe distribution collection is running or its lock cannot be verified") from None
+    except (TimeoutError, requests.Timeout):
+        logger.warning("Probe distribution refresh timed out")
+        raise HTTPException(status_code=504, detail="Probe distribution refresh timed out; previous collection is preserved") from None
+    except (requests.RequestException, OSError, ValueError, KeyError, TypeError) as error:
+        logger.warning("Probe distribution refresh failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Probe distribution refresh failed; previous collection is preserved") from None
 
 
 @app.get(

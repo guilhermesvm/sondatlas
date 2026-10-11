@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { fetchHistory, fetchTargets, type Catalog, type PingHistory, type PingRecord } from './api'
 import { formatLocal, formatMetric, localInput, localPeriod, localTimeZone, quickPeriod, summarizePingResults } from './chart'
 import MetricChart from './MetricChart'
+import ProbeDistribution from './ProbeDistribution'
 
 function initialPeriod() {
   const stop = new Date()
@@ -12,6 +13,7 @@ function initialPeriod() {
 }
 
 export default function App() {
+  const [area, setArea] = useState<'probe' | 'global'>('probe')
   const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [target, setTarget] = useState('')
   const [period, setPeriod] = useState(initialPeriod)
@@ -88,6 +90,12 @@ export default function App() {
         <span className="header-label">RIPE Atlas · Projeto TCC</span>
       </div></header>
       <main>
+        <nav className="area-navigation" aria-label="Áreas do dashboard">
+          <button type="button" aria-pressed={area === 'probe'} onClick={() => setArea('probe')}>Minha probe</button>
+          <button type="button" aria-pressed={area === 'global'} onClick={() => setArea('global')}>Rede global</button>
+        </nav>
+        <ProbeDistribution active={area === 'global'} />
+        <div hidden={area !== 'probe'}>
         <h1>Explorador de ping</h1>
 
         <section className="filters" aria-label="Filtros do histórico">
@@ -161,6 +169,7 @@ export default function App() {
             <p>Ping não mede velocidade de download nem representa toda a Internet. Estes registros, isoladamente, não identificam causas nem constituem diagnóstico da conexão.</p>
           </div>
         </details>
+        </div>
       </main>
     </>
   )

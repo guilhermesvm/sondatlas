@@ -3,7 +3,9 @@ import { defineConfig } from 'vitest/config'
 
 const proxy = {
   '/api': {
-    target: 'http://127.0.0.1:8000',
+    target: process.env.RIPE_ATLAS_API_URL ?? 'http://127.0.0.1:8000',
+    timeout: 240000,
+    proxyTimeout: 240000,
     rewrite: (path: string) => path.replace(/^\/api/, ''),
   },
 }
