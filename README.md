@@ -13,9 +13,11 @@ visualization in dashboards.
 ## Current status
 
 The local prototype ingests K-root and Google pings, stores their history in
-InfluxDB, and exposes it through a read-only HTTP API and React dashboard with
+InfluxDB, and exposes it through a local HTTP API and React dashboard with
 period summaries and target comparison. Collection supports one-off execution,
 continuous polling, and resumable all-time backfill.
+The separate global view reads saved public probe distribution data and offers
+manual refresh; it never writes global probe metadata to InfluxDB.
 
 Probe and measurement configuration remains fixed in Python. Only InfluxDB
 currently runs through Docker Compose; full-stack container distribution and
@@ -75,7 +77,8 @@ src/ripe_atlas_tcc/
     json_storage.py         stores raw and normalized JSON files
     influxdb_storage.py     writes normalized points to InfluxDB
     influxdb_queries.py     reads ping history by probe, measurement, and period
-    api.py                  exposes read-only HTTP endpoints for ping history
+    api.py                  exposes ping reads and manual distribution refresh
+    probe_distribution.py  collects, aggregates and saves public probe metadata
     console_output.py       formats terminal output
 ```
 
@@ -294,7 +297,7 @@ The validated backfill interval above contains 8,195 K-root records and 7,561
 Google records for probe `1017210`. A small HTTP API exposes this query and
 the React dashboard lets users explore it.
 
-## Running the read-only HTTP API
+## Running the local HTTP API
 
 Update the editable installation to include the API and test dependencies:
 
@@ -318,7 +321,9 @@ The backend loads `INFLUXDB_URL`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET`, and
 the server and are not accepted as request parameters or returned in responses.
 For a separately deployed API process, provide a token limited to reading the
 historical bucket as its `INFLUXDB_TOKEN`; the ingestion process still needs its
-own read/write token. No database writes or collection commands are exposed.
+own read/write token. Ping routes remain read-only: no database writes or ping
+collection commands are exposed. The separate distribution refresh route
+queries public metadata and saves only the latest summary without credentials.
 
 List the configured targets for the current probe:
 
@@ -386,7 +391,9 @@ implementations; they do not access InfluxDB or read the real local secrets.
 
 The dashboard in `frontend/` uses React and TypeScript. It reads the existing
 API; it does not collect measurements or write to InfluxDB. Its first screen
-supports only the current probe and the K-root and Google pings.
+supports only the current probe and the K-root and Google pings in **Minha
+probe**. **Rede global** presents the saved distribution study with manual
+refresh, independently from the ping history.
 
 Keep InfluxDB running. In a terminal at the repository root, activate the
 Python environment and start the backend:
@@ -410,6 +417,12 @@ another process on the same port. Vite forwards `/api` requests to the local
 backend on port 8000. No database token or Flux query belongs in the frontend.
 The development server and API are bound to localhost; external hosting is
 outside this increment.
+
+Restart the API and Vite after updating this code so both load the new routes
+and proxy settings. For a separate validation instance, start the API on port
+8001, then run `RIPE_ATLAS_API_URL=http://127.0.0.1:8001 npm run dev -- --port 5174`
+in Git Bash from `frontend/`. This optional variable configures only Vite's
+server-side proxy and contains no credentials; normal startup still uses 8000.
 
 Choose a target and **Últimas 24 horas** (default), **Últimos 7 dias**, or
 **Período personalizado**, then click **Consultar**. Quick periods cover exactly
@@ -528,18 +541,24 @@ python -m pytest
 GitHub Actions also runs the test suite automatically after every push and for
 every pull request. Its workflow is defined in `.github/workflows/tests.yml`.
 
-## Removing collected JSON files
+## Removing collected files
 
-To remove all generated `.json` files from `data/raw/` and
-`data/normalized/`, run:
+To remove generated `.json` files from `data/raw/` and `data/normalized/`,
+the saved distribution summary and any remaining legacy dated collection
+folders under `data/probe-distribution/`, run:
 
 ```bash
 python scripts/cleanup_json.py
 ```
 
-This operation permanently removes the local raw and normalized JSON files.
+This operation permanently removes the local raw and normalized JSON files
+and any legacy distribution folders. It also removes
+`latest.json` and `latest.tmp`, so the global view returns to its no-collection
+state until you request a new refresh. Cleanup refuses to run during a
+distribution refresh and preserves its persistent `.refresh.lock.guard`.
 Archive any data required for later auditing before running it. The command
-does not remove `.gitkeep` files or the collection checkpoint in `data/state/`.
+does not remove `.gitkeep` files, the collection checkpoint in `data/state/`,
+or research evidence archived separately under `data/evidence/`.
 
 To leave the virtual environment:
 
@@ -558,3 +577,46 @@ Probe 1017210
     -> InfluxDB
     -> dashboard
 ```
+
+## Global probe distribution
+
+With the API and frontend running, open **Rede global** and click
+**Atualizar distribuição**. The view shows unique public connected probes,
+Brazil's count/share, the ten largest country counts plus Brazil, and the
+collection dates. Anchors are included; private and disconnected probes are not.
+The source is the [RIPE Atlas probe API](https://atlas.ripe.net/docs/apis/rest-api-manual/probes/listing-probes/).
+
+Opening the view only reads saved data. Refresh shows a spinner, keeps the
+previous collection visible, and replaces it only after successful collection
+and saving. Failures preserve previous data; concurrent refreshes are refused.
+The global view requires no InfluxDB, token or credits and does not affect ping
+collection or checkpoints. Duration depends on the API and network; the backend
+uses a 180-second collection budget, plus process cleanup/publication overhead.
+
+For direct API access:
+
+```bash
+curl http://127.0.0.1:8000/probe-distribution
+curl --max-time 240 -X POST http://127.0.0.1:8000/probe-distribution/refresh
+```
+
+No saved collection returns `200` with `distribution: null`. Refresh failures
+return `409` (busy), `503` (collection/storage failure) or `504` (timeout).
+See [local API documentation](http://127.0.0.1:8000/docs) for the full contract;
+check the API terminal for errors. After a browser timeout, read saved data before
+retrying, since the backend may still be collecting.
+
+The dashboard stores only `data/probe-distribution/latest.json`: counts, source,
+UTC dates and consistency metadata, matching the API response. A successful
+refresh replaces it atomically; failures preserve it. Refresh does not generate
+dated folders, raw snapshots, SVG or Markdown. React draws the chart.
+
+A selected raw collection is archived separately under
+`data/evidence/probe-distribution/` for research verification; it is not renewed
+on refresh or deleted by `python scripts/cleanup_json.py`. Keep this evidence
+with the code version used for the study. Cleanup removes the operational
+summary and raw/normalized ping JSONs, not InfluxDB data or checkpoints.
+
+This is a paginated observation over an interval, not an instantaneous census.
+Counts are not population-normalized and do not establish Internet quality,
+territorial coverage, participation causes or learning outcomes.

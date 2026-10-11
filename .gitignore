@@ -34,3 +34,10 @@ AGENTS.md
 node_modules/
 frontend/dist/
 frontend/coverage/
+
+# Generated probe distribution data
+data/probe-distribution/*
+!data/probe-distribution/.gitkeep
+
+# Manually archived research evidence
+data/evidence/
