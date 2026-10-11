@@ -105,9 +105,9 @@ export default function App() {
             </div>
             <button type="button" className="custom-toggle" aria-expanded={preset === 'custom'} disabled={loading} onClick={() => choosePreset(preset === 'custom' ? 1 : 'custom')}>Período personalizado</button>
             {preset === 'custom' && <div className="custom-period"><div className="custom-fields">
-              <label>Início (horário local)<input type="datetime-local" step="1" value={period.start} onChange={event => { setPeriod({ ...period, start: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} /></label>
-              <label>Fim (horário local)<input type="datetime-local" step="1" value={period.stop} onChange={event => { setPeriod({ ...period, stop: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} /></label>
-              </div><p className="filter-help">Até 60 dias, em horário local.</p>
+              <label>Início (horário local)<input type="text" placeholder="DD/MM/AAAA HH:mm:ss" aria-describedby="period-format" autoComplete="off" value={period.start} onChange={event => { setPeriod({ ...period, start: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} /></label>
+              <label>Fim (horário local)<input type="text" placeholder="DD/MM/AAAA HH:mm:ss" aria-describedby="period-format" autoComplete="off" value={period.stop} onChange={event => { setPeriod({ ...period, stop: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} /></label>
+              </div><p id="period-format" className="filter-help">DD/MM/AAAA HH:mm:ss · 24 horas · Segundos opcionais · Até 60 dias, em horário local.</p>
             </div>}
           </form>
         </section>

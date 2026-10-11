@@ -27,6 +27,44 @@ async function fillPeriod() {
   fireEvent.change(screen.getByLabelText('Fim (horário local)'), { target: { value: localInput(new Date('2026-10-10T19:13:27Z')) } })
 }
 
+it('keeps Brazilian input and queried bounds consistent for the reported ambiguous date', async () => {
+  const mock = mockApi(history([]))
+  render(<App />)
+  await fillPeriod()
+  const start = screen.getByLabelText('Início (horário local)')
+  const stop = screen.getByLabelText('Fim (horário local)')
+  for (const field of [start, stop]) {
+    expect(field).toHaveAttribute('type', 'text')
+    expect(field).toHaveAttribute('placeholder', 'DD/MM/AAAA HH:mm:ss')
+    expect(field).toHaveAccessibleDescription(expect.stringContaining('24 horas'))
+  }
+  fireEvent.change(start, { target: { value: '09/10/2026 00:00:00' } })
+  fireEvent.change(stop, { target: { value: '09/10/2026 18:00:00' } })
+  await userEvent.click(screen.getByRole('button', { name: /^Consultar$/ }))
+  await screen.findByRole('region', { name: 'Comparação dos pings do período' })
+  const summary = screen.getByRole('region', { name: 'Comparação dos pings do período' })
+  expect(summary).toHaveTextContent('09/10/2026, 00:00:00 GMT-3 → 09/10/2026, 18:00:00 GMT-3')
+  expect(summary).not.toHaveTextContent('10/09/2026')
+  expect(start).toHaveValue('09/10/2026 00:00:00')
+  expect(stop).toHaveValue('09/10/2026 18:00:00')
+  for (const [path] of mock.mock.calls.slice(1)) {
+    const params = new URL(path, 'http://localhost').searchParams
+    expect(params.get('start')).toBe('2026-10-09T03:00:00.000Z')
+    expect(params.get('stop')).toBe('2026-10-09T21:00:00.000Z')
+  }
+})
+
+it('reports invalid custom format before requesting either target', async () => {
+  const mock = mockApi()
+  render(<App />)
+  await fillPeriod()
+  fireEvent.change(screen.getByLabelText('Início (horário local)'), { target: { value: '2026-10-09T00:00:00' } })
+  await userEvent.click(screen.getByRole('button', { name: /^Consultar$/ }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Use DD/MM/AAAA HH:mm:ss')
+  expect(mock.mock.calls).toHaveLength(1)
+  expect(screen.queryByRole('region', { name: 'Comparação dos pings do período' })).not.toBeInTheDocument()
+})
+
 it('loads the catalog and queries both targets with identical UTC bounds', async () => {
   const mock = mockApi(history([ping(), ping({ timestamp: '2026-08-26T02:08:43Z', rtt_avg_ms: null, packet_loss_percent: null })]))
   render(<App />)
@@ -146,7 +184,7 @@ it('validates period order locally before querying ping', async () => {
   const mock = mockApi()
   render(<App />)
   await fillPeriod()
-  fireEvent.change(screen.getByLabelText('Fim (horário local)'), { target: { value: '2026-08-25T00:00:00' } })
+  fireEvent.change(screen.getByLabelText('Fim (horário local)'), { target: { value: '25/08/2026 00:00:00' } })
   await userEvent.click(screen.getByRole('button', { name: /^Consultar$/ }))
   expect(await screen.findByRole('alert')).toHaveTextContent('anterior ao fim')
   expect(mock.mock.calls.every(([path]) => path === '/api/targets')).toBe(true)

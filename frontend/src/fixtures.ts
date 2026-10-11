@@ -1,6 +1,5 @@
 import type { PingHistory, PingRecord } from './api'
 
-// Controlled test data. Production screens always read the HTTP API.
 export function ping(overrides: Partial<PingRecord> = {}): PingRecord {
   return {
     timestamp: '2026-08-26T02:04:43Z', probe_id: 1017210, measurement_id: 1001,

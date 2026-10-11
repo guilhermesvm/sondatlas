@@ -3,15 +3,12 @@ import type { PingRecord } from './api'
 export type Metric = 'rtt_avg_ms' | 'packet_loss_percent'
 export interface Point { time: number; value: number }
 
-// Descriptive statistics over stored rounds, not over individual packets.
-// Null metrics have separate denominators; never replace them with zero.
 export function summarizePingResults(records: readonly PingRecord[]) {
   const rtts = records.filter(record => record.rtt_avg_ms !== null && Number.isFinite(record.rtt_avg_ms))
   const sorted = rtts.map(record => record.rtt_avg_ms!).sort((a, b) => a - b)
   const middle = Math.floor(sorted.length / 2)
   const medianRtt = sorted.length === 0 ? null : sorted.length % 2
     ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
-  // If maxima tie, report the earliest observation (input need not be sorted).
   const peak = rtts.reduce<PingRecord | null>((best, record) => !best
     || record.rtt_avg_ms! > best.rtt_avg_ms!
     || (record.rtt_avg_ms === best.rtt_avg_ms && Date.parse(record.timestamp) < Date.parse(best.timestamp))
@@ -27,8 +24,6 @@ export function summarizePingResults(records: readonly PingRecord[]) {
   }
 }
 
-// The current pings nominally run every 240 seconds. A gap exceeding two
-// intervals breaks the line; no observations or zero values are invented.
 export const GAP_SECONDS = 480
 
 export function splitSeries(records: PingRecord[], metric: Metric): Point[][] {
@@ -53,19 +48,18 @@ export function splitSeries(records: PingRecord[], metric: Metric): Point[][] {
 
 export function localInput(value: Date): string {
   const pad = (number: number) => String(number).padStart(2, '0')
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
+  return `${pad(value.getDate())}/${pad(value.getMonth() + 1)}/${String(value.getFullYear()).padStart(4, '0')} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
 }
 
-// datetime-local has no offset: parse it as browser-local time, serialize UTC
-// only at the API boundary. Reject invalid dates and skipped DST wall times.
 export function localPeriod(start: string, stop: string): { start: string; stop: string } {
   if (!start || !stop) throw new Error('Informe o início e o fim do período.')
   const parse = (value: string) => {
-    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/.test(value)) throw new Error('Informe datas locais válidas.')
-    const date = new Date(value)
-    const wallTime = value.replace(/\.\d{1,3}$/, '')
-    if (!Number.isFinite(date.getTime()) || localInput(date) !== (wallTime.length === 16 ? `${wallTime}:00` : wallTime)) {
-      throw new Error('Este horário não existe no fuso local. Confira as datas.')
+    const parts = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?$/.exec(value.trim())
+    if (!parts) throw new Error('Use DD/MM/AAAA HH:mm:ss, em horário de 24 horas (segundos opcionais).')
+    const [, day, month, year, hour, minute, seconds = '00', fraction = ''] = parts
+    const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:${seconds}${fraction}`)
+    if (!Number.isFinite(date.getTime()) || localInput(date) !== `${day}/${month}/${year} ${hour}:${minute}:${seconds}`) {
+      throw new Error('Esta data ou horário não existe no fuso local. Confira os campos.')
     }
     return date
   }
@@ -88,8 +82,6 @@ export function localTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
-// Formatting only: never round stored observations or chart coordinates.
-// A small positive metric must not be displayed as a measured zero.
 export function formatMetric(value: number | null): string {
   if (value === null) return 'Indisponível'
   if (value > 0 && value < 0.1) return '<0,1'
@@ -100,12 +92,11 @@ export function formatLocal(value: string | number, detail = false): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', year: detail ? 'numeric' : undefined,
     hour: '2-digit', minute: '2-digit', second: detail ? '2-digit' : undefined,
+    hourCycle: 'h23',
     timeZoneName: detail ? 'shortOffset' : undefined,
   }).format(new Date(value))
 }
 
-// Select an actual stored observation, never an interpolated chart value.
-// Same-timestamp records remain accessible individually through the selector.
 export function nearestRecordIndex(records: PingRecord[], time: number): number {
   if (records.length === 0) return -1
   let low = 0

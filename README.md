@@ -436,7 +436,11 @@ these are period summaries, not paired or causal comparisons.
 
 The screen identifies the browser's timezone. Inputs, bounds, chart labels and
 observation details use that local timezone; API requests and stored timestamps
-remain UTC. Custom periods keep the API's 60-day limit and `[start, stop)`
+remain UTC. Custom inputs always use **DD/MM/YYYY HH:mm:ss**, with a 24-hour
+clock and optional seconds (default `00`); for example, **09/10/2026 18:00:00**
+means October 9, not September 10. Validated text fields replace the native
+datetime picker so the input format does not depend on the browser/OS locale.
+Custom periods keep the API's 60-day limit and `[start, stop)`
 semantics. Invalid dates and nonexistent local daylight-saving times are
 rejected. For an ambiguous repeated local time, JavaScript selects its first
 occurrence; observation details show the date-specific UTC offset.
@@ -472,7 +476,8 @@ npm run build
 
 Tests run with controlled responses and a local DOM implementation. They do
 not require the backend, InfluxDB, Chromium or a browser download. They cover
-periods and UTC conversion, querying targets, loading/retry/error states,
+Brazilian date input, 24-hour display, periods and UTC conversion, querying
+targets, loading/retry/error states,
 point inspection, median/maximum/loss summaries, identical target periods,
 display-only precision and the distinction between loss,
 unavailable metrics and empty periods. `npm run build` checks TypeScript and
@@ -486,8 +491,8 @@ For a manual visual check in your browser:
    and queried bounds. An empty recent period is possible without recent data.
 2. For the known backfill, choose custom bounds corresponding to
    `2026-08-26T02:03:41Z` through `2026-10-10T19:13:27Z` in your local timezone.
-   In `America/Sao_Paulo`, enter **2026-08-25 23:03:41** through
-   **2026-10-10 16:13:27**. Expected counts are 8,195 K-root and 7,561 Google
+   In `America/Sao_Paulo`, enter **25/08/2026 23:03:41** through
+   **10/10/2026 16:13:27**. Expected counts are 8,195 K-root and 7,561 Google
    records. Other browser timezones require different local input values.
    Compare both summaries; switch the destination to inspect its charts without
    querying again. For this fixed historical range, expected medians are about
