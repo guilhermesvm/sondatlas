@@ -41,3 +41,7 @@ data/probe-distribution/*
 
 # Manually archived research evidence
 data/evidence/
+
+# Estado local do Vagrant (contém a chave SSH privada da VM)
+.vagrant/
+CLAUDE.md

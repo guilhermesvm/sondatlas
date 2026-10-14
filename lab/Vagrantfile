@@ -1,0 +1,33 @@
+# VM Debian com a Software Probe oficial do RIPE Atlas.
+#
+#   vagrant up                    rede NAT (somente IPv4)
+#   LAB_BRIDGE=1 vagrant up       rede em bridge (IPv6, se a rede local oferecer)
+#
+# A probe é instalada, mas só é ativada depois do cadastro manual no site do RIPE.
+
+VM_NAME = "kit-ripe-atlas-probe"
+
+Vagrant.configure("2") do |config|
+  # Não há box oficial do Debian para VirtualBox; o Bento a constrói a partir da
+  # ISO oficial. Versão fixada para que todos partam do mesmo disco.
+  config.vm.box = "bento/debian-13"
+  config.vm.box_version = "202510.26.0"
+  config.vm.box_check_update = false
+
+  config.vm.hostname = VM_NAME
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  if ENV["LAB_BRIDGE"] == "1"
+    config.vm.network "public_network"
+  end
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = VM_NAME
+    vb.memory = 1024
+    vb.cpus = 1
+    # A box liga a tela remota (VRDE); a probe não precisa dela.
+    vb.customize ["modifyvm", :id, "--vrde", "off"]
+  end
+
+  config.vm.provision "shell", path: "provision-probe.sh"
+end
