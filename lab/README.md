@@ -34,7 +34,13 @@ vagrant ssh -c "sudo systemctl enable --now ripe-atlas"
 |---|---|
 | `vagrant ssh -c "sudo cat /etc/ripe-atlas/probe_key.pub"` | Mostra a chave de novo |
 | `vagrant halt` | Desliga a VM (a probe fica offline) |
+| `vagrant up` | Liga a VM de novo; a probe inicia sozinha |
+| `vagrant reload` | Reinicia a VM (desliga e liga) sem apagar nada |
 | `vagrant destroy -f` | Apaga a VM e a chave |
+
+Desligue sempre com `vagrant halt`. Fechar a janela do VirtualBox com
+"Salvar o estado" e retomar depois deixa a probe desconectada; nesse caso,
+use `vagrant reload`.
 
 ## Verificar a probe
 
@@ -55,25 +61,10 @@ Depois de reiniciar o computador, `vagrant up` religa a VM e a probe volta sozin
 Recriou a VM? A chave muda. Atualize-a na probe existente em
 *atlas.ripe.net → My Probes → Manage*, em vez de cadastrar outra probe.
 
-## Por que a box `bento/debian-13`?
-
-O Debian deixou de publicar boxes oficiais para VirtualBox por volta de
-janeiro de 2025 (consulta ao Vagrant Cloud em 2026-10-14). O RIPE Atlas
-publica pacotes para Debian 11, 12 e 13.
-
-| | `bento/debian-13` (usada) | `debian/bookworm64` (oficial) |
-|---|---|---|
-| Quem publica | Terceiro: projeto Bento (Progress Chef), receita pública a partir da ISO oficial | O próprio Debian |
-| Versão | Debian 13 — suporte até 2028, LTS até 2030 | Debian 12 — LTS até 30/06/2028 |
-| Box mais recente | out/2025 | jan/2025, sem novas versões para VirtualBox |
-| Contra | Confiar que a box corresponde à receita | Box cada vez mais defasada; mais atualização no `vagrant up` (não medido) |
-
-Debian 11 (`debian/bullseye64`) foi descartado: sem suporte de segurança desde
-31/08/2026. Em ambos os casos, o provisionamento atualiza o sistema com
-pacotes oficiais assinados do Debian.
-
 ## Observações
 
+- Box: `bento/debian-13`. O Debian não publica boxes oficiais para VirtualBox
+  desde 2025.
 - Rede padrão: NAT (somente IPv4). Para IPv6, use `LAB_BRIDGE=1 vagrant up`
   (no PowerShell: `$env:LAB_BRIDGE=1; vagrant up`). *Documentado, não testado.*
 - Windows com Hyper-V/WSL2/Docker Desktop: funciona, porém mais lento.
