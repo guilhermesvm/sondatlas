@@ -1,7 +1,8 @@
 # VM Debian com a Software Probe oficial do RIPE Atlas.
 #
-#   vagrant up                    rede NAT (somente IPv4)
-#   LAB_BRIDGE=1 vagrant up       rede em bridge (IPv6, se a rede local oferecer)
+# A VM entra na rede local em bridge (o Vagrant pergunta qual placa usar), para
+# a probe medir pelo mesmo caminho dos outros aparelhos da rede. A placa NAT
+# continua existindo só para o Vagrant gerenciar a VM.
 #
 # A probe é instalada, mas só é ativada depois do cadastro manual no site do RIPE.
 
@@ -17,9 +18,8 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = VM_NAME
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
-  if ENV["LAB_BRIDGE"] == "1"
-    config.vm.network "public_network"
-  end
+  # Sem "bridge:", o Vagrant lista as placas desta máquina e pergunta qual usar.
+  config.vm.network "public_network"
 
   config.vm.provider "virtualbox" do |vb|
     vb.name = VM_NAME
