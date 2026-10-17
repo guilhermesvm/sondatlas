@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# Instala a Software Probe oficial do RIPE Atlas no Debian da VM.
-# Segue o README de https://github.com/RIPE-NCC/ripe-atlas-software-probe.
-# Não habilita o serviço: a probe só deve iniciar após o cadastro manual.
+# Prepara a VM do kit: atualiza o Debian da box, coloca a rede na bridge e
+# fecha o acesso pela rede local. Só para a VM criada pelo Vagrant; em uma
+# máquina própria, use apenas install-probe.sh.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-REPO_PKG=ripe-atlas-repo_1.6-1_all.deb
-KEY=/etc/ripe-atlas/probe_key.pub
-
 passo() { echo "==> [$(date +%T)] $*"; }
 
-passo "Início"
+passo "Início da preparação da VM"
 
 # A box vem sem disco definido para o GRUB; sem isso, a atualização falha
 # em modo não interativo ("You must correct your GRUB install devices").
@@ -24,7 +21,6 @@ apt-get update -q
 # confdef/confold: manter, sem perguntar, arquivos de configuração já
 # alterados pelo kit (ex.: /etc/dhcpcd.conf) ao reprovisionar.
 apt-get full-upgrade -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
-apt-get install -y -q curl
 
 # Depois da atualização: /etc/dhcpcd.conf é arquivo de configuração do pacote
 # dhcpcd-base; editá-lo antes faria a atualização parar para perguntar.
@@ -81,48 +77,4 @@ passwd -l vagrant
 # rpcbind só serve a pastas NFS do Vagrant, desligadas neste kit.
 systemctl mask --now rpcbind.service rpcbind.socket
 
-if dpkg -s ripe-atlas-probe >/dev/null 2>&1; then
-  passo "Probe já instalada"
-else
-  passo "Baixando e conferindo o repositório oficial do RIPE Atlas"
-  cd /tmp
-  ARCH=$(dpkg --print-architecture)
-  CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
-  curl -fsSLO "https://ftp.ripe.net/ripe/atlas/software-probe/debian/dists/${CODENAME}/main/binary-${ARCH}/${REPO_PKG}"
-  curl -fsSL -o CHECKSUMS "https://github.com/RIPE-NCC/ripe-atlas-software-probe/releases/latest/download/CHECKSUMS"
-  if ! grep -q "$(sha256sum "$REPO_PKG")" CHECKSUMS; then
-    echo "ERRO: o checksum de $REPO_PKG não confere com o CHECKSUMS oficial." >&2
-    rm -f "$REPO_PKG" CHECKSUMS
-    exit 1
-  fi
-  dpkg -i "$REPO_PKG"
-  rm -f "$REPO_PKG" CHECKSUMS
-
-  passo "Instalando a probe"
-  apt-get update -q
-  apt-get install -y -q ripe-atlas-probe
-fi
-
-if [ ! -f "$KEY" ]; then
-  echo "ERRO: chave pública não encontrada em $KEY." >&2
-  exit 1
-fi
-
-passo "Fim"
-
-cat <<EOF
-
-------------------------------------------------------------
-Probe instalada, mas ainda NÃO ativada.
-
-1. Cadastre a probe com esta chave pública:
-     $(cat "$KEY")
-   em https://atlas.ripe.net/register/swprobe
-
-2. Depois do cadastro, ative a probe (na pasta lab/):
-     vagrant ssh -c "sudo systemctl enable --now ripe-atlas"
-
-Para ver a chave de novo:
-     vagrant ssh -c "sudo cat $KEY"
-------------------------------------------------------------
-EOF
+passo "Fim da preparação da VM"

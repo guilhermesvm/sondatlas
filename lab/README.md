@@ -1,13 +1,18 @@
 # Kit da probe RIPE Atlas
 
 Cria uma VM Debian com a Software Probe oficial do RIPE Atlas instalada.
+Quem já tem Debian ou Raspberry Pi OS pode instalar sem VM (veja abaixo).
 
 ## Pré-requisitos
 
-- Virtualização ativada na BIOS/UEFI
-- [VirtualBox](https://www.virtualbox.org/) 7.x
-- [Vagrant](https://developer.hashicorp.com/vagrant/install)
-- Cerca de 4 GB livres em disco
+| Item | Como conferir no Windows (PowerShell) | Como conferir no Linux |
+|---|---|---|
+| Virtualização ativada na BIOS/UEFI | `systeminfo`; em "Requisitos do Hyper-V", "Hipervisor detectado" ou virtualização habilitada no firmware | `grep -Ec '(vmx\|svm)' /proc/cpuinfo` maior que 0 indica CPU compatível; a BIOS ainda pode bloquear |
+| [VirtualBox](https://www.virtualbox.org/) 7.x | VirtualBox → Ajuda → Sobre (o `VBoxManage` costuma não estar no PATH) | `VBoxManage --version` |
+| [Vagrant](https://developer.hashicorp.com/vagrant/install) | `vagrant --version` | `vagrant --version` |
+| ~4 GB livres em disco | `Get-PSDrive C` (coluna *Free*) | `df -h ~` |
+
+Se a virtualização estiver desligada, o VirtualBox avisa ao tentar ligar a VM.
 
 ## Criar a VM
 
@@ -31,6 +36,23 @@ No fim, aparecem a **chave pública** e o link de cadastro.
 
 ```bash
 vagrant ssh -c "sudo systemctl enable --now ripe-atlas"
+```
+
+## Já tem Debian ou Raspberry Pi OS?
+
+Sem VM: Debian 11, 12 ou 13 (amd64) ou Debian / Raspberry Pi OS 12 ou 13
+(arm64, Raspberry Pi de 64 bits). *Raspberry Pi: documentado, não testado.*
+
+```bash
+git clone <URL deste repositório>
+sudo bash <pasta do repositório>/lab/install-probe.sh
+```
+
+O script só instala a probe oficial: não atualiza o sistema nem altera rede ou
+SSH. Cadastre a chave exibida e, depois do cadastro:
+
+```bash
+sudo systemctl enable --now ripe-atlas
 ```
 
 ## Outros comandos
