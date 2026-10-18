@@ -2,12 +2,17 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from ripe_atlas_tcc import pipeline
+from ripe_atlas_tcc import pipeline, probe_state
+
+
+PROBE_ID = 1017210
 
 
 @pytest.fixture(autouse=True)
 def isolate_execution_lock(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline, "EXECUTION_LOCK_PATH", tmp_path / "pipeline.lock")
+    monkeypatch.setattr(pipeline, "PROBE_STATE_PATH", tmp_path / "probe.json")
+    monkeypatch.setattr(pipeline, "load_selected_probe", lambda path: PROBE_ID)
 
 
 def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
@@ -37,6 +42,7 @@ def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
 
     available_at = pipeline.run_measurement_cycle(
         measurement=pipeline.PING_MEASUREMENTS[0],
+        probe_id=PROBE_ID,
         current_time=datetime(2026, 10, 2, 12, 20, tzinfo=timezone.utc),
     )
 
@@ -48,6 +54,41 @@ def test_main_does_not_collect_until_next_window_is_complete(monkeypatch):
         "target_name": "K-root",
     }
     assert available_at == captured["available_at"]
+
+
+def test_measurement_cycle_uses_given_probe_for_request_and_checkpoint(
+    monkeypatch,
+    tmp_path,
+):
+    other_probe_id = 1018246
+    window = (
+        datetime(2026, 10, 2, 12, 0, tzinfo=timezone.utc),
+        datetime(2026, 10, 2, 12, 15, tzinfo=timezone.utc),
+    )
+    state_path = tmp_path / "collection_state.json"
+    requested_probes = []
+
+    monkeypatch.setattr(pipeline, "COLLECTION_STATE_PATH", state_path)
+    monkeypatch.setattr(
+        pipeline, "calculate_collection_window", lambda **kwargs: window
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: requested_probes.append(kwargs["probe_id"]),
+    )
+
+    pipeline.run_measurement_cycle(
+        measurement=pipeline.PING_MEASUREMENTS[0],
+        probe_id=other_probe_id,
+        current_time=datetime(2026, 10, 2, 12, 20, tzinfo=timezone.utc),
+    )
+
+    assert requested_probes == [other_probe_id]
+    assert pipeline.load_last_successful_stop(
+        state_path, 1001, other_probe_id
+    ) == window[1]
+    assert pipeline.load_last_successful_stop(state_path, 1001, PROBE_ID) is None
 
 
 def test_main_does_not_advance_checkpoint_when_influxdb_write_fails(
@@ -121,6 +162,7 @@ def test_main_does_not_advance_checkpoint_when_influxdb_write_fails(
     with pytest.raises(RuntimeError, match="write failed"):
         pipeline.run_measurement_cycle(
             measurement=pipeline.PING_MEASUREMENTS[0],
+            probe_id=PROBE_ID,
             current_time=datetime.now(timezone.utc),
         )
 
@@ -133,17 +175,70 @@ def test_main_runs_one_cycle_by_default(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_collection_cycle",
-        lambda: events.append("cycle"),
+        lambda probe_id: events.append(("cycle", probe_id)),
     )
     monkeypatch.setattr(
         pipeline,
         "run_polling",
-        lambda: events.append("polling"),
+        lambda probe_id: events.append(("polling", probe_id)),
     )
 
     pipeline.main([])
 
-    assert events == ["cycle"]
+    assert events == [("cycle", PROBE_ID)]
+
+
+def test_main_without_selected_probe_stops_before_collecting(monkeypatch, capsys):
+    monkeypatch.setattr(pipeline, "load_selected_probe", lambda path: None)
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda probe_id: pytest.fail("Collection should not start"),
+    )
+
+    with pytest.raises(SystemExit):
+        pipeline.main([])
+
+    assert "No probe selected: run with --probe-id" in capsys.readouterr().err
+
+
+def test_probe_id_option_saves_probe_and_collects_it(monkeypatch):
+    events = []
+    monkeypatch.setattr(
+        pipeline,
+        "fetch_probe",
+        lambda probe_id: {"id": probe_id, "status": {"name": "Connected"}},
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda probe_id: events.append(probe_id),
+    )
+
+    pipeline.main(["--probe-id", "1018246"])
+
+    assert events == [1018246]
+    assert probe_state.load_selected_probe(
+        pipeline.PROBE_STATE_PATH
+    ) == 1018246
+
+
+def test_unknown_probe_is_not_saved(monkeypatch, capsys):
+    def probe_not_found(probe_id):
+        raise RuntimeError(f"Probe {probe_id} does not exist in RIPE Atlas")
+
+    monkeypatch.setattr(pipeline, "fetch_probe", probe_not_found)
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda probe_id: pytest.fail("Collection should not start"),
+    )
+
+    with pytest.raises(SystemExit):
+        pipeline.main(["--probe-id", "999999999"])
+
+    assert "Probe 999999999 does not exist" in capsys.readouterr().err
+    assert not pipeline.PROBE_STATE_PATH.exists()
 
 
 def test_collection_cycle_processes_each_catalog_measurement(monkeypatch):
@@ -152,7 +247,9 @@ def test_collection_cycle_processes_each_catalog_measurement(monkeypatch):
         2026, 10, 2, 12, 25, tzinfo=timezone.utc
     )
 
-    def fake_measurement_cycle(measurement, current_time, show_wait_message):
+    def fake_measurement_cycle(
+        measurement, probe_id, current_time, show_wait_message
+    ):
         captured.append(
             {
                 "measurement": measurement,
@@ -171,7 +268,7 @@ def test_collection_cycle_processes_each_catalog_measurement(monkeypatch):
     )
 
     waiting_windows = pipeline.run_collection_cycle(
-        show_wait_message=False
+        PROBE_ID, show_wait_message=False
     )
 
     assert [
@@ -188,17 +285,17 @@ def test_main_runs_polling_when_requested(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_collection_cycle",
-        lambda: events.append("cycle"),
+        lambda probe_id: events.append(("cycle", probe_id)),
     )
     monkeypatch.setattr(
         pipeline,
         "run_polling",
-        lambda: events.append("polling"),
+        lambda probe_id: events.append(("polling", probe_id)),
     )
 
     pipeline.main(["--poll"])
 
-    assert events == ["polling"]
+    assert events == [("polling", PROBE_ID)]
 
 
 def test_main_runs_all_time_backfill_when_requested(monkeypatch):
@@ -207,12 +304,12 @@ def test_main_runs_all_time_backfill_when_requested(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_all_time_backfill",
-        lambda: events.append("all-time"),
+        lambda probe_id: events.append(("all-time", probe_id)),
     )
 
     pipeline.main(["--all-time"])
 
-    assert events == ["all-time"]
+    assert events == [("all-time", PROBE_ID)]
 
 
 def test_main_rejects_poll_with_all_time():
@@ -233,8 +330,8 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_collection_cycle",
-        lambda **kwargs: (
-            events.append(("cycle", kwargs))
+        lambda probe_id, **kwargs: (
+            events.append(("cycle", probe_id, kwargs))
             or {
                 1001: available_at,
                 86206926: available_at,
@@ -266,11 +363,11 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
         lambda: events.append("stopped"),
     )
 
-    pipeline.run_polling()
+    pipeline.run_polling(PROBE_ID)
 
     assert events == [
         ("started", 30),
-        ("cycle", {"show_wait_message": False}),
+        ("cycle", PROBE_ID, {"show_wait_message": False}),
         (
             "waiting",
             {
@@ -288,7 +385,7 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
             },
         ),
         ("sleep", 30),
-        ("cycle", {"show_wait_message": False}),
+        ("cycle", PROBE_ID, {"show_wait_message": False}),
         ("sleep", 30),
         "stopped",
     ]
@@ -306,13 +403,13 @@ def test_run_polling_keeps_operational_errors_visible(monkeypatch):
         lambda seconds: None,
     )
 
-    def fail_collection(**kwargs):
+    def fail_collection(probe_id, **kwargs):
         raise RuntimeError("collection failed")
 
     monkeypatch.setattr(pipeline, "run_collection_cycle", fail_collection)
 
     with pytest.raises(RuntimeError, match="collection failed"):
-        pipeline.run_polling()
+        pipeline.run_polling(PROBE_ID)
 
 
 def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(
@@ -363,7 +460,7 @@ def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(
         pipeline, "print_backfill_completed", lambda *args: None
     )
 
-    pipeline.run_all_time_backfill(current_time=current_time)
+    pipeline.run_all_time_backfill(PROBE_ID, current_time=current_time)
 
     expected_windows = [
         (start_time, start_time + timedelta(days=1)),
@@ -403,7 +500,7 @@ def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(
         assert pipeline.load_last_successful_stop(
             collection_state_path,
             measurement["measurement_id"],
-            pipeline.PROBE_ID,
+            PROBE_ID,
         ) == expected_stop
 
 
@@ -415,7 +512,7 @@ def test_all_time_backfill_resumes_from_own_progress(monkeypatch, tmp_path):
     compact_summaries = []
     state = pipeline.create_backfill_state(
         state_path=backfill_state_path,
-        probe_id=pipeline.PROBE_ID,
+        probe_id=PROBE_ID,
         bucket="test-bucket",
         start_time=start_time,
         stop_time=stop_time,
@@ -464,7 +561,7 @@ def test_all_time_backfill_resumes_from_own_progress(monkeypatch, tmp_path):
         pipeline, "print_backfill_completed", lambda *args: None
     )
 
-    pipeline.run_all_time_backfill()
+    pipeline.run_all_time_backfill(PROBE_ID)
 
     assert [
         block["measurement"]["measurement_id"]
@@ -522,6 +619,7 @@ def test_failed_backfill_does_not_promote_operational_checkpoints(
 
     with pytest.raises(RuntimeError, match="write failed"):
         pipeline.run_all_time_backfill(
+            PROBE_ID,
             current_time=start_time + timedelta(days=1, minutes=5)
         )
 

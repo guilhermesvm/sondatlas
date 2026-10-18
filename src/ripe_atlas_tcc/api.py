@@ -8,9 +8,10 @@ import requests
 
 from ripe_atlas_tcc import probe_distribution
 from ripe_atlas_tcc.influxdb_queries import query_ping_results
+from ripe_atlas_tcc.probe_state import load_selected_probe
 from ripe_atlas_tcc.settings import (
     PING_MEASUREMENTS,
-    PROBE_ID,
+    PROBE_STATE_PATH,
     load_influxdb_config,
 )
 
@@ -24,14 +25,33 @@ app = FastAPI(
 )
 
 
-def validate_probe(probe_id):
-    if probe_id != PROBE_ID:
+def resolve_probe(probe_id):
+    """Return the selected probe; another requested probe is a 404."""
+    try:
+        selected_probe_id = load_selected_probe(PROBE_STATE_PATH)
+    except (OSError, ValueError, KeyError) as error:
+        logger.warning("Selected probe unavailable (%s)", type(error).__name__)
+        raise HTTPException(
+            status_code=503, detail="Selected probe is unavailable"
+        ) from None
+    if selected_probe_id is None:
+        raise HTTPException(status_code=404, detail="No probe selected")
+    if probe_id is not None and probe_id != selected_probe_id:
         raise HTTPException(status_code=404, detail="Probe is not configured")
+    return selected_probe_id
 
 
-@app.get("/targets", summary="List configured ping targets")
-def get_targets(probe_id: Annotated[int, Query(gt=0)] = PROBE_ID):
-    validate_probe(probe_id)
+@app.get(
+    "/targets",
+    summary="List configured ping targets",
+    responses={404: {"description": "No probe selected or another probe requested"}},
+)
+def get_targets(
+    probe_id: Annotated[
+        int | None, Query(gt=0, description="Defaults to the selected probe")
+    ] = None,
+):
+    probe_id = resolve_probe(probe_id)
     return {
         "probe_id": probe_id,
         "targets": [dict(measurement) for measurement in PING_MEASUREMENTS],
@@ -80,7 +100,7 @@ def refresh_probe_distribution():
     "/ping",
     summary="Read individual ping results in [start, stop)",
     responses={
-        404: {"description": "Probe or measurement is not configured"},
+        404: {"description": "No probe selected, or probe or measurement is not configured"},
         503: {"description": "Ping history cannot be read from the database"},
     },
 )
@@ -90,9 +110,11 @@ def get_ping(
     stop: Annotated[
         datetime, Query(description="Exclusive end with timezone (ISO 8601)")
     ],
-    probe_id: Annotated[int, Query(gt=0)] = PROBE_ID,
+    probe_id: Annotated[
+        int | None, Query(gt=0, description="Defaults to the selected probe")
+    ] = None,
 ):
-    validate_probe(probe_id)
+    probe_id = resolve_probe(probe_id)
     if measurement_id not in {
         measurement["measurement_id"] for measurement in PING_MEASUREMENTS
     }:

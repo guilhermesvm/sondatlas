@@ -40,6 +40,10 @@ def print_no_collection_interval(
     print("-" * 60)
 
 
+def print_probe_selected(probe_id, status_name):
+    print(f"Probe {probe_id} selecionada ({status_name}).\n")
+
+
 def print_polling_stopped():
     print("Polling encerrado pelo usuário.")
 

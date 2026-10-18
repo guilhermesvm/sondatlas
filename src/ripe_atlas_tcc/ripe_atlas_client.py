@@ -6,6 +6,17 @@ import requests
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
+def fetch_probe(probe_id):
+    response = requests.get(
+        f"https://atlas.ripe.net/api/v2/probes/{probe_id}/",
+        timeout=30,
+    )
+    if response.status_code == 404:
+        raise RuntimeError(f"Probe {probe_id} does not exist in RIPE Atlas")
+    response.raise_for_status()
+    return response.json()
+
+
 def fetch_probe_first_connected(probe_id):
     response = requests.get(
         f"https://atlas.ripe.net/api/v2/probes/{probe_id}/",

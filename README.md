@@ -7,7 +7,7 @@ Atlas Probe Data**.
 ## Initial goal
 
 Retrieve public results from the automatic measurements performed by RIPE
-Atlas probe `1017210` and prepare them for later storage in InfluxDB and
+Atlas probe `1017210` (the author's probe) and prepare them for later storage in InfluxDB and
 visualization in dashboards.
 
 ## Current status
@@ -19,7 +19,8 @@ continuous polling, and resumable all-time backfill.
 The separate global view reads saved public probe distribution data and offers
 manual refresh; it never writes global probe metadata to InfluxDB.
 
-Probe and measurement configuration remains fixed in Python. Only InfluxDB
+The probe is chosen by its public ID with `--probe-id` and saved locally; the
+K-root and Google measurement catalog remains fixed in Python. Only InfluxDB
 currently runs through Docker Compose; full-stack container distribution and
 reproduction in a fresh installation have not been validated.
 
@@ -34,7 +35,7 @@ At this point, `fetch_results.py`:
 - can repeat collection cycles at a configurable polling interval;
 - announces polling startup and each upcoming collection window once;
 - shuts down cleanly when interrupted with `Ctrl+C`;
-- filters results from probe `1017210`;
+- filters results from the selected probe;
 - collects K-root built-in measurement `1001` and Google well-known
   measurement `86206926`;
 - maintains an independent checkpoint for each measurement;
@@ -192,6 +193,20 @@ writing test data or displaying the token.
 
 ## Running the script
 
+On the first run, select your probe by its ID (listed at
+https://atlas.ripe.net/probes/mine). The ID is public, so it is not kept in
+`.env`:
+
+```bash
+python fetch_results.py --probe-id 1017210
+```
+
+The pipeline checks that the probe exists in RIPE Atlas, saves the ID in
+`data/state/probe.json` and runs the requested mode. Later runs use the saved
+probe; pass `--probe-id` again to change it. An unknown probe is rejected
+without changing the saved one, and without a saved probe the pipeline stops
+with a message asking for `--probe-id`.
+
 With the virtual environment active, run one collection cycle:
 
 ```bash
@@ -325,10 +340,10 @@ own read/write token. Ping routes remain read-only: no database writes or ping
 collection commands are exposed. The separate distribution refresh route
 queries public metadata and saves only the latest summary without credentials.
 
-List the configured targets for the current probe:
+List the configured targets for the selected probe:
 
 ```bash
-curl "http://127.0.0.1:8000/targets?probe_id=1017210"
+curl "http://127.0.0.1:8000/targets"
 ```
 
 ```json
@@ -357,8 +372,9 @@ curl --get "http://127.0.0.1:8000/ping" \
 The JSON response has `probe_id`, `measurement_id`, `start`, `stop`, `count`,
 and `results`. The latter contains the same ordered individual records as
 `query_ping_results()`. Unavailable metrics remain `null`. The probe defaults
-to `1017210`; measurement, start, and stop are required. Only the current probe
-and configured ping measurements are supported.
+to the one selected with `--probe-id`; measurement, start, and stop are
+required. Only the selected probe and configured ping measurements are
+supported: without a selected probe, or for another probe, the API returns `404`.
 
 Use ISO 8601 timestamps with a timezone, with `start < stop`. Bounds are
 normalized to UTC and the interval is `[start, stop)`. A request may span at
@@ -391,7 +407,7 @@ implementations; they do not access InfluxDB or read the real local secrets.
 
 The dashboard in `frontend/` uses React and TypeScript. It reads the existing
 API; it does not collect measurements or write to InfluxDB. Its first screen
-supports only the current probe and the K-root and Google pings in **Minha
+supports only the selected probe and the K-root and Google pings in **Minha
 probe**. **Rede global** presents the saved distribution study with manual
 refresh, independently from the ping history.
 

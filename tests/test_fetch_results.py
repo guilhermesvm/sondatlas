@@ -28,6 +28,23 @@ def test_fetch_probe_first_connected_returns_utc_datetime(monkeypatch):
     )
 
 
+def test_fetch_probe_reports_unknown_probe(monkeypatch):
+    class FakeResponse:
+        status_code = 404
+
+        def raise_for_status(self):
+            pytest.fail("404 must be reported as an unknown probe")
+
+    monkeypatch.setattr(
+        ripe_atlas_client.requests,
+        "get",
+        lambda url, timeout: FakeResponse(),
+    )
+
+    with pytest.raises(RuntimeError, match="Probe 999 does not exist"):
+        ripe_atlas_client.fetch_probe(999)
+
+
 def test_fetch_results_builds_request_and_returns_response(monkeypatch):
     expected_results = [
         {

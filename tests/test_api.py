@@ -32,6 +32,7 @@ def backend(monkeypatch):
 
     monkeypatch.setattr(api, "load_influxdb_config", load_config)
     monkeypatch.setattr(api, "query_ping_results", query)
+    monkeypatch.setattr(api, "load_selected_probe", lambda path: 1017210)
     with TestClient(api.app) as client:
         yield client, captured, config
 
@@ -145,6 +146,16 @@ def test_unconfigured_probe_or_measurement_returns_404(backend, path, overrides)
     client, captured, _ = backend
     response = client.get(path, params={**PARAMS, **overrides})
     assert response.status_code == 404
+    assert captured == {}
+
+
+@pytest.mark.parametrize("path", ["/targets", "/ping"])
+def test_no_selected_probe_returns_404(backend, monkeypatch, path):
+    client, captured, _ = backend
+    monkeypatch.setattr(api, "load_selected_probe", lambda path: None)
+    response = client.get(path, params=PARAMS)
+    assert response.status_code == 404
+    assert response.json() == {"detail": "No probe selected"}
     assert captured == {}
 
 

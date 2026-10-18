@@ -3,7 +3,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-PROBE_ID = 1017210
 PING_MEASUREMENTS = (
     {
         "measurement_id": 1001,
@@ -20,6 +19,7 @@ INITIAL_LOOKBACK_MINUTES = 15
 MIN_COLLECTION_INTERVAL_MINUTES = 5
 COLLECTION_DELAY_MINUTES = 5
 COLLECTION_STATE_PATH = Path("data/state/collection_state.json")
+PROBE_STATE_PATH = Path("data/state/probe.json")
 BACKFILL_STATE_PATH = Path("data/state/backfill_state.json")
 EXECUTION_LOCK_PATH = Path("data/state/pipeline.lock")
 BACKFILL_BLOCK_DAYS = 1

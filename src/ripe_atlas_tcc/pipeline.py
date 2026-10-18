@@ -24,6 +24,7 @@ from ripe_atlas_tcc.console_output import (
     print_ping_results,
     print_polling_started,
     print_polling_stopped,
+    print_probe_selected,
     print_run_summary,
 )
 from ripe_atlas_tcc.influxdb_storage import write_ping_results
@@ -33,7 +34,9 @@ from ripe_atlas_tcc.json_storage import (
     save_raw_results,
 )
 from ripe_atlas_tcc.normalization import normalize_ping_result
+from ripe_atlas_tcc.probe_state import load_selected_probe, save_selected_probe
 from ripe_atlas_tcc.ripe_atlas_client import (
+    fetch_probe,
     fetch_probe_first_connected,
     fetch_results,
 )
@@ -46,7 +49,7 @@ from ripe_atlas_tcc.settings import (
     INITIAL_LOOKBACK_MINUTES,
     MIN_COLLECTION_INTERVAL_MINUTES,
     PING_MEASUREMENTS,
-    PROBE_ID,
+    PROBE_STATE_PATH,
     RIPE_API_MAX_ATTEMPTS,
     RIPE_API_RETRY_BASE_DELAY_SECONDS,
     load_influxdb_config,
@@ -54,8 +57,16 @@ from ripe_atlas_tcc.settings import (
 )
 
 
+def select_probe(probe_id):
+    """Validate the probe in RIPE Atlas and save it for later runs."""
+    probe = fetch_probe(probe_id)
+    save_selected_probe(PROBE_STATE_PATH, probe_id)
+    return probe
+
+
 def persist_measurement_window(
     measurement,
+    probe_id,
     start_time,
     stop_time,
     influxdb_config=None,
@@ -67,7 +78,7 @@ def persist_measurement_window(
 
     results, request_url = fetch_results(
         measurement_id=measurement_id,
-        probe_id=PROBE_ID,
+        probe_id=probe_id,
         start_time=start_time,
         stop_time=stop_time,
         max_attempts=RIPE_API_MAX_ATTEMPTS,
@@ -77,7 +88,7 @@ def persist_measurement_window(
     raw_output_path = save_raw_results(
         results=results,
         measurement_id=measurement_id,
-        probe_id=PROBE_ID,
+        probe_id=probe_id,
         start_time=start_time,
         stop_time=stop_time,
         output_directory=Path("data/raw"),
@@ -95,7 +106,7 @@ def persist_measurement_window(
     normalized_output_path = save_normalized_results(
         results=normalized_results,
         measurement_id=measurement_id,
-        probe_id=PROBE_ID,
+        probe_id=probe_id,
         start_time=start_time,
         stop_time=stop_time,
         output_directory=Path("data/normalized"),
@@ -127,6 +138,7 @@ def persist_measurement_window(
 
 def run_measurement_cycle(
     measurement,
+    probe_id,
     current_time,
     show_wait_message=True,
 ):
@@ -135,7 +147,7 @@ def run_measurement_cycle(
     last_successful_stop = load_last_successful_stop(
         state_path=COLLECTION_STATE_PATH,
         measurement_id=measurement_id,
-        probe_id=PROBE_ID,
+        probe_id=probe_id,
     )
     collection_window = calculate_collection_window(
         current_time=current_time,
@@ -164,6 +176,7 @@ def run_measurement_cycle(
 
     persist_measurement_window(
         measurement=measurement,
+        probe_id=probe_id,
         start_time=start_time,
         stop_time=stop_time,
     )
@@ -171,17 +184,18 @@ def run_measurement_cycle(
     save_last_successful_stop(
         state_path=COLLECTION_STATE_PATH,
         measurement_id=measurement_id,
-        probe_id=PROBE_ID,
+        probe_id=probe_id,
         stop_time=stop_time,
     )
 
-def run_collection_cycle(show_wait_message=True):
+def run_collection_cycle(probe_id, show_wait_message=True):
     current_time = datetime.now(timezone.utc)
     waiting_windows = {}
 
     for measurement in PING_MEASUREMENTS:
         available_at = run_measurement_cycle(
             measurement=measurement,
+            probe_id=probe_id,
             current_time=current_time,
             show_wait_message=show_wait_message,
         )
@@ -191,7 +205,7 @@ def run_collection_cycle(show_wait_message=True):
     return waiting_windows
 
 
-def run_polling():
+def run_polling(probe_id):
     polling_interval_seconds = load_polling_interval_seconds()
     announced_windows = {}
 
@@ -199,7 +213,9 @@ def run_polling():
         print_polling_started(polling_interval_seconds)
 
         while True:
-            waiting_windows = run_collection_cycle(show_wait_message=False)
+            waiting_windows = run_collection_cycle(
+                probe_id, show_wait_message=False
+            )
 
             for measurement in PING_MEASUREMENTS:
                 measurement_id = measurement["measurement_id"]
@@ -221,12 +237,12 @@ def run_polling():
         print_polling_stopped()
 
 
-def run_all_time_backfill(current_time=None):
+def run_all_time_backfill(probe_id, current_time=None):
     influxdb_config = load_influxdb_config()
     state = load_backfill_state(BACKFILL_STATE_PATH)
 
     if state is None:
-        start_time = fetch_probe_first_connected(PROBE_ID)
+        start_time = fetch_probe_first_connected(probe_id)
         if current_time is None:
             current_time = datetime.now(timezone.utc)
         stop_time = (
@@ -238,7 +254,7 @@ def run_all_time_backfill(current_time=None):
 
         state = create_backfill_state(
             state_path=BACKFILL_STATE_PATH,
-            probe_id=PROBE_ID,
+            probe_id=probe_id,
             bucket=influxdb_config["bucket"],
             start_time=start_time,
             stop_time=stop_time,
@@ -248,7 +264,7 @@ def run_all_time_backfill(current_time=None):
             ),
         )
     else:
-        if state["probe_id"] != PROBE_ID:
+        if state["probe_id"] != probe_id:
             raise RuntimeError("Backfill state belongs to another probe")
         if state["bucket"] != influxdb_config["bucket"]:
             raise RuntimeError("Backfill state belongs to another bucket")
@@ -281,6 +297,7 @@ def run_all_time_backfill(current_time=None):
             ) + 1
             results_count, written_points = persist_measurement_window(
                 measurement=measurement,
+                probe_id=probe_id,
                 start_time=next_start,
                 stop_time=block_stop,
                 influxdb_config=influxdb_config,
@@ -307,12 +324,19 @@ def run_all_time_backfill(current_time=None):
     save_last_successful_stops(
         COLLECTION_STATE_PATH,
         [
-            (measurement["measurement_id"], PROBE_ID, stop_time)
+            (measurement["measurement_id"], probe_id, stop_time)
             for measurement in PING_MEASUREMENTS
         ],
     )
     mark_backfill_complete(BACKFILL_STATE_PATH, state)
     print_backfill_completed(stop_time)
+
+
+def positive_int(value):
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return number
 
 
 def main(arguments=None):
@@ -330,12 +354,29 @@ def main(arguments=None):
         action="store_true",
         help="initialize the database with all available ping history",
     )
+    parser.add_argument(
+        "--probe-id",
+        type=positive_int,
+        help="select your RIPE Atlas probe; it is saved for later runs",
+    )
     options = parser.parse_args(arguments)
+
+    try:
+        if options.probe_id is None:
+            probe_id = load_selected_probe(PROBE_STATE_PATH)
+        else:
+            probe = select_probe(options.probe_id)
+            probe_id = options.probe_id
+            print_probe_selected(probe_id, probe["status"]["name"])
+    except RuntimeError as error:
+        parser.error(str(error))
+    if probe_id is None:
+        parser.error("No probe selected: run with --probe-id <your probe ID>")
 
     with execution_lock(EXECUTION_LOCK_PATH):
         if options.poll:
-            run_polling()
+            run_polling(probe_id)
         elif options.all_time:
-            run_all_time_backfill()
+            run_all_time_backfill(probe_id)
         else:
-            run_collection_cycle()
+            run_collection_cycle(probe_id)
