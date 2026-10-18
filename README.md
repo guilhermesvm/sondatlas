@@ -201,11 +201,13 @@ https://atlas.ripe.net/probes/mine). The ID is public, so it is not kept in
 python fetch_results.py --probe-id 1017210
 ```
 
-The pipeline checks that the probe exists in RIPE Atlas, saves the ID in
-`data/state/probe.json` and runs the requested mode. Later runs use the saved
-probe; pass `--probe-id` again to change it. An unknown probe is rejected
-without changing the saved one, and without a saved probe the pipeline stops
-with a message asking for `--probe-id`.
+The pipeline checks that the probe exists in RIPE Atlas and saves the ID in
+`data/state/probe.json`. On its own, `--probe-id` only selects the probe; add
+`--poll` or `--all-time` to select and collect in one command. Later runs use
+the saved probe; run `--probe-id` again to change it, even while `--poll` is
+running in another terminal. An unknown probe is rejected without changing the
+saved one, and without a saved probe a single cycle or `--all-time` stops with
+a message asking for `--probe-id`.
 
 With the virtual environment active, run one collection cycle:
 
@@ -231,6 +233,10 @@ interval is available. The default polling interval is 60 seconds and can be
 changed with `POLLING_INTERVAL_SECONDS` in `.env`. Press `Ctrl+C` to stop
 polling. While waiting, the time from which the next complete window can be
 queried is printed only once instead of being repeated at every check.
+
+Polling reads the saved probe at every cycle. Without a selected probe it
+waits, printing the message once, and starts collecting as soon as a probe is
+selected; a probe change applies at the next cycle without a restart.
 
 ## Initializing all available history
 

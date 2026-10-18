@@ -44,6 +44,17 @@ def print_probe_selected(probe_id, status_name):
     print(f"Probe {probe_id} selecionada ({status_name}).\n")
 
 
+def print_polling_probe(probe_id):
+    print(f"Coletando a probe {probe_id}.")
+
+
+def print_waiting_for_probe():
+    print(
+        "Nenhuma probe selecionada. Aguardando: "
+        "rode fetch_results.py --probe-id <ID da sua probe>."
+    )
+
+
 def print_polling_stopped():
     print("Polling encerrado pelo usuário.")
 

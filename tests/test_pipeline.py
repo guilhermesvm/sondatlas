@@ -180,7 +180,7 @@ def test_main_runs_one_cycle_by_default(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_polling",
-        lambda probe_id: events.append(("polling", probe_id)),
+        lambda: events.append("polling"),
     )
 
     pipeline.main([])
@@ -202,8 +202,7 @@ def test_main_without_selected_probe_stops_before_collecting(monkeypatch, capsys
     assert "No probe selected: run with --probe-id" in capsys.readouterr().err
 
 
-def test_probe_id_option_saves_probe_and_collects_it(monkeypatch):
-    events = []
+def test_probe_id_alone_saves_probe_without_collecting(monkeypatch, tmp_path):
     monkeypatch.setattr(
         pipeline,
         "fetch_probe",
@@ -212,10 +211,31 @@ def test_probe_id_option_saves_probe_and_collects_it(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_collection_cycle",
-        lambda probe_id: events.append(probe_id),
+        lambda probe_id: pytest.fail("Selecting alone should not collect"),
     )
 
     pipeline.main(["--probe-id", "1018246"])
+
+    assert probe_state.load_selected_probe(
+        pipeline.PROBE_STATE_PATH
+    ) == 1018246
+    assert not (tmp_path / "pipeline.lock").exists()
+
+
+def test_probe_id_with_mode_saves_probe_and_runs_it(monkeypatch):
+    events = []
+    monkeypatch.setattr(
+        pipeline,
+        "fetch_probe",
+        lambda probe_id: {"id": probe_id, "status": {"name": "Connected"}},
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "run_all_time_backfill",
+        lambda probe_id: events.append(probe_id),
+    )
+
+    pipeline.main(["--probe-id", "1018246", "--all-time"])
 
     assert events == [1018246]
     assert probe_state.load_selected_probe(
@@ -290,12 +310,22 @@ def test_main_runs_polling_when_requested(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "run_polling",
-        lambda probe_id: events.append(("polling", probe_id)),
+        lambda: events.append("polling"),
     )
 
     pipeline.main(["--poll"])
 
-    assert events == [("polling", PROBE_ID)]
+    assert events == ["polling"]
+
+
+def test_main_polls_without_selected_probe(monkeypatch):
+    events = []
+    monkeypatch.setattr(pipeline, "load_selected_probe", lambda path: None)
+    monkeypatch.setattr(pipeline, "run_polling", lambda: events.append("polling"))
+
+    pipeline.main(["--poll"])
+
+    assert events == ["polling"]
 
 
 def test_main_runs_all_time_backfill_when_requested(monkeypatch):
@@ -362,11 +392,17 @@ def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
         "print_polling_stopped",
         lambda: events.append("stopped"),
     )
+    monkeypatch.setattr(
+        pipeline,
+        "print_polling_probe",
+        lambda probe_id: events.append(("probe", probe_id)),
+    )
 
-    pipeline.run_polling(PROBE_ID)
+    pipeline.run_polling()
 
     assert events == [
         ("started", 30),
+        ("probe", PROBE_ID),
         ("cycle", PROBE_ID, {"show_wait_message": False}),
         (
             "waiting",
@@ -409,7 +445,51 @@ def test_run_polling_keeps_operational_errors_visible(monkeypatch):
     monkeypatch.setattr(pipeline, "run_collection_cycle", fail_collection)
 
     with pytest.raises(RuntimeError, match="collection failed"):
-        pipeline.run_polling(PROBE_ID)
+        pipeline.run_polling()
+
+
+def test_run_polling_waits_for_probe_and_follows_probe_changes(monkeypatch):
+    events = []
+    selected = iter([None, None, PROBE_ID, 1018246])
+    sleep_count = 0
+
+    monkeypatch.setattr(pipeline, "load_polling_interval_seconds", lambda: 30)
+    monkeypatch.setattr(
+        pipeline, "load_selected_probe", lambda path: next(selected)
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "run_collection_cycle",
+        lambda probe_id, **kwargs: events.append(("cycle", probe_id)) or {},
+    )
+
+    def stop_after_four_cycles(seconds):
+        nonlocal sleep_count
+        sleep_count += 1
+        if sleep_count == 4:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(pipeline.time, "sleep", stop_after_four_cycles)
+    monkeypatch.setattr(pipeline, "print_polling_started", lambda seconds: None)
+    monkeypatch.setattr(pipeline, "print_polling_stopped", lambda: None)
+    monkeypatch.setattr(
+        pipeline, "print_waiting_for_probe", lambda: events.append("waiting")
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "print_polling_probe",
+        lambda probe_id: events.append(("probe", probe_id)),
+    )
+
+    pipeline.run_polling()
+
+    assert events == [
+        "waiting",
+        ("probe", PROBE_ID),
+        ("cycle", PROBE_ID),
+        ("probe", 1018246),
+        ("cycle", 1018246),
+    ]
 
 
 def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(

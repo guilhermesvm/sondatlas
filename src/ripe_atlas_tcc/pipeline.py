@@ -22,10 +22,12 @@ from ripe_atlas_tcc.console_output import (
     print_backfill_started,
     print_no_collection_interval,
     print_ping_results,
+    print_polling_probe,
     print_polling_started,
     print_polling_stopped,
     print_probe_selected,
     print_run_summary,
+    print_waiting_for_probe,
 )
 from ripe_atlas_tcc.influxdb_storage import write_ping_results
 from ripe_atlas_tcc.execution_lock import execution_lock
@@ -205,14 +207,28 @@ def run_collection_cycle(probe_id, show_wait_message=True):
     return waiting_windows
 
 
-def run_polling(probe_id):
+def run_polling():
     polling_interval_seconds = load_polling_interval_seconds()
     announced_windows = {}
+    announced_probe_id = object()
 
     try:
         print_polling_started(polling_interval_seconds)
 
         while True:
+            probe_id = load_selected_probe(PROBE_STATE_PATH)
+            if probe_id != announced_probe_id:
+                if probe_id is None:
+                    print_waiting_for_probe()
+                else:
+                    print_polling_probe(probe_id)
+                announced_probe_id = probe_id
+                announced_windows = {}
+
+            if probe_id is None:
+                time.sleep(polling_interval_seconds)
+                continue
+
             waiting_windows = run_collection_cycle(
                 probe_id, show_wait_message=False
             )
@@ -357,7 +373,10 @@ def main(arguments=None):
     parser.add_argument(
         "--probe-id",
         type=positive_int,
-        help="select your RIPE Atlas probe; it is saved for later runs",
+        help=(
+            "select your RIPE Atlas probe and save it for later runs; "
+            "alone it only selects, with --poll or --all-time it also collects"
+        ),
     )
     options = parser.parse_args(arguments)
 
@@ -370,12 +389,14 @@ def main(arguments=None):
             print_probe_selected(probe_id, probe["status"]["name"])
     except RuntimeError as error:
         parser.error(str(error))
-    if probe_id is None:
+    if options.probe_id is not None and not (options.poll or options.all_time):
+        return
+    if probe_id is None and not options.poll:
         parser.error("No probe selected: run with --probe-id <your probe ID>")
 
     with execution_lock(EXECUTION_LOCK_PATH):
         if options.poll:
-            run_polling(probe_id)
+            run_polling()
         elif options.all_time:
             run_all_time_backfill(probe_id)
         else:
