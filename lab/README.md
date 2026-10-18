@@ -105,3 +105,7 @@ Recriou a VM? A chave muda. Atualize-a na probe existente em
 - IPv6: depende da sua rede oferecer. *Não testado.*
 - Windows com Hyper-V/WSL2/Docker Desktop: funciona, porém mais lento.
 - A probe só fica online com a VM ligada; prefira uma máquina sempre ligada.
+- A probe usa só a placa escolhida. Se você deixar de usar essa rede (por
+  exemplo, desligar o Wi-Fi e passar para o cabo), ela fica desconectada até a
+  rede voltar ou até você trocar a placa (veja "Escolheu a placa errada?").
+  Depois de reconectar, os dados podem levar cerca de meia hora para aparecer.
