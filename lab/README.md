@@ -24,8 +24,13 @@ vagrant up
 
 O Vagrant pergunta qual placa de rede usar. Escolha a que você usa para
 acessar a internet (Wi-Fi ou cabo). **Não** escolha `Hyper-V Virtual Ethernet
-Adapter`, `vEthernet` ou `VirtualBox Host-Only`. A pergunta se repete a cada
-`vagrant up` e `vagrant reload`.
+Adapter`, `vEthernet` ou `VirtualBox Host-Only`. A escolha fica salva na VM e
+não é perguntada de novo; só volta a ser perguntada depois de `vagrant destroy`
+ou se a placa deixar de existir.
+
+Escolheu a placa errada? Rode `vagrant halt`. No VirtualBox, abra
+**Configurações → Rede → Adaptador 2** da VM `kit-ripe-atlas-probe`, troque o
+**Nome** pela placa certa e salve. Depois rode `vagrant up --provision`.
 
 No fim, aparecem a **chave pública** e o link de cadastro.
 
@@ -63,7 +68,7 @@ sudo systemctl enable --now ripe-atlas
 | `vagrant halt` | Desliga a VM (a probe fica offline) |
 | `vagrant up` | Liga a VM de novo; a probe inicia sozinha |
 | `vagrant reload` | Reinicia a VM (desliga e liga) sem apagar nada |
-| `vagrant reload --provision` | Reinicia e reaplica a configuração (use se escolheu a placa errada) |
+| `vagrant reload --provision` | Reinicia e reaplica a configuração |
 | `vagrant destroy -f` | Apaga a VM e a chave |
 
 Desligue sempre com `vagrant halt`. Fechar a janela do VirtualBox com

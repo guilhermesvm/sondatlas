@@ -57,8 +57,10 @@ done
 if ! ip route show default | grep -q "dev eth1"; then
   cat >&2 <<'EOF'
 ERRO: a placa escolhida não deu acesso à rede (sem rota pela bridge).
-Rode "vagrant reload --provision" e escolha a placa que você usa para
-acessar a internet (Wi-Fi ou cabo), não "Hyper-V", "vEthernet" ou "Host-Only".
+Use a placa que você usa para acessar a internet (Wi-Fi ou cabo), não
+"Hyper-V", "vEthernet" ou "Host-Only": rode "vagrant halt", troque a placa em
+VirtualBox > Configurações > Rede > Adaptador 2 e rode "vagrant up --provision"
+(veja "Escolheu a placa errada?" no README do lab/).
 EOF
   exit 1
 fi
