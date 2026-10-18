@@ -240,8 +240,10 @@ selected; a probe change applies at the next cycle without a restart.
 
 ## Initializing all available history
 
-Use the manual `--all-time` mode to initialize an empty bucket with the
-available K-root and Google history since the probe first connected:
+Use the manual `--all-time` mode to load the available history of the
+measurements in the catalog (currently the K-root and Google pings) for the
+selected probe since it first connected. It never runs
+automatically; normal collection starts from the moment the probe is selected:
 
 ```bash
 python fetch_results.py --all-time
@@ -254,10 +256,14 @@ python -m ripe_atlas_tcc --all-time
 ```
 
 The command fixes one safe end time when it starts and processes each
-measurement in daily blocks. Progress is stored separately in
-`data/state/backfill_state.json`, so an interrupted execution can resume from
-its last completed block. Operational checkpoints are updated only after the
-entire backfill succeeds.
+measurement in daily blocks. Progress is stored per probe in
+`data/state/backfill/probe-<ID>.json`, so an interrupted execution can resume
+from its last completed block and each probe has its own backfill. Operational
+checkpoints are updated only after the entire backfill succeeds. A completed
+backfill is not repeated, and a probe that has never connected has no history
+to load; both cases end with a message and collect nothing. A state file from
+before per-probe backfills (`data/state/backfill_state.json`) is moved to its
+probe's path on the next `--all-time` run.
 
 During the load, the terminal prints one compact line per block with the
 target, overall block number, date interval, results found, and points written.
@@ -279,8 +285,8 @@ OS releases its lock when the owning process ends, even after an abrupt exit.
 This uses the Python standard library on Windows and Unix; commands, checkpoints
 and collection behavior remain unchanged.
 
-The initial backfill is intended for a new empty bucket. The existing prototype
-bucket should be preserved until the complete load is validated.
+Points from different probes share the bucket and are separated by the
+`probe_id` tag.
 
 ## Reading stored ping history
 

@@ -24,6 +24,8 @@ def fetch_probe_first_connected(probe_id):
     )
     response.raise_for_status()
     first_connected = response.json()["first_connected"]
+    if first_connected is None:
+        return None
     return datetime.fromtimestamp(first_connected, tz=timezone.utc)
 
 

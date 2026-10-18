@@ -28,6 +28,25 @@ def test_fetch_probe_first_connected_returns_utc_datetime(monkeypatch):
     )
 
 
+def test_fetch_probe_first_connected_is_none_for_never_connected_probe(
+    monkeypatch,
+):
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"first_connected": None}
+
+    monkeypatch.setattr(
+        ripe_atlas_client.requests,
+        "get",
+        lambda url, timeout: FakeResponse(),
+    )
+
+    assert ripe_atlas_client.fetch_probe_first_connected(1018246) is None
+
+
 def test_fetch_probe_reports_unknown_probe(monkeypatch):
     class FakeResponse:
         status_code = 404

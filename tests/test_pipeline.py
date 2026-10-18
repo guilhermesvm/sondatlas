@@ -12,6 +12,10 @@ PROBE_ID = 1017210
 def isolate_execution_lock(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline, "EXECUTION_LOCK_PATH", tmp_path / "pipeline.lock")
     monkeypatch.setattr(pipeline, "PROBE_STATE_PATH", tmp_path / "probe.json")
+    monkeypatch.setattr(pipeline, "BACKFILL_STATE_DIRECTORY", tmp_path / "backfill")
+    monkeypatch.setattr(
+        pipeline, "LEGACY_BACKFILL_STATE_PATH", tmp_path / "backfill_state.json"
+    )
     monkeypatch.setattr(pipeline, "load_selected_probe", lambda path: PROBE_ID)
 
 
@@ -499,14 +503,13 @@ def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(
     start_time = datetime(2026, 8, 26, tzinfo=timezone.utc)
     current_time = datetime(2026, 8, 28, 12, 5, tzinfo=timezone.utc)
     expected_stop = datetime(2026, 8, 28, 12, 0, tzinfo=timezone.utc)
-    backfill_state_path = tmp_path / "backfill_state.json"
+    backfill_state_path = pipeline.backfill_state_path(
+        tmp_path / "backfill", PROBE_ID
+    )
     collection_state_path = tmp_path / "collection_state.json"
     captured_blocks = []
     compact_summaries = []
 
-    monkeypatch.setattr(
-        pipeline, "BACKFILL_STATE_PATH", backfill_state_path
-    )
     monkeypatch.setattr(
         pipeline, "COLLECTION_STATE_PATH", collection_state_path
     )
@@ -587,7 +590,9 @@ def test_all_time_backfill_uses_fixed_daily_blocks_and_promotes_checkpoints(
 def test_all_time_backfill_resumes_from_own_progress(monkeypatch, tmp_path):
     start_time = datetime(2026, 8, 26, tzinfo=timezone.utc)
     stop_time = datetime(2026, 8, 28, tzinfo=timezone.utc)
-    backfill_state_path = tmp_path / "backfill_state.json"
+    backfill_state_path = pipeline.backfill_state_path(
+        tmp_path / "backfill", PROBE_ID
+    )
     captured_blocks = []
     compact_summaries = []
     state = pipeline.create_backfill_state(
@@ -605,9 +610,6 @@ def test_all_time_backfill_resumes_from_own_progress(monkeypatch, tmp_path):
         start_time + timedelta(days=1),
     )
 
-    monkeypatch.setattr(
-        pipeline, "BACKFILL_STATE_PATH", backfill_state_path
-    )
     monkeypatch.setattr(
         pipeline, "COLLECTION_STATE_PATH", tmp_path / "collection_state.json"
     )
@@ -666,12 +668,11 @@ def test_failed_backfill_does_not_promote_operational_checkpoints(
     tmp_path,
 ):
     start_time = datetime(2026, 8, 26, tzinfo=timezone.utc)
-    backfill_state_path = tmp_path / "backfill_state.json"
+    backfill_state_path = pipeline.backfill_state_path(
+        tmp_path / "backfill", PROBE_ID
+    )
     collection_state_path = tmp_path / "collection_state.json"
 
-    monkeypatch.setattr(
-        pipeline, "BACKFILL_STATE_PATH", backfill_state_path
-    )
     monkeypatch.setattr(
         pipeline, "COLLECTION_STATE_PATH", collection_state_path
     )
@@ -709,3 +710,115 @@ def test_failed_backfill_does_not_promote_operational_checkpoints(
     assert state["measurements"]["1001"]["next_start"] == (
         start_time.isoformat()
     )
+
+
+def complete_backfill_state(state_path, probe_id):
+    state = pipeline.create_backfill_state(
+        state_path=state_path,
+        probe_id=probe_id,
+        bucket="test-bucket",
+        start_time=datetime(2026, 8, 26, tzinfo=timezone.utc),
+        stop_time=datetime(2026, 8, 28, tzinfo=timezone.utc),
+        measurement_ids=(1001, 86206926),
+    )
+    pipeline.mark_backfill_complete(state_path, state)
+
+
+def test_completed_backfill_is_not_collected_again(monkeypatch, tmp_path):
+    complete_backfill_state(
+        pipeline.backfill_state_path(tmp_path / "backfill", PROBE_ID), PROBE_ID
+    )
+    events = []
+    monkeypatch.setattr(
+        pipeline, "print_backfill_already_complete", events.append
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: pytest.fail("Completed backfill should not collect"),
+    )
+
+    pipeline.run_all_time_backfill(PROBE_ID)
+
+    assert events == [PROBE_ID]
+
+
+def test_legacy_backfill_state_moves_to_its_own_probe(monkeypatch, tmp_path):
+    legacy_path = tmp_path / "backfill_state.json"
+    complete_backfill_state(legacy_path, PROBE_ID)
+    monkeypatch.setattr(
+        pipeline, "print_backfill_already_complete", lambda probe_id: None
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: pytest.fail("Migrated backfill should stay complete"),
+    )
+
+    pipeline.run_all_time_backfill(PROBE_ID)
+
+    assert not legacy_path.exists()
+    assert pipeline.load_backfill_state(
+        pipeline.backfill_state_path(tmp_path / "backfill", PROBE_ID)
+    )["status"] == "complete"
+
+
+def test_probe_without_history_is_not_backfilled(monkeypatch, tmp_path):
+    events = []
+    monkeypatch.setattr(
+        pipeline,
+        "load_influxdb_config",
+        lambda: {"url": "t", "token": "t", "org": "t", "bucket": "test-bucket"},
+    )
+    monkeypatch.setattr(
+        pipeline, "fetch_probe_first_connected", lambda probe_id: None
+    )
+    monkeypatch.setattr(pipeline, "print_backfill_no_history", events.append)
+
+    pipeline.run_all_time_backfill(1018246)
+
+    assert events == [1018246]
+    assert not (tmp_path / "backfill").exists()
+
+
+def test_each_probe_has_its_own_backfill_state(monkeypatch, tmp_path):
+    complete_backfill_state(
+        pipeline.backfill_state_path(tmp_path / "backfill", PROBE_ID), PROBE_ID
+    )
+    other_probe_id = 1018246
+    start_time = datetime(2026, 10, 14, tzinfo=timezone.utc)
+    collected_probes = set()
+    monkeypatch.setattr(
+        pipeline, "COLLECTION_STATE_PATH", tmp_path / "collection_state.json"
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "load_influxdb_config",
+        lambda: {"url": "t", "token": "t", "org": "t", "bucket": "test-bucket"},
+    )
+    monkeypatch.setattr(
+        pipeline, "fetch_probe_first_connected", lambda probe_id: start_time
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "persist_measurement_window",
+        lambda **kwargs: (collected_probes.add(kwargs["probe_id"]) or (1, 1)),
+    )
+    monkeypatch.setattr(pipeline, "print_backfill_started", lambda *args: None)
+    monkeypatch.setattr(pipeline, "print_backfill_block", lambda **kwargs: None)
+    monkeypatch.setattr(
+        pipeline, "print_backfill_completed", lambda *args: None
+    )
+
+    pipeline.run_all_time_backfill(
+        other_probe_id,
+        current_time=start_time + timedelta(days=1, minutes=5),
+    )
+
+    assert collected_probes == {other_probe_id}
+    assert pipeline.load_backfill_state(
+        pipeline.backfill_state_path(tmp_path / "backfill", other_probe_id)
+    )["status"] == "complete"
+    assert pipeline.load_backfill_state(
+        pipeline.backfill_state_path(tmp_path / "backfill", PROBE_ID)
+    )["probe_id"] == PROBE_ID

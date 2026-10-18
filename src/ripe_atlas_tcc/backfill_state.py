@@ -4,6 +4,23 @@ from datetime import timezone
 STATE_VERSION = 1
 
 
+def backfill_state_path(state_directory, probe_id):
+    return state_directory / f"probe-{probe_id}.json"
+
+
+def migrate_legacy_backfill_state(legacy_path, state_directory):
+    if not legacy_path.exists():
+        return
+
+    state = load_backfill_state(legacy_path)
+    target_path = backfill_state_path(state_directory, state["probe_id"])
+    if target_path.exists():
+        return
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path.replace(target_path)
+
+
 def save_backfill_state(state_path, state):
     state_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = state_path.with_name(f".{state_path.name}.tmp")

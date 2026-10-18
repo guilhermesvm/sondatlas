@@ -66,6 +66,17 @@ def print_polling_started(interval_seconds):
     )
 
 
+def print_backfill_already_complete(probe_id):
+    print(f"O backfill da probe {probe_id} já foi concluído; nada a coletar.")
+
+
+def print_backfill_no_history(probe_id):
+    print(
+        f"A probe {probe_id} ainda não se conectou ao RIPE Atlas; "
+        "não há histórico para buscar."
+    )
+
+
 def print_backfill_started(start_time, stop_time):
     print(
         "Backfill all-time iniciado: "

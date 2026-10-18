@@ -5,9 +5,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ripe_atlas_tcc.backfill_state import (
+    backfill_state_path,
     create_backfill_state,
     load_backfill_state,
     mark_backfill_complete,
+    migrate_legacy_backfill_state,
     save_backfill_progress,
 )
 from ripe_atlas_tcc.collection_state import (
@@ -17,8 +19,10 @@ from ripe_atlas_tcc.collection_state import (
     save_last_successful_stops,
 )
 from ripe_atlas_tcc.console_output import (
+    print_backfill_already_complete,
     print_backfill_completed,
     print_backfill_block,
+    print_backfill_no_history,
     print_backfill_started,
     print_no_collection_interval,
     print_ping_results,
@@ -44,11 +48,12 @@ from ripe_atlas_tcc.ripe_atlas_client import (
 )
 from ripe_atlas_tcc.settings import (
     BACKFILL_BLOCK_DAYS,
-    BACKFILL_STATE_PATH,
+    BACKFILL_STATE_DIRECTORY,
     COLLECTION_DELAY_MINUTES,
     COLLECTION_STATE_PATH,
     EXECUTION_LOCK_PATH,
     INITIAL_LOOKBACK_MINUTES,
+    LEGACY_BACKFILL_STATE_PATH,
     MIN_COLLECTION_INTERVAL_MINUTES,
     PING_MEASUREMENTS,
     PROBE_STATE_PATH,
@@ -254,11 +259,22 @@ def run_polling():
 
 
 def run_all_time_backfill(probe_id, current_time=None):
+    migrate_legacy_backfill_state(
+        LEGACY_BACKFILL_STATE_PATH, BACKFILL_STATE_DIRECTORY
+    )
+    state_path = backfill_state_path(BACKFILL_STATE_DIRECTORY, probe_id)
+    state = load_backfill_state(state_path)
+    if state is not None and state["status"] == "complete":
+        print_backfill_already_complete(probe_id)
+        return
+
     influxdb_config = load_influxdb_config()
-    state = load_backfill_state(BACKFILL_STATE_PATH)
 
     if state is None:
         start_time = fetch_probe_first_connected(probe_id)
+        if start_time is None:
+            print_backfill_no_history(probe_id)
+            return
         if current_time is None:
             current_time = datetime.now(timezone.utc)
         stop_time = (
@@ -269,7 +285,7 @@ def run_all_time_backfill(probe_id, current_time=None):
             raise RuntimeError("Probe history is not available for backfill")
 
         state = create_backfill_state(
-            state_path=BACKFILL_STATE_PATH,
+            state_path=state_path,
             probe_id=probe_id,
             bucket=influxdb_config["bucket"],
             start_time=start_time,
@@ -330,7 +346,7 @@ def run_all_time_backfill(probe_id, current_time=None):
                 written_points=written_points,
             )
             save_backfill_progress(
-                state_path=BACKFILL_STATE_PATH,
+                state_path=state_path,
                 state=state,
                 measurement_id=measurement_id,
                 next_start=block_stop,
@@ -344,7 +360,7 @@ def run_all_time_backfill(probe_id, current_time=None):
             for measurement in PING_MEASUREMENTS
         ],
     )
-    mark_backfill_complete(BACKFILL_STATE_PATH, state)
+    mark_backfill_complete(state_path, state)
     print_backfill_completed(stop_time)
 
 
