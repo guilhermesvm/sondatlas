@@ -122,12 +122,15 @@ active.
 
 ## Starting InfluxDB
 
-The project uses InfluxDB OSS 2.9.1 in a Docker container. Start the service
-from the project directory:
+The project uses InfluxDB OSS 2.9.1 in a Docker container. Start only the
+database from the project directory:
 
 ```bash
-docker compose up -d
+docker compose up -d influxdb2
 ```
+
+`docker compose up -d` without a service name also builds and starts the HTTP
+API (see [Running the API with Docker Compose](#running-the-api-with-docker-compose)).
 
 Check its status:
 
@@ -342,6 +345,20 @@ Open `http://127.0.0.1:8000/docs` for the interactive API documentation. Keep
 this terminal open and use a second terminal for requests; press `Ctrl+C` to
 stop the server. The API is local, has no authentication, and is intended for
 this development environment.
+
+### Running the API with Docker Compose
+
+The API can also run in a container, without the virtual environment:
+
+```bash
+docker compose up -d --build api
+```
+
+It uses the same `.env`, reaches InfluxDB as `influxdb2` inside Compose, and
+shares the project's `data/` folder with the pipeline, which still runs on the
+host. Stop a host `uvicorn` on port 8000 first. After changing Python code,
+run the same command again to rebuild the image. Stop the container with
+`docker compose stop api` and read its output with `docker compose logs api`.
 
 The backend loads `INFLUXDB_URL`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET`, and
 `INFLUXDB_TOKEN` using the existing configuration loader. Credentials stay on

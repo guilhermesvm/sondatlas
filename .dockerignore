@@ -1,0 +1,14 @@
+.env
+.git/
+.github/
+.venv/
+.pytest_cache/
+**/__pycache__/
+**/*.egg-info/
+CLAUDE.md
+data/
+docs/
+frontend/
+lab/
+scripts/
+tests/
