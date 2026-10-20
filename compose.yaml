@@ -19,6 +19,16 @@ services:
     depends_on:
       - influxdb2
 
+  web:
+    build: ./frontend
+    init: true
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      RIPE_ATLAS_API_URL: http://api:8000
+    depends_on:
+      - api
+
 volumes:
   influxdb2-data:
   influxdb2-config:

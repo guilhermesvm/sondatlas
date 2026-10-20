@@ -129,8 +129,10 @@ database from the project directory:
 docker compose up -d influxdb2
 ```
 
-`docker compose up -d` without a service name also builds and starts the HTTP
-API (see [Running the API with Docker Compose](#running-the-api-with-docker-compose)).
+`docker compose up -d --build` without a service name also builds and starts
+the HTTP API and the dashboard (see
+[Running the API with Docker Compose](#running-the-api-with-docker-compose) and
+[Running the dashboard with Docker Compose](#running-the-dashboard-with-docker-compose)).
 
 Check its status:
 
@@ -468,6 +470,21 @@ and proxy settings. For a separate validation instance, start the API on port
 8001, then run `RIPE_ATLAS_API_URL=http://127.0.0.1:8001 npm run dev -- --port 5174`
 in Git Bash from `frontend/`. This optional variable configures only Vite's
 server-side proxy and contains no credentials; normal startup still uses 8000.
+
+### Running the dashboard with Docker Compose
+
+Without Node.js on the host, build and serve the dashboard together with the
+API:
+
+```bash
+docker compose up -d --build web api
+```
+
+Open `http://127.0.0.1:8080/`. The container compiles the frontend with
+`npm run build` and serves it with `vite preview`, which forwards `/api` to the
+`api` service. It does not reload on code changes: run the same command again
+after editing the frontend, or keep using `npm run dev` on port 5173 for
+development.
 
 Choose a target and **Últimas 24 horas** (default), **Últimos 7 dias**, or
 **Período personalizado**, then click **Consultar**. Quick periods cover exactly
