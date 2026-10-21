@@ -130,9 +130,12 @@ docker compose up -d influxdb2
 ```
 
 `docker compose up -d --build` without a service name also builds and starts
-the HTTP API and the dashboard (see
+the pipeline in polling mode, the HTTP API and the dashboard (see
+[Running the pipeline with Docker Compose](#running-the-pipeline-with-docker-compose),
 [Running the API with Docker Compose](#running-the-api-with-docker-compose) and
 [Running the dashboard with Docker Compose](#running-the-dashboard-with-docker-compose)).
+All services restart automatically when Docker starts, unless they were
+stopped with `docker compose stop`.
 
 Check its status:
 
@@ -242,6 +245,28 @@ queried is printed only once instead of being repeated at every check.
 Polling reads the saved probe at every cycle. Without a selected probe it
 waits, printing the message once, and starts collecting as soon as a probe is
 selected; a probe change applies at the next cycle without a restart.
+
+### Running the pipeline with Docker Compose
+
+The pipeline can run in a container, without Python on the host:
+
+```bash
+docker compose up -d --build pipeline
+docker compose exec pipeline python fetch_results.py --probe-id 1017210
+docker compose logs -f pipeline
+```
+
+The `pipeline` service runs `fetch_results.py --poll` and shares the project's
+`data/` folder, so raw and normalized JSON files and the state stay in the same
+places. Run other commands inside the running container with
+`docker compose exec pipeline python fetch_results.py ...` (for example
+`--all-time`); `docker compose run` would start a separate container that the
+execution lock cannot see. `docker compose stop pipeline` stops polling like
+`Ctrl+C` and `docker compose start pipeline` resumes it; InfluxDB keeps running.
+
+Do not run the host pipeline and the container pipeline at the same time:
+they share `data/state/`, but neither can check the other's process. Stop the
+container before running `python fetch_results.py` on the host.
 
 ## Initializing all available history
 

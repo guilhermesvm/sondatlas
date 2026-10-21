@@ -1,6 +1,10 @@
 import errno
 import os
+import uuid
 from contextlib import contextmanager
+
+# A container restart can give the new process the PID recorded by the old one.
+PROCESS_INSTANCE = uuid.uuid4().hex
 
 
 def _process_is_running(pid):
@@ -73,10 +77,14 @@ def _execution_guard(lock_path):
 
 def _remove_stale_lock(lock_path):
     try:
-        pid = int(lock_path.read_text(encoding="ascii").strip())
+        fields = lock_path.read_text(encoding="ascii").split()
+        if len(fields) not in (1, 2):
+            raise ValueError("Invalid lock content")
+        pid = int(fields[0])
         if not 0 < pid <= 0xFFFFFFFF:
             raise ValueError("Invalid process ID")
-        running = _process_is_running(pid)
+        reused_pid = pid == os.getpid() and fields[1:] not in ([], [PROCESS_INSTANCE])
+        running = not reused_pid and _process_is_running(pid)
     except (OSError, ValueError, OverflowError) as error:
         raise RuntimeError(
             f"Cannot verify the owner of {lock_path}; the lock was preserved. "
@@ -100,7 +108,7 @@ def execution_lock(lock_path):
 
         try:
             with os.fdopen(descriptor, "w", encoding="ascii") as lock_file:
-                lock_file.write(str(os.getpid()))
+                lock_file.write(f"{os.getpid()} {PROCESS_INSTANCE}")
             yield
         finally:
             lock_path.unlink(missing_ok=True)

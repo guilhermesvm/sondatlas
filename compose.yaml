@@ -1,14 +1,29 @@
 services:
   influxdb2:
     image: influxdb:2.9.1
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8086:8086"
     volumes:
       - influxdb2-data:/var/lib/influxdb2
       - influxdb2-config:/etc/influxdb2
 
+  pipeline:
+    build: .
+    command: ["python", "fetch_results.py", "--poll"]
+    restart: unless-stopped
+    stop_signal: SIGINT
+    env_file: .env
+    environment:
+      INFLUXDB_URL: http://influxdb2:8086
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - influxdb2
+
   api:
     build: .
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
     env_file: .env
@@ -22,6 +37,7 @@ services:
   web:
     build: ./frontend
     init: true
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
     environment:
