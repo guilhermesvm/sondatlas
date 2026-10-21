@@ -382,9 +382,11 @@ docker compose up -d --build api
 ```
 
 It uses the same `.env`, reaches InfluxDB as `influxdb2` inside Compose, and
-shares the project's `data/` folder with the pipeline, which still runs on the
-host. Stop a host `uvicorn` on port 8000 first. After changing Python code,
-run the same command again to rebuild the image. Stop the container with
+shares the project's `data/` folder with the pipeline. Stop a host `uvicorn` on
+port 8000 first. The API and the pipeline share one image,
+`ripe-atlas-tcc-app`: after changing Python code, run `docker compose up -d
+--build` without a service name so both restart with the same code. Stop the
+container with
 `docker compose stop api` and read its output with `docker compose logs api`.
 
 The backend loads `INFLUXDB_URL`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET`, and

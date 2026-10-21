@@ -10,6 +10,7 @@ services:
 
   pipeline:
     build: .
+    image: ripe-atlas-tcc-app
     command: ["python", "fetch_results.py", "--poll"]
     restart: unless-stopped
     stop_signal: SIGINT
@@ -23,6 +24,7 @@ services:
 
   api:
     build: .
+    image: ripe-atlas-tcc-app
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
