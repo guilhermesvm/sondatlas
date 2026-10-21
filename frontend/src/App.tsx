@@ -1,8 +1,11 @@
+import { Alert, Button, Group, NativeSelect, Paper, Radio, TextInput, Title } from '@mantine/core'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { fetchHistory, fetchTargets, type Catalog, type PingHistory, type PingRecord } from './api'
 import { formatLocal, formatMetric, localInput, localPeriod, localTimeZone, quickPeriod, summarizePingResults } from './chart'
 import MetricChart from './MetricChart'
 import ProbeDistribution from './ProbeDistribution'
+
+const FIELD_HELP = 'DD/MM/AAAA HH:mm:ss · 24 horas · Segundos opcionais'
 
 function initialPeriod() {
   const stop = new Date()
@@ -90,40 +93,40 @@ export default function App() {
         <span className="header-label">RIPE Atlas · Projeto TCC</span>
       </div></header>
       <main>
-        <nav className="area-navigation" aria-label="Áreas do dashboard">
-          <button type="button" aria-pressed={area === 'probe'} onClick={() => setArea('probe')}>Minha probe</button>
-          <button type="button" aria-pressed={area === 'global'} onClick={() => setArea('global')}>Rede global</button>
-        </nav>
+        <Group component="nav" className="area-navigation" aria-label="Áreas do dashboard" gap={6}>
+          <Button variant={area === 'probe' ? 'light' : 'subtle'} color={area === 'probe' ? undefined : 'gray'} aria-pressed={area === 'probe'} onClick={() => setArea('probe')}>Minha probe</Button>
+          <Button variant={area === 'global' ? 'light' : 'subtle'} color={area === 'global' ? undefined : 'gray'} aria-pressed={area === 'global'} onClick={() => setArea('global')}>Rede global</Button>
+        </Group>
         <ProbeDistribution active={area === 'global'} />
         <div hidden={area !== 'probe'}>
-        <h1>Explorador de ping</h1>
+        <Title order={1} size="h2" mb="sm">Explorador de ping</Title>
 
         <section className="filters" aria-label="Filtros do histórico">
           <form onSubmit={consult}>
             <div className="quick-controls">
-            <label className="target-field">Destino<select value={target} onChange={event => { setTarget(event.target.value); setInspectedRow(null); setError('') }} disabled={catalogLoading || !catalog || loading} required>
+            <NativeSelect className="target-field" label="Destino" value={target} onChange={event => { setTarget(event.target.value); setInspectedRow(null); setError('') }} disabled={catalogLoading || !catalog || loading} required withAsterisk={false}>
               {!catalog && <option value="">{catalogLoading ? 'Carregando alvos…' : 'Catálogo indisponível'}</option>}
               {catalog?.targets.map(item => <option key={item.measurement_id} value={item.measurement_id}>{item.target_name}</option>)}
-            </select></label>
+            </NativeSelect>
             <fieldset className="quick-periods" disabled={loading}><legend>Período rápido</legend>
-              <label><input type="radio" name="period" checked={preset === 1} onChange={() => choosePreset(1)} />Últimas 24 horas</label>
-              <label><input type="radio" name="period" checked={preset === 7} onChange={() => choosePreset(7)} />Últimos 7 dias</label>
+              <Radio name="period" label="Últimas 24 horas" checked={preset === 1} onChange={() => choosePreset(1)} />
+              <Radio name="period" label="Últimos 7 dias" checked={preset === 7} onChange={() => choosePreset(7)} />
             </fieldset>
-            <button className="primary-button" type="submit" disabled={loading || catalogLoading || !target}>{loading ? 'Consultando…' : 'Consultar'}</button>
+            <Button className="primary-button" type="submit" disabled={loading || catalogLoading || !target}>{loading ? 'Consultando…' : 'Consultar'}</Button>
             </div>
-            <button type="button" className="custom-toggle" aria-expanded={preset === 'custom'} disabled={loading} onClick={() => choosePreset(preset === 'custom' ? 1 : 'custom')}>Período personalizado</button>
+            <Button variant="subtle" size="compact-sm" className="custom-toggle" aria-expanded={preset === 'custom'} disabled={loading} onClick={() => choosePreset(preset === 'custom' ? 1 : 'custom')}>Período personalizado</Button>
             {preset === 'custom' && <div className="custom-period"><div className="custom-fields">
-              <label>Início (horário local)<input type="text" placeholder="DD/MM/AAAA HH:mm:ss" aria-describedby="period-format" autoComplete="off" value={period.start} onChange={event => { setPeriod({ ...period, start: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} /></label>
-              <label>Fim (horário local)<input type="text" placeholder="DD/MM/AAAA HH:mm:ss" aria-describedby="period-format" autoComplete="off" value={period.stop} onChange={event => { setPeriod({ ...period, stop: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} /></label>
-              </div><p id="period-format" className="filter-help">DD/MM/AAAA HH:mm:ss · 24 horas · Segundos opcionais · Até 60 dias, em horário local.</p>
+              <TextInput type="text" label="Início (horário local)" description={FIELD_HELP} inputWrapperOrder={['label', 'input', 'description']} placeholder="DD/MM/AAAA HH:mm:ss" autoComplete="off" value={period.start} onChange={event => { setPeriod({ ...period, start: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} withAsterisk={false} />
+              <TextInput type="text" label="Fim (horário local)" description={FIELD_HELP} inputWrapperOrder={['label', 'input', 'description']} placeholder="DD/MM/AAAA HH:mm:ss" autoComplete="off" value={period.stop} onChange={event => { setPeriod({ ...period, stop: event.target.value }); setHistories(null) }} disabled={loading || preset !== 'custom'} required={preset === 'custom'} withAsterisk={false} />
+              </div><p className="filter-help">Até 60 dias, em horário local.</p>
             </div>}
           </form>
         </section>
         <div className="measurement-context">{catalog && draftTarget && <strong>Probe {catalog.probe_id} → {draftTarget.target_name} · Ping IPv4</strong>}<span>Fuso: {timeZone}</span></div>
 
-        {error && <div className="message error" role="alert"><strong>Não foi possível consultar.</strong><p>{error}</p>
-          {!catalog && <button onClick={() => setCatalogAttempt(value => value + 1)}>Tentar carregar alvos novamente</button>}
-        </div>}
+        {error && <Alert className="message" color="red" title="Não foi possível consultar."><p>{error}</p>
+          {!catalog && <Button variant="outline" color="red" onClick={() => setCatalogAttempt(value => value + 1)}>Tentar carregar alvos novamente</Button>}
+        </Alert>}
         {catalogLoading && <div className="message" role="status">Carregando os alvos da probe…</div>}
         {loading && <div className="message" role="status">Consultando o histórico armazenado…</div>}
         {!catalogLoading && !loading && !histories && !error && <p className="initial-state">Consulte o período para comparar K-root e Google. O destino seleciona o gráfico detalhado.</p>}
@@ -132,7 +135,7 @@ export default function App() {
           <p className="result-count">{formatLocal(histories![0].start, true)} → {formatLocal(histories![0].stop, true)} ({timeZone}) · Mesmo período para os dois alvos.</p>
           <div className="summary-grid">{summaries.map(summary => {
             const name = catalog?.targets.find(item => item.measurement_id === summary.history.measurement_id)?.target_name
-            return <section className="target-summary" key={summary.history.measurement_id} aria-label={`Resumo de ${name}`}>
+            return <Paper component="section" withBorder className="target-summary" key={summary.history.measurement_id} aria-label={`Resumo de ${name}`}>
               <h3>{name} <span className="metric-summary">{summary.history.count.toLocaleString('pt-BR')} rodadas</span></h3>
               {summary.history.count === 0 ? <p>Sem registros neste período.</p> : <dl>
                 <div><dt>RTT típico · mediana</dt><dd className="point-value">{formatMetric(summary.medianRtt)}{summary.medianRtt === null ? '' : ' ms'}</dd>
@@ -142,17 +145,17 @@ export default function App() {
                 <div><dt>Rodadas com perda / calculáveis</dt><dd className="point-value">{summary.lossCount === 0 ? 'Indisponível' : `${summary.lossRounds.toLocaleString('pt-BR')} / ${summary.lossCount.toLocaleString('pt-BR')}`}</dd>
                   <dd className="summary-detail">{summary.lossCount.toLocaleString('pt-BR')} rodadas com perda calculável</dd></div>
               </dl>}
-            </section>
+            </Paper>
           })}</div>
           <p className="reading-note">Mediana dos RTTs médios disponíveis por rodada. Rodadas com perda têm perda acima de zero; a razão não é perda média de pacotes nem disponibilidade.</p>
         </section>}
         {history && history.count === 0 && <div className="message empty" role="status"><h2>Nenhum resultado neste período.</h2><p>A consulta foi concluída, mas não há medições armazenadas para {selected?.target_name} entre {formatLocal(history.start, true)} e {formatLocal(history.stop, true)} ({timeZone}). Experimente outro período.</p><p>Ausência de registros não significa perda de pacotes.</p></div>}
         {history && history.count > 0 && <div className="results">
           <p className="result-count" role="status">{formatLocal(history.start)} → {formatLocal(history.stop)} · {history.count.toLocaleString('pt-BR')} rodadas</p>
-          <div className="charts-group" aria-label="RTT e perda no mesmo período">
+          <Paper withBorder className="charts-group" aria-label="RTT e perda no mesmo período">
             <MetricChart key={`${history.measurement_id}-${history.start}-${history.stop}-rtt`} history={history} metric="rtt_avg_ms" onInspect={setInspectedRow} />
             <MetricChart key={`${history.measurement_id}-${history.start}-${history.stop}-loss`} history={history} metric="packet_loss_percent" onInspect={setInspectedRow} />
-          </div>
+          </Paper>
           <p className="reading-note">0 = valor medido · Indisponível = sem valor · Sem registros = sem rodadas no período</p>
         </div>}
 

@@ -1,3 +1,4 @@
+import { Alert, Button, Loader, Paper, Title } from '@mantine/core'
 import { useEffect, useRef, useState } from 'react'
 import { fetchDistribution, type ProbeDistribution as Distribution } from './api'
 import { formatLocal, localTimeZone } from './chart'
@@ -58,25 +59,25 @@ export default function ProbeDistribution({ active }: { active: boolean }) {
   const maximum = Math.max(1, ...distribution?.top_countries.map(row => row.probes) ?? [])
   return <section hidden={!active} aria-label="Distribuição global de probes">
     <div className="distribution-heading">
-      <div><h1>Rede global</h1><p className="result-count">Onde observamos pontos públicos conectados do RIPE Atlas.</p></div>
-      <button className="primary-button" type="button" disabled={refreshing || reading} onClick={refresh}>
-        {refreshing && <span className="spinner" aria-hidden="true" />}{refreshing ? 'Atualizando…' : 'Atualizar distribuição'}
-      </button>
+      <div><Title order={1} size="h2">Rede global</Title><p className="result-count">Onde observamos pontos públicos conectados do RIPE Atlas.</p></div>
+      <Button disabled={refreshing || reading} onClick={refresh} leftSection={refreshing && <Loader size={16} color="currentColor" />}>
+        {refreshing ? 'Atualizando…' : 'Atualizar distribuição'}
+      </Button>
     </div>
     {reading && <p role="status">Lendo a última coleta salva…</p>}
     {refreshing && <p role="status">Coletando todas as páginas e salvando o resumo. Isso pode levar alguns minutos; a coleta anterior permanece visível.</p>}
     {notice && <p role="status">{notice}</p>}
-    {error && <div className="message error" role="alert"><p>{error}</p>
-      <button type="button" disabled={refreshing || reading} onClick={() => setAttempt(value => value + 1)}>Ler coleta salva novamente</button>
-    </div>}
+    {error && <Alert className="message" color="red"><p>{error}</p>
+      <Button variant="outline" color="red" disabled={refreshing || reading} onClick={() => setAttempt(value => value + 1)}>Ler coleta salva novamente</Button>
+    </Alert>}
     {loaded && !distribution && <div className="message"><h2>Ainda não há uma coleta salva.</h2><p>Use “Atualizar distribuição” para consultar o cadastro público. Ausência de coleta não significa zero probes.</p></div>}
     {distribution && <>
       <p className="result-count">Coleta: {formatLocal(distribution.started_at_utc, true)} → {formatLocal(distribution.finished_at_utc, true)} · Fuso: {localTimeZone()}</p>
       <div className="summary-grid">
-        <section className="target-summary" aria-label="Total global"><h2>IDs únicos observados</h2><p className="point-value">{count(distribution.total_probes)}</p></section>
-        <section className="target-summary" aria-label="Participação do Brasil"><h2>Brasil</h2><p className="point-value">{count(distribution.brazil.probes)} probes · {percentage(distribution.brazil.share_percent)}</p><p className="reading-note">Percentual sobre todos os IDs únicos da coleta, incluindo país não informado.</p></section>
+        <Paper component="section" withBorder className="target-summary" aria-label="Total global"><h2>IDs únicos observados</h2><p className="point-value">{count(distribution.total_probes)}</p></Paper>
+        <Paper component="section" withBorder className="target-summary" aria-label="Participação do Brasil"><h2>Brasil</h2><p className="point-value">{count(distribution.brazil.probes)} probes · {percentage(distribution.brazil.share_percent)}</p><p className="reading-note">Percentual sobre todos os IDs únicos da coleta, incluindo país não informado.</p></Paper>
       </div>
-      <section className="distribution-chart" aria-label="Probes observadas por país">
+      <Paper component="section" withBorder className="distribution-chart" aria-label="Probes observadas por país">
         <h2>Dez maiores contagens e Brasil</h2>
         <p className="reading-note">Contagens absolutas · Barras na mesma escala, começando em zero.</p>
         <ol className="country-bars">{distribution.top_countries.map(row => {
@@ -87,7 +88,7 @@ export default function ProbeDistribution({ active }: { active: boolean }) {
             <span className="country-count">{count(row.probes)}</span>
           </li>
         })}</ol>
-      </section>
+      </Paper>
       <p className="reading-note">{count(distribution.duplicate_records)} registros repetidos entre páginas; a primeira observação de cada ID foi conservada. Contagem informada pela API: {distribution.api_count_min === null ? 'indisponível' : `${count(distribution.api_count_min)}–${count(distribution.api_count_max!)}`}.</p>
       {distribution.count_mismatch && <p className="message">As contagens da API variaram ou diferem dos IDs únicos, ou houve duplicações. Deduplicar não recupera possíveis IDs omitidos durante a paginação.</p>}
     </>}
