@@ -20,9 +20,39 @@ The separate global view reads saved public probe distribution data and offers
 manual refresh; it never writes global probe metadata to InfluxDB.
 
 The probe is chosen by its public ID with `--probe-id` and saved locally; the
-K-root and Google measurement catalog remains fixed in Python. Only InfluxDB
-currently runs through Docker Compose; full-stack container distribution and
-reproduction in a fresh installation have not been validated.
+K-root and Google measurement catalog remains fixed in Python. InfluxDB, the
+pipeline, the API and the dashboard run together with Docker Compose; a fresh
+installation was validated on Windows.
+
+## Quick start with Docker Compose
+
+Requirements: Docker Desktop (or Docker Engine with Compose) and Python 3 to
+generate the configuration. Your probe runs separately (see `lab/README.md`).
+
+```bash
+python scripts/init_env.py
+docker compose up -d --build
+docker compose exec pipeline python fetch_results.py --probe-id <your probe ID>
+```
+
+1. `init_env.py` creates `.env` from `.env.example` with a random InfluxDB
+   administrator password and token, without displaying them. It never
+   overwrites an existing `.env`. Without Python, copy `.env.example` to `.env`
+   and replace both placeholders with long random values.
+2. On the first start, InfluxDB configures itself from `.env` (user, password,
+   organization, bucket and token). This happens only when the database volume
+   is empty; an existing database is never reconfigured.
+3. Selecting the probe starts collection at the next polling cycle.
+
+Open the dashboard at `http://127.0.0.1:8080/` and follow collection with
+`docker compose logs -f pipeline` (look for `Pontos enviados ao InfluxDB`).
+The InfluxDB interface is at `http://localhost:8086/`; log in as
+`INFLUXDB_ADMIN_USERNAME` with the password from `.env`. Every port listens
+only on this computer.
+
+The pipeline and the API use the administrator token generated in `.env`. This
+is acceptable only because everything runs locally; do not expose these ports
+to a network.
 
 At this point, `fetch_results.py`:
 
@@ -147,15 +177,19 @@ The server and its web interface are available only on this computer at
 `http://localhost:8086`. The data and server configuration are stored in named
 Docker volumes, so stopping or recreating the container does not remove them.
 
-On the first start, open `http://localhost:8086` and complete the setup with:
+With a `.env` created by `scripts/init_env.py`, the first start configures
+InfluxDB automatically (see [Quick start](#quick-start-with-docker-compose)).
+Without those variables, open `http://localhost:8086` and complete the setup
+with:
 
 - an administrator username and a strong password;
 - organization name `network-measurement-platform`;
 - bucket name `network-measurement-platform`;
 - no expiration for the bucket retention period.
 
-The initial setup creates an operator token. Do not use this broad token in the
-Python pipeline. In the InfluxDB interface, open **Load Data > API Tokens** and
+The initial setup creates an operator token. In a manual or shared installation,
+do not use this broad token in the Python pipeline. In the InfluxDB interface,
+open **Load Data > API Tokens** and
 create a read/write token limited to the `network-measurement-platform` bucket.
 Copy it when it is shown and store it only in the local `.env` file.
 
@@ -168,11 +202,14 @@ docker compose stop
 ## InfluxDB configuration
 
 For a new checkout, create a local configuration file from the tracked
-example:
+example, with generated secrets:
 
 ```bash
-cp .env.example .env
+python scripts/init_env.py
 ```
+
+To fill it by hand instead, run `cp .env.example .env` and replace the
+placeholders.
 
 If `.env` already exists from the previous InfluxDB 3 setup, edit it instead of
 copying the example over it. Its InfluxDB configuration must use the following
