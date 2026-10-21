@@ -10,7 +10,7 @@ services:
       DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-}
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-}
     ports:
-      - "127.0.0.1:8086:8086"
+      - "127.0.0.1:${INFLUXDB_PORT:-8086}:8086"
     volumes:
       - influxdb2-data:/var/lib/influxdb2
       - influxdb2-config:/etc/influxdb2
@@ -34,7 +34,7 @@ services:
     image: ripe-atlas-tcc-app
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     env_file: .env
     environment:
       INFLUXDB_URL: http://influxdb2:8086
@@ -48,7 +48,7 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
     environment:
       RIPE_ATLAS_API_URL: http://api:8000
     depends_on:

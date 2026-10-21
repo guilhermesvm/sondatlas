@@ -50,6 +50,21 @@ The InfluxDB interface is at `http://localhost:8086/`; log in as
 `INFLUXDB_ADMIN_USERNAME` with the password from `.env`. Every port listens
 only on this computer.
 
+If `docker compose up` reports `port is already allocated`, choose another
+port in `.env` and run the same command again:
+
+```dotenv
+WEB_PORT=8081       # dashboard, default 8080
+API_PORT=8001       # HTTP API, default 8000
+INFLUXDB_PORT=8087  # InfluxDB, default 8086
+```
+
+Only the port on this computer changes; the containers keep talking to each
+other on the internal ports, so the token and the rest of `.env` stay the same.
+When running Python on the host instead, also point `INFLUXDB_URL` to the new
+InfluxDB port, and run `npm run dev` with `RIPE_ATLAS_API_URL` set to the new
+API port.
+
 The pipeline and the API use the administrator token generated in `.env`. This
 is acceptable only because everything runs locally; do not expose these ports
 to a network.
