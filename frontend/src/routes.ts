@@ -1,11 +1,12 @@
 export type Route = {
   id: string
   label: string
-  group: 'journey' | 'probe' | 'network'
+  group: 'home' | 'journey' | 'probe' | 'network'
   summary: string
 }
 
 export const routes: Route[] = [
+  { id: 'inicio', label: 'Início', group: 'home', summary: 'Apresentação da plataforma e da jornada.' },
   { id: 'conhecer', label: 'Conhecer', group: 'journey', summary: 'O que é o RIPE Atlas, por que participar (o Brasil tem poucas probes), o que fica público e o que você precisa para instalar.' },
   { id: 'instalar', label: 'Instalar', group: 'journey', summary: 'Passo a passo do kit (VM com Vagrant ou Debian/Raspberry Pi), comandos para copiar e problemas comuns.' },
   { id: 'ativar', label: 'Ativar', group: 'journey', summary: 'Cadastro da probe no site do RIPE Atlas e a pergunta principal: sua probe está conectada?' },

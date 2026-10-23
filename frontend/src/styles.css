@@ -2,7 +2,8 @@ body { background: var(--mantine-color-gray-0); line-height: 1.5; --muted: var(-
 summary { cursor: pointer; }
 a:focus-visible, summary:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 3px; }
 .topbar { background: var(--mantine-primary-color-9); color: white; border-bottom: 0; }
-.brand { font-size: 24px; font-weight: 600; color: inherit; text-decoration: none; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 600; color: inherit; text-decoration: none; }
+.logo { width: 1.1em; height: 1.1em; flex-shrink: 0; }
 .header-label { color: var(--mantine-primary-color-1); font-size: 13px; }
 .page { max-width: 1120px; margin: 0 auto; padding: 4px 12px 24px; }
 h2 { font-size: 20px; font-weight: 600; }h3 { font-size: 18px; font-weight: 600; }
@@ -48,11 +49,19 @@ h2 { font-size: 20px; font-weight: 600; }h3 { font-size: 18px; font-weight: 600;
 .brazil .bar-track span { background: var(--mantine-primary-color-filled); }.brazil .country-name, .brazil .country-count { font-weight: 600; }
 .distribution-chart + .reading-note { margin-top: 12px; }
 .nav-group + .nav-group { margin-top: 12px; }
+.home-steps { list-style: none; margin: 0; padding: 0; }
+.main { display: flex; flex-direction: column; }.main > .page { width: 100%; margin-bottom: 48px; }
+.site-footer { margin: auto calc(-1 * var(--mantine-spacing-md)) calc(-1 * var(--mantine-spacing-md)); padding: 24px 32px; background: white; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 20px 48px; font-size: 14px; color: var(--muted); }
+.site-footer > div { flex: 0 1 520px; margin-right: auto; }.site-footer p { margin: 6px 0 0; }
+.footer-brand { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; color: var(--mantine-primary-color-9); }
+.site-footer h2 { font-size: 14px; margin: 0 0 6px; color: var(--mantine-color-text); }
+.site-footer ul { list-style: none; margin: 0; padding: 0; }.site-footer li + li { margin-top: 4px; }
+.site-footer a { color: inherit; }.site-footer a:hover { color: var(--mantine-primary-color-filled); }
 .measurement-about { margin-top: 10px; }.measurement-about summary { font-size: 14px; padding: 6px 0; }.about-content { font-size: 14px; overflow-wrap: anywhere; }.about-content p { margin: 8px 0; }
 @media (max-width: 650px) {
   .country-bars li { grid-template-columns: minmax(95px, 120px) minmax(0, 1fr) 50px; gap: 8px; }.distribution-chart { padding: 12px; }
   .summary-grid { grid-template-columns: 1fr; }.target-summary { padding: 12px; }
-  .page { padding: 0 0 16px; }.header-label { display: none; }.mantine-Stepper-stepBody { display: none; }.quick-controls { gap: 8px; }.target-field, .quick-periods { flex-basis: 100%; }.primary-button { width: 100%; }.custom-fields { flex-direction: column; }.custom-fields > * { min-width: 0; }
+  .page { padding: 0 0 16px; }.site-footer { padding: 20px 16px; }.header-label { display: none; }.mantine-Stepper-stepBody { display: none; }.quick-controls { gap: 8px; }.target-field, .quick-periods { flex-basis: 100%; }.primary-button { width: 100%; }.custom-fields { flex-direction: column; }.custom-fields > * { min-width: 0; }
   .measurement-context { flex-direction: column; gap: 3px; }.charts-group { padding: 12px; }.point-detail { gap: 4px 12px; }.point-time { font-size: 13px; }.record-selector input { min-height: 36px; }
   .mantine-Input-input { font-size: 16px; }
 }

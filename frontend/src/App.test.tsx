@@ -349,13 +349,14 @@ it('keeps dated global data during loading, concurrency and failure, permits ret
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })
 
-it('opens the page named in the address and falls back to the first journey phase', async () => {
+it('opens the page named in the address and falls back to the home page', async () => {
   mockApi()
   window.location.hash = '#/rede-global'
   render(<App />)
   expect(screen.getByRole('heading', { name: 'Rede global' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Rede global' })).toHaveAttribute('aria-current', 'page')
   window.location.hash = '#/nao-existe'
-  expect(await screen.findByRole('heading', { name: 'Conhecer' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: '1. Conhecer' })).toHaveAttribute('aria-current', 'page')
+  expect(await screen.findByRole('heading', { name: /Participe do RIPE Atlas/ })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('link', { name: 'Já tenho uma probe' })).toHaveAttribute('href', '#/ativar')
 })
