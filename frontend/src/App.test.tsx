@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { render } from './test-render'
 import MetricChart from './MetricChart'
@@ -8,6 +8,7 @@ import { catalog, history, ping } from './fixtures'
 import { localInput } from './chart'
 import type { ProbeDistribution } from './api'
 
+beforeEach(() => { window.location.hash = '#/minha-probe' })
 afterEach(() => vi.unstubAllGlobals())
 
 function mockApi(result = history(), google = result) {
@@ -295,7 +296,7 @@ it('reads global data only on opening and distinguishes no collection from zero 
   await screen.findByRole('option', { name: 'K-root' })
   expect(mock.mock.calls).toHaveLength(1)
   mock.mockResolvedValueOnce(new Response(JSON.stringify({ distribution: null })))
-  await userEvent.click(screen.getByRole('button', { name: 'Rede global' }))
+  await userEvent.click(screen.getByRole('link', { name: 'Rede global' }))
   expect(await screen.findByText('Ainda não há uma coleta salva.')).toBeInTheDocument()
   expect(screen.getByText(/Ausência de coleta não significa zero probes/)).toBeInTheDocument()
   expect(mock.mock.calls[1][0]).toBe('/api/probe-distribution')
@@ -320,7 +321,7 @@ it('keeps dated global data during loading, concurrency and failure, permits ret
   render(<App />)
   await screen.findByRole('option', { name: 'K-root' })
   mock.mockResolvedValueOnce(new Response(JSON.stringify({ distribution })))
-  await userEvent.click(screen.getByRole('button', { name: 'Rede global' }))
+  await userEvent.click(screen.getByRole('link', { name: 'Rede global' }))
   await screen.findByRole('region', { name: 'Total global' })
   mock.mockImplementationOnce(() => new Promise<Response>(resolve => { complete = resolve }))
   await userEvent.click(screen.getByRole('button', { name: 'Atualizar distribuição' }))
@@ -328,10 +329,10 @@ it('keeps dated global data during loading, concurrency and failure, permits ret
   expect(screen.getByText(/Coletando todas as páginas/)).toHaveAttribute('role', 'status')
   expect(screen.getByRole('region', { name: 'Total global' })).toHaveTextContent('14.098')
   expect(screen.getByText(/Coleta: 11\/10\/2026/)).toHaveTextContent('09:01:00')
-  await userEvent.click(screen.getByRole('button', { name: 'Minha probe' }))
+  await userEvent.click(screen.getByRole('link', { name: 'Minha probe' }))
   await userEvent.click(screen.getByRole('button', { name: 'Consultar' }))
   await screen.findByRole('region', { name: 'Resumo de K-root' })
-  await userEvent.click(screen.getByRole('button', { name: 'Rede global' }))
+  await userEvent.click(screen.getByRole('link', { name: 'Rede global' }))
   expect(screen.getByRole('button', { name: 'Atualizando…' })).toBeDisabled()
   complete(new Response('raw failure', { status: 409 }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Já há uma coleta global em andamento')
@@ -346,4 +347,15 @@ it('keeps dated global data during loading, concurrency and failure, permits ret
   expect(screen.getByRole('region', { name: 'Total global' })).toHaveTextContent('14.100')
   expect(screen.getByText(/Coleta: 11\/10\/2026/)).toHaveTextContent('10:01:00')
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+})
+
+it('opens the page named in the address and falls back to the first journey phase', async () => {
+  mockApi()
+  window.location.hash = '#/rede-global'
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'Rede global' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Rede global' })).toHaveAttribute('aria-current', 'page')
+  window.location.hash = '#/nao-existe'
+  expect(await screen.findByRole('heading', { name: 'Conhecer' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '1. Conhecer' })).toHaveAttribute('aria-current', 'page')
 })
