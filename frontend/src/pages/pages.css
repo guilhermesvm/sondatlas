@@ -34,3 +34,13 @@
   .spec > div { grid-template-columns: 1fr; gap: 2px; }
   .sources ul { columns: 1; }
 }
+.install-path { margin-top: 20px; }
+.install-steps { list-style: none; counter-reset: step; padding: 0; margin: 20px 0 0; max-width: 820px; }
+.install-steps > li { counter-increment: step; position: relative; padding: 0 0 24px 48px; }
+.install-steps > li::before { content: counter(step); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: var(--mantine-color-white); background: var(--mantine-color-indigo-8); }
+.install-steps > li:not(:last-child)::after { content: ''; position: absolute; left: 14px; top: 34px; bottom: 4px; width: 2px; background: var(--accent-line); }
+.install-step-title { font-weight: 600; margin-bottom: 4px; }
+.install code, .install-note code { font-size: 0.92em; }
+.command { display: flex; align-items: center; gap: 4px; margin: 8px 0; max-width: 680px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); padding: 2px 4px 2px 12px; }
+.command pre { flex: 1; margin: 0; overflow-x: auto; padding: 8px 0; font-size: 14px; }
+.install-note { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { journey, type Route } from '../app/routes'
 import Discover from './Discover'
 import InConstruction from './InConstruction'
+import Install from './Install'
 import './pages.css'
 
 export default function JourneyPage({ route }: { route: Route }) {
@@ -14,7 +15,8 @@ export default function JourneyPage({ route }: { route: Route }) {
     <Stepper active={step} size="sm" mb="xl" aria-label="Fases da jornada" completedIcon={({ step }) => step + 1} onStepClick={index => { location.hash = `#/${journey[index].id}` }}>
       {journey.map(item => <Stepper.Step key={item.id} label={item.label} aria-label={item.label} aria-current={item === route ? 'step' : undefined} />)}
     </Stepper>
-    {route.id === 'conhecer' ? <Discover understood={understood} onUnderstoodChange={setUnderstood} /> : <InConstruction route={route} />}
+    {route.id === 'conhecer' ? <Discover understood={understood} onUnderstoodChange={setUnderstood} />
+      : route.id === 'instalar' ? <Install /> : <InConstruction route={route} />}
     <Group justify="space-between" mt="xl">
       {previous ? <Button component="a" href={`#/${previous.id}`} variant="default">Voltar: {previous.label}</Button> : <span />}
       {next && <Button component="a" href={`#/${next.id}`} variant={route.id === 'conhecer' && !understood ? 'default' : 'filled'}>Próximo: {next.label}</Button>}
