@@ -2,13 +2,14 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 
 import requests
 
 from ripe_atlas_tcc import probe_distribution
 from ripe_atlas_tcc.influxdb_queries import query_ping_results
-from ripe_atlas_tcc.probe_state import load_selected_probe
+from ripe_atlas_tcc.probe_state import load_selected_probe, save_selected_probe
+from ripe_atlas_tcc.ripe_atlas_client import fetch_probe
 from ripe_atlas_tcc.settings import (
     PING_MEASUREMENTS,
     PROBE_STATE_PATH,
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 MAX_QUERY_DAYS = 60
 app = FastAPI(
     title="RIPE Atlas Ping History",
-    description="Read stored ping results and manually refresh the public probe distribution. Local use only.",
+    description="Select the probe, read stored ping results and manually refresh the public probe distribution. Local use only.",
     version="0.1.0",
 )
 
@@ -39,6 +40,45 @@ def resolve_probe(probe_id):
     if probe_id is not None and probe_id != selected_probe_id:
         raise HTTPException(status_code=404, detail="Probe is not configured")
     return selected_probe_id
+
+
+@app.get(
+    "/probe",
+    summary="Read the selected probe ID (no external request)",
+    description="Returns probe_id: null when no probe has been selected yet.",
+    responses={503: {"description": "Saved selection cannot be read"}},
+)
+def get_probe():
+    try:
+        return {"probe_id": load_selected_probe(PROBE_STATE_PATH)}
+    except (OSError, ValueError, KeyError) as error:
+        logger.warning("Selected probe unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Selected probe is unavailable") from None
+
+
+@app.put(
+    "/probe",
+    summary="Check the probe in RIPE Atlas and save it as the selected probe",
+    description="Same check and file as fetch_results.py --probe-id. A running --poll picks the new probe up on its next cycle. On any failure the previous selection is kept. is_public tells whether anonymous readers (this project) can see the probe's results.",
+    responses={
+        404: {"description": "Probe does not exist in RIPE Atlas"},
+        503: {"description": "RIPE Atlas unavailable or selection not saved; previous selection is kept"},
+    },
+)
+def put_probe(probe_id: Annotated[int, Body(gt=0, embed=True)]):
+    try:
+        probe = fetch_probe(probe_id)
+    except RuntimeError:
+        raise HTTPException(status_code=404, detail="Probe does not exist in RIPE Atlas") from None
+    except (requests.RequestException, ValueError) as error:
+        logger.warning("RIPE Atlas probe check failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable; the selected probe was not changed") from None
+    try:
+        save_selected_probe(PROBE_STATE_PATH, probe_id)
+    except OSError as error:
+        logger.warning("Probe selection not saved (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="The selected probe could not be saved") from None
+    return {"probe_id": probe_id, "is_public": probe.get("is_public")}
 
 
 @app.get(

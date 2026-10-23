@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 import pytest
+import requests
 
 from ripe_atlas_tcc import api
+from ripe_atlas_tcc.probe_state import save_selected_probe
 
 
 PARAMS = {
@@ -186,7 +188,7 @@ def test_database_or_configuration_failure_returns_safe_503(
     assert "probe 1017210, measurement 1001" in caplog.text
 
 
-def test_api_has_no_write_routes(backend):
+def test_ping_and_target_routes_are_read_only(backend):
     client, _, _ = backend
     assert client.post("/ping", json=PARAMS).status_code == 405
     assert client.delete("/targets").status_code == 405
@@ -252,3 +254,50 @@ def test_distribution_refresh_does_not_block_ping_or_accept_concurrent_collectio
         finally:
             finish.set()
         assert pending.result(timeout=5).status_code == 503
+
+
+@pytest.fixture
+def probe_api(monkeypatch, tmp_path):
+    state_path = tmp_path / "state" / "probe.json"
+    checked = []
+
+    def fetch_probe(probe_id):
+        checked.append(probe_id)
+        if probe_id == 404:
+            raise RuntimeError("Probe 404 does not exist in RIPE Atlas")
+        if probe_id == 503:
+            raise requests.ConnectionError("offline")
+        return {"id": probe_id, "is_public": probe_id != 1002642}
+
+    monkeypatch.setattr(api, "PROBE_STATE_PATH", state_path)
+    monkeypatch.setattr(api, "fetch_probe", fetch_probe)
+    with TestClient(api.app) as client:
+        yield client, state_path, checked
+
+
+def test_probe_selection_is_checked_saved_and_read_back(probe_api):
+    client, state_path, checked = probe_api
+    assert client.get("/probe").json() == {"probe_id": None}
+
+    response = client.put("/probe", json={"probe_id": 1002642})
+    assert response.status_code == 200
+    assert response.json() == {"probe_id": 1002642, "is_public": False}
+    assert checked == [1002642]
+    assert client.get("/probe").json() == {"probe_id": 1002642}
+    assert api.load_selected_probe(state_path) == 1002642
+
+
+@pytest.mark.parametrize("probe_id, status", [(404, 404), (503, 503)])
+def test_failed_probe_check_keeps_previous_selection(probe_api, probe_id, status):
+    client, state_path, _ = probe_api
+    save_selected_probe(state_path, 1017210)
+    assert client.put("/probe", json={"probe_id": probe_id}).status_code == status
+    assert client.get("/probe").json() == {"probe_id": 1017210}
+
+
+@pytest.mark.parametrize("body", [{"probe_id": 0}, {"probe_id": "abc"}, {}])
+def test_invalid_probe_id_returns_422_without_asking_ripe(probe_api, body):
+    client, state_path, checked = probe_api
+    assert client.put("/probe", json=body).status_code == 422
+    assert checked == []
+    assert not state_path.exists()

@@ -465,6 +465,20 @@ own read/write token. Ping routes remain read-only: no database writes or ping
 collection commands are exposed. The separate distribution refresh route
 queries public metadata and saves only the latest summary without credentials.
 
+Read and change the selected probe (the same check and file as
+`--probe-id`; a running `--poll` follows the change on its next cycle):
+
+```bash
+curl http://127.0.0.1:8000/probe
+curl -X PUT -H "Content-Type: application/json" -d '{"probe_id": 1017210}' http://127.0.0.1:8000/probe
+```
+
+`GET` returns `{"probe_id": null}` before the first selection. `PUT` answers
+404 for an unknown probe and 503 when RIPE Atlas is unavailable, keeping the
+previous selection in both cases; on success it also returns `is_public`.
+Results of non-public probes did not appear to anonymous API requests in a
+test on 2026-10-23, so this project may collect nothing for them.
+
 List the configured targets for the selected probe:
 
 ```bash
