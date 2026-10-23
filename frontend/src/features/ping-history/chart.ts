@@ -1,4 +1,4 @@
-import type { PingRecord } from './api'
+import type { PingRecord } from '../../lib/api'
 
 export type Metric = 'rtt_avg_ms' | 'packet_loss_percent'
 export interface Point { time: number; value: number }

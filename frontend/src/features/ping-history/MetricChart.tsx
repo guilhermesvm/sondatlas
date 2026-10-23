@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import type { PingHistory, PingRecord } from './api'
+import type { PingHistory, PingRecord } from '../../lib/api'
 import { formatLocal, formatMetric, nearestRecordIndex, splitSeries, type Metric } from './chart'
 
 export default function MetricChart({ history, metric, onInspect }: { history: PingHistory; metric: Metric; onInspect?: (record: PingRecord) => void }) {

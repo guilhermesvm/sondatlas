@@ -1,9 +1,9 @@
 import { AppShell, Badge, Burger, Button, Group, NavLink, Stepper, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
-import Home from './Home'
-import PingExplorer from './PingExplorer'
-import ProbeDistribution from './ProbeDistribution'
+import Home from '../pages/Home'
+import PingExplorer from '../features/ping-history/PingExplorer'
+import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
 import { journey, routeFromHash, routes, type Route } from './routes'
 
 const ripeLinks = [

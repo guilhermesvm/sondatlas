@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { fetchHistory, fetchTargets } from './api'
-import { catalog, history } from './fixtures'
+import { catalog, history } from '../test/fixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 

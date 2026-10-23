@@ -1,7 +1,7 @@
 import { Alert, Button, Loader, Paper, Title } from '@mantine/core'
 import { useEffect, useRef, useState } from 'react'
-import { fetchDistribution, type ProbeDistribution as Distribution } from './api'
-import { formatLocal, localTimeZone } from './chart'
+import { fetchDistribution, type ProbeDistribution as Distribution } from '../../lib/api'
+import { formatLocal, localTimeZone } from '../ping-history/chart'
 
 const countries = new Intl.DisplayNames(['pt-BR'], { type: 'region' })
 const count = (value: number) => value.toLocaleString('pt-BR')

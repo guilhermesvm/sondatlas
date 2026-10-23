@@ -2,11 +2,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
-import { render } from './test-render'
-import MetricChart from './MetricChart'
-import { catalog, history, ping } from './fixtures'
-import { localInput } from './chart'
-import type { ProbeDistribution } from './api'
+import { render } from '../test/render'
+import MetricChart from '../features/ping-history/MetricChart'
+import { catalog, history, ping } from '../test/fixtures'
+import { localInput } from '../features/ping-history/chart'
+import type { ProbeDistribution } from '../lib/api'
 
 beforeEach(() => { window.location.hash = '#/minha-probe' })
 afterEach(() => vi.unstubAllGlobals())

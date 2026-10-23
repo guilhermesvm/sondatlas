@@ -1,4 +1,4 @@
-import type { PingHistory, PingRecord } from './api'
+import type { PingHistory, PingRecord } from '../lib/api'
 
 export function ping(overrides: Partial<PingRecord> = {}): PingRecord {
   return {

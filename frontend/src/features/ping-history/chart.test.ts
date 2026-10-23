@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { formatLocal, formatMetric, localInput, localPeriod, nearestRecordIndex, quickPeriod, splitSeries, summarizePingResults } from './chart'
-import { ping } from './fixtures'
+import { ping } from '../../test/fixtures'
 
 describe('period summaries', () => {
   it('uses the median of available round averages, including zero, without mutating input', () => {
