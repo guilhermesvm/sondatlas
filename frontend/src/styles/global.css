@@ -10,6 +10,8 @@
   --bar-highlight: var(--mantine-primary-color-filled);
   --chart-rtt: var(--mantine-color-blue-7);
   --chart-loss: #b26530;
+  --accent-bg: var(--mantine-color-indigo-0);
+  --accent-line: var(--mantine-color-indigo-2);
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-dimmed: #5c636a;
@@ -27,6 +29,8 @@
   --bar-highlight: var(--mantine-color-indigo-5);
   --chart-rtt: var(--mantine-color-blue-4);
   --chart-loss: #d9894f;
+  --accent-bg: #2a2d3f;
+  --accent-line: var(--mantine-color-dark-4);
 }
 body { background: var(--page-bg); line-height: 1.5; }
 summary { cursor: pointer; }
