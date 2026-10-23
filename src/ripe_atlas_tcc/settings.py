@@ -54,15 +54,26 @@ def load_polling_interval_seconds():
 def load_influxdb_config():
     load_dotenv()
 
+    token = os.getenv("INFLUXDB_TOKEN")
+    token_file = os.getenv("INFLUXDB_TOKEN_FILE")
+    if not token and token_file:
+        try:
+            token = Path(token_file).read_text(encoding="utf-8").strip()
+        except OSError as error:
+            raise RuntimeError(
+                f"Cannot read INFLUXDB_TOKEN_FILE: {token_file}"
+            ) from error
+
     variable_names = (
         "INFLUXDB_URL",
         "INFLUXDB_ORG",
         "INFLUXDB_BUCKET",
-        "INFLUXDB_TOKEN",
     )
     missing_variables = [
         name for name in variable_names if not os.getenv(name)
     ]
+    if not token:
+        missing_variables.append("INFLUXDB_TOKEN")
 
     if missing_variables:
         missing_labels = ", ".join(missing_variables)
@@ -74,5 +85,5 @@ def load_influxdb_config():
         "url": os.environ["INFLUXDB_URL"],
         "org": os.environ["INFLUXDB_ORG"],
         "bucket": os.environ["INFLUXDB_BUCKET"],
-        "token": os.environ["INFLUXDB_TOKEN"],
+        "token": token,
     }

@@ -1,19 +1,35 @@
 services:
+  init:
+    build: .
+    image: ripe-atlas-tcc-app
+    command: ["python", "-m", "ripe_atlas_tcc.init_secrets"]
+    user: "0"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - influxdb2-secrets:/run/kit-secrets
+      - influxdb2-data:/var/lib/influxdb2:ro
+
   influxdb2:
     image: influxdb:2.9.1
     restart: unless-stopped
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USERNAME:-}
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD:-}
-      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-}
-      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-}
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USERNAME:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD_FILE: /run/kit-secrets/influxdb-admin-password
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-network-measurement-platform}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-network-measurement-platform}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN_FILE: /run/kit-secrets/influxdb-token
     ports:
       - "127.0.0.1:${INFLUXDB_PORT:-8086}:8086"
     volumes:
       - influxdb2-data:/var/lib/influxdb2
       - influxdb2-config:/etc/influxdb2
+      - influxdb2-secrets:/run/kit-secrets:ro
+    depends_on:
+      init:
+        condition: service_completed_successfully
 
   pipeline:
     build: .
@@ -21,11 +37,17 @@ services:
     command: ["python", "fetch_results.py", "--poll"]
     restart: unless-stopped
     stop_signal: SIGINT
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       INFLUXDB_URL: http://influxdb2:8086
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-network-measurement-platform}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-network-measurement-platform}
+      INFLUXDB_TOKEN_FILE: /run/kit-secrets/influxdb-token
     volumes:
       - ./data:/app/data
+      - influxdb2-secrets:/run/kit-secrets:ro
     depends_on:
       - influxdb2
 
@@ -35,11 +57,17 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       INFLUXDB_URL: http://influxdb2:8086
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-network-measurement-platform}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-network-measurement-platform}
+      INFLUXDB_TOKEN_FILE: /run/kit-secrets/influxdb-token
     volumes:
       - ./data:/app/data
+      - influxdb2-secrets:/run/kit-secrets:ro
     depends_on:
       - influxdb2
 
@@ -57,3 +85,4 @@ services:
 volumes:
   influxdb2-data:
   influxdb2-config:
+  influxdb2-secrets:
