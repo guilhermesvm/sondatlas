@@ -1,4 +1,5 @@
 import { Button, Group, Paper, SimpleGrid, Text, Title } from '@mantine/core'
+import './pages.css'
 
 const steps = [
   { title: 'Conheça', text: 'Entenda o que é o RIPE Atlas, o que a sua probe mede e o que fica público.' },

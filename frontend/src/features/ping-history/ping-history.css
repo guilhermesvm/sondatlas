@@ -1,0 +1,54 @@
+.quick-controls { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.target-field { flex: 1; min-width: 150px; }
+.quick-periods { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.quick-periods legend { font-size: var(--mantine-font-size-sm); font-weight: 500; padding: 0 0 8px; }
+.quick-periods .mantine-Radio-root { padding-bottom: 8px; white-space: nowrap; }
+.custom-toggle { margin-top: 6px; padding-inline: 0; text-decoration: underline; text-underline-offset: 3px; }
+.custom-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; }
+.custom-fields > * { flex: 1; min-width: 200px; }
+.filter-help { font-size: 13px; color: var(--muted); margin: 6px 0; }
+.measurement-context { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; margin: 8px 0 10px; font-size: 14px; }
+.measurement-context span { color: var(--muted); font-size: 13px; }
+.initial-state { padding: 12px 0; color: var(--muted); font-size: 15px; }
+.period-comparison { margin: 16px 0; }
+.period-comparison h2 { margin: 0; }
+.summary-detail { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.charts-group { padding: 14px 18px; }
+.chart-panel { min-width: 0; }
+.chart-panel + .chart-panel { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+.chart-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.chart-heading h3 { margin: 0; }
+.unit { font-size: 14px; padding-left: 4px; color: var(--muted); }
+.metric-summary { color: var(--muted); font-size: 13px; }
+.chart-canvas { width: 100%; margin-top: 4px; }
+.chart-canvas svg { width: 100%; height: auto; display: block; }
+.grid-line { stroke: var(--line); }
+.axis-label { fill: var(--muted); font-size: 13px; }
+.series-line { fill: none; stroke: var(--chart-rtt); stroke-width: 1.8; vector-effect: non-scaling-stroke; }
+.series-dot, .selected-dot { fill: var(--chart-rtt); }
+.selected-dot { stroke: white; stroke-width: 2; }
+.loss .series-line { stroke: var(--chart-loss); }
+.loss .series-dot, .loss .selected-dot { fill: var(--chart-loss); }
+.selection-guide { stroke: var(--muted); stroke-dasharray: 3 3; }
+.metric-empty { color: var(--muted); font-size: 15px; padding: 12px 0; }
+.point-detail { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; min-height: 34px; padding-top: 4px; font-size: 14px; overflow-wrap: anywhere; }
+.packet-counts, .point-hint { color: var(--muted); font-size: 13px; }
+.record-selector { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 460px; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.record-selector span { flex-shrink: 0; }
+.record-selector input { flex: 1; min-width: 0; height: 24px; padding: 0; border: 0; accent-color: var(--mantine-primary-color-filled); background: transparent; }
+.measurement-about { margin-top: 10px; }
+.measurement-about summary { font-size: 14px; padding: 6px 0; }
+.about-content { font-size: 14px; overflow-wrap: anywhere; }
+.about-content p { margin: 8px 0; }
+@media (max-width: 650px) {
+  .quick-controls { gap: 8px; }
+  .target-field, .quick-periods { flex-basis: 100%; }
+  .primary-button { width: 100%; }
+  .custom-fields { flex-direction: column; }
+  .custom-fields > * { min-width: 0; }
+  .measurement-context { flex-direction: column; gap: 3px; }
+  .charts-group { padding: 12px; }
+  .point-detail { gap: 4px 12px; }
+  .point-time { font-size: 13px; }
+  .record-selector input { min-height: 36px; }
+}

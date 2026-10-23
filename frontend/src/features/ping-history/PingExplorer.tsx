@@ -1,7 +1,9 @@
 import { Alert, Button, NativeSelect, Paper, Radio, TextInput, Title } from '@mantine/core'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { fetchHistory, fetchTargets, type Catalog, type PingHistory, type PingRecord } from '../../lib/api'
-import { formatLocal, formatMetric, localInput, localPeriod, localTimeZone, quickPeriod, summarizePingResults } from './chart'
+import { formatLocal, localInput, localPeriod, localTimeZone, quickPeriod } from '../../lib/time'
+import { formatMetric, summarizePingResults } from './chart'
+import './ping-history.css'
 import MetricChart from './MetricChart'
 
 const FIELD_HELP = 'DD/MM/AAAA HH:mm:ss · 24 horas · Segundos opcionais'
