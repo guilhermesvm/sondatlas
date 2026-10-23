@@ -35,10 +35,15 @@ function VirtualMachine() {
         <Command>{"grep -Ec '(vmx|svm)' /proc/cpuinfo"}</Command>
       </Step>
       <Step title="Instale o VirtualBox 7 e o Vagrant">
+        <Text size="sm">No Windows, no PowerShell pelo Winget. O Windows pede permissão de administrador:</Text>
+        <Command>winget install --id Oracle.VirtualBox --exact</Command>
+        <Command>winget install --id Hashicorp.Vagrant --exact</Command>
         <Text size="sm">
-          Baixe nos sites oficiais: <Anchor href="https://www.virtualbox.org/" target="_blank" rel="noreferrer">VirtualBox</Anchor> e{' '}
-          <Anchor href="https://developer.hashicorp.com/vagrant/install" target="_blank" rel="noreferrer">Vagrant</Anchor>. Depois, confira o Vagrant:
+          No Linux, siga as instruções oficiais para a sua distribuição:{' '}
+          <Anchor href="https://www.virtualbox.org/wiki/Linux_Downloads" target="_blank" rel="noreferrer">VirtualBox</Anchor> e{' '}
+          <Anchor href="https://developer.hashicorp.com/vagrant/install" target="_blank" rel="noreferrer">Vagrant</Anchor> (aba Linux).
         </Text>
+        <Text size="sm">Depois, abra um terminal novo e confira o Vagrant:</Text>
         <Command>vagrant --version</Command>
       </Step>
       <Step title="Abra um terminal na pasta lab do projeto">

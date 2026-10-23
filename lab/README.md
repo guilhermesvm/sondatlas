@@ -14,6 +14,18 @@ Quem já tem Debian ou Raspberry Pi OS pode instalar sem VM (veja abaixo).
 
 Se a virtualização estiver desligada, o VirtualBox avisa ao tentar ligar a VM.
 
+No Windows, o VirtualBox e o Vagrant podem ser instalados pelo `winget` (o
+Windows pede permissão de administrador):
+
+```powershell
+winget install --id Oracle.VirtualBox --exact
+winget install --id Hashicorp.Vagrant --exact
+```
+
+No Linux, siga as instruções oficiais de cada um, por distribuição:
+[VirtualBox](https://www.virtualbox.org/wiki/Linux_Downloads) e
+[Vagrant](https://developer.hashicorp.com/vagrant/install) (aba Linux).
+
 ## Criar a VM
 
 Nesta pasta (`lab/`):
