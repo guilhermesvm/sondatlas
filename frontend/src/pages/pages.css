@@ -44,3 +44,4 @@
 .command { display: flex; align-items: center; gap: 4px; margin: 8px 0; max-width: 680px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); padding: 2px 4px 2px 12px; }
 .command pre { flex: 1; margin: 0; overflow-x: auto; padding: 8px 0; font-size: 14px; }
 .install-note { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }
+.install-choice { margin-top: 16px; padding-left: 16px; border-left: 4px solid var(--accent-line); }
