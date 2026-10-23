@@ -5,9 +5,9 @@
 .country-bars li { display: grid; grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) 65px; gap: 12px; align-items: center; margin: 10px 0; font-size: 14px; }
 .country-name small { color: var(--muted); }
 .country-count { text-align: right; font-variant-numeric: tabular-nums; }
-.bar-track { height: 22px; border-left: 1px solid var(--mantine-color-gray-4); background: var(--mantine-color-gray-0); }
-.bar-track span { display: block; height: 100%; background: var(--mantine-color-gray-5); }
-.brazil .bar-track span { background: var(--mantine-primary-color-filled); }
+.bar-track { height: 22px; border-left: 1px solid var(--bar-axis); background: var(--bar-track); }
+.bar-track span { display: block; height: 100%; background: var(--bar); }
+.brazil .bar-track span { background: var(--bar-highlight); }
 .brazil .country-name, .brazil .country-count { font-weight: 600; }
 .distribution-chart + .reading-note { margin-top: 12px; }
 @media (max-width: 650px) {

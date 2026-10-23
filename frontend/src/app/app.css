@@ -5,10 +5,10 @@
 .nav-group + .nav-group { margin-top: 12px; }
 .main { display: flex; flex-direction: column; }
 .main > .page { width: 100%; margin-bottom: 48px; }
-.site-footer { margin: auto calc(-1 * var(--mantine-spacing-md)) calc(-1 * var(--mantine-spacing-md)); padding: 24px 32px; background: white; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 20px 48px; font-size: 14px; color: var(--muted); }
+.site-footer { margin: auto calc(-1 * var(--mantine-spacing-md)) calc(-1 * var(--mantine-spacing-md)); padding: 24px 32px; background: var(--surface); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 20px 48px; font-size: 14px; color: var(--muted); }
 .site-footer > div { flex: 0 1 520px; margin-right: auto; }
 .site-footer p { margin: 6px 0 0; }
-.footer-brand { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; color: var(--mantine-primary-color-9); }
+.footer-brand { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; color: var(--brand-text); }
 .site-footer h2 { font-size: 14px; margin: 0 0 6px; color: var(--mantine-color-text); }
 .site-footer ul { list-style: none; margin: 0; padding: 0; }
 .site-footer li + li { margin-top: 4px; }

@@ -6,6 +6,7 @@ import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
 import Home from '../pages/Home'
 import InConstruction from '../pages/InConstruction'
 import JourneyPage from '../pages/JourneyPage'
+import ColorSchemeToggle from './ColorSchemeToggle'
 import Footer from './Footer'
 import Logo from './Logo'
 import { journey, routeFromHash, routes } from './routes'
@@ -35,7 +36,10 @@ export default function App() {
             <Burger opened={menuOpen} onClick={menu.toggle} hiddenFrom="sm" size="sm" color="white" aria-label="Abrir menu" />
             <a className="brand" href="#/inicio" aria-label="Sondatlas, início"><Logo />Sondatlas</a>
           </Group>
-          <span className="header-label">RIPE Atlas · Projeto TCC</span>
+          <Group gap="md" wrap="nowrap">
+            <span className="header-label">RIPE Atlas · Projeto TCC</span>
+            <ColorSchemeToggle />
+          </Group>
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="xs" component="nav" aria-label="Páginas do dashboard">

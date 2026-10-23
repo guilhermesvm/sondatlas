@@ -26,7 +26,7 @@
 .axis-label { fill: var(--muted); font-size: 13px; }
 .series-line { fill: none; stroke: var(--chart-rtt); stroke-width: 1.8; vector-effect: non-scaling-stroke; }
 .series-dot, .selected-dot { fill: var(--chart-rtt); }
-.selected-dot { stroke: white; stroke-width: 2; }
+.selected-dot { stroke: var(--surface); stroke-width: 2; }
 .loss .series-line { stroke: var(--chart-loss); }
 .loss .series-dot, .loss .selected-dot { fill: var(--chart-loss); }
 .selection-guide { stroke: var(--muted); stroke-dasharray: 3 3; }

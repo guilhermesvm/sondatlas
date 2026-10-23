@@ -1,4 +1,5 @@
 .home-steps { list-style: none; margin: 0; padding: 0; }
+.step-title { font-weight: 600; color: var(--brand-text); }
 @media (max-width: 650px) {
   .mantine-Stepper-stepBody { display: none; }
 }

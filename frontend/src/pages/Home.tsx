@@ -24,7 +24,7 @@ export default function Home() {
     <Title order={2} mt={40} mb="md">Como funciona</Title>
     <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} component="ol" className="home-steps">
       {steps.map((step, index) => <Paper key={step.title} component="li" withBorder p="md">
-        <Text fw={600} c="indigo.8">{index + 1}. {step.title}</Text>
+        <Text className="step-title">{index + 1}. {step.title}</Text>
         <Text size="sm" mt={4}>{step.text}</Text>
       </Paper>)}
     </SimpleGrid>
