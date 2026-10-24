@@ -2,7 +2,9 @@ import { Alert, Anchor, Button, Group, Modal, Text, TextInput, Title } from '@ma
 import { useState, type FormEvent } from 'react'
 import { useProbe } from '../features/probe-status/ProbeProvider'
 import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
-import { saveSelectedProbe, stopFollowingProbe } from '../lib/api'
+import { parseProbeId } from '../features/probe-status/status'
+import { InvalidProbeError, saveSelectedProbe, stopFollowingProbe } from '../lib/api'
+import SystemError from '../lib/SystemError'
 import './pages.css'
 
 export default function Follow() {
@@ -12,32 +14,36 @@ export default function Follow() {
   const [confirming, setConfirming] = useState(false)
   const [typed, setTyped] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [fieldError, setFieldError] = useState('')
+  const [error, setError] = useState<{ title: string, message: string } | null>(null)
   const [notPublic, setNotPublic] = useState(false)
 
   async function follow(event: FormEvent) {
     event.preventDefault()
-    setError('')
-    if (!/^\d+$/.test(typed.trim()) || Number(typed) === 0) {
-      setError('Digite um ID válido, só com números.')
+    setError(null)
+    setFieldError('')
+    const id = parseProbeId(typed)
+    if (id === null) {
+      setFieldError('Digite um ID válido, só com números.')
       return
     }
     setBusy(true)
     try {
-      const saved = await saveSelectedProbe(Number(typed))
+      const saved = await saveSelectedProbe(id)
       setNotPublic(saved.is_public === false)
       setEditing(false)
       setTyped('')
       select(saved.probe_id)
     } catch (reason) {
-      setError((reason as Error).message)
+      if (reason instanceof InvalidProbeError) setFieldError(reason.message)
+      else setError({ title: editing ? 'Não foi possível trocar a probe' : 'Não foi possível acompanhar a probe', message: (reason as Error).message })
     } finally {
       setBusy(false)
     }
   }
 
   async function stop() {
-    setError('')
+    setError(null)
     setBusy(true)
     try {
       await stopFollowingProbe()
@@ -45,7 +51,7 @@ export default function Follow() {
       setNotPublic(false)
       select(null)
     } catch (reason) {
-      setError((reason as Error).message)
+      setError({ title: 'Não foi possível parar de acompanhar', message: (reason as Error).message })
     } finally {
       setBusy(false)
     }
@@ -54,12 +60,13 @@ export default function Follow() {
   function closeChange() {
     setEditing(false)
     setTyped('')
-    setError('')
+    setFieldError('')
+    setError(null)
   }
 
   const idField = <TextInput label={editing ? 'ID da nova probe' : 'ID da probe'} inputMode="numeric" value={typed}
-    onChange={event => setTyped(event.currentTarget.value)} w={180} data-autofocus />
-  const errorText = error && <Text size="sm" mt="sm" className="form-error" role="alert">{error}</Text>
+    onChange={event => setTyped(event.currentTarget.value)} w={220} error={fieldError} data-autofocus />
+  const errorText = error && <SystemError title={error.title}>{error.message}</SystemError>
 
   return <div className="install">
     <Title order={1} size="h2">Acompanhar a probe</Title>
@@ -82,16 +89,16 @@ export default function Follow() {
     </dl>
 
     <section className="follow-box">
-      {loadError && <Text size="sm" className="form-error" role="alert">{loadError}</Text>}
+      {loadError && <SystemError title="Não foi possível falar com a aplicação local" mt="0">{loadError}</SystemError>}
       {!loadError && probeId === null && <>
         <Text size="sm" mb="sm">
           Informe o ID da probe. Ele aparece em{' '}
           <Anchor href="https://atlas.ripe.net/probes/mine" target="_blank" rel="noreferrer">Minhas probes</Anchor> no site do RIPE Atlas.
         </Text>
         <form onSubmit={follow}>
-          <Group align="flex-end" gap="sm">
+          <Group align="flex-start" gap="sm">
             {idField}
-            <Button type="submit" loading={busy}>Acompanhar esta probe</Button>
+            <Button type="submit" loading={busy} mt={24}>Acompanhar esta probe</Button>
           </Group>
         </form>
       </>}
@@ -100,8 +107,8 @@ export default function Follow() {
         {look && <Text size="sm" mt={4}><StatusLabel look={look} /></Text>}
         <Group gap="sm" mt="md">
           <Button component="a" href="#/minha-probe">Ver Minha probe</Button>
-          <Button variant="default" onClick={() => { setError(''); setEditing(true) }}>Trocar probe</Button>
-          <Button variant="default" className="danger-button" onClick={() => { setError(''); setConfirming(true) }}>Parar de acompanhar</Button>
+          <Button variant="default" onClick={() => { setError(null); setFieldError(''); setEditing(true) }}>Trocar probe</Button>
+          <Button variant="default" className="danger-button" onClick={() => { setError(null); setConfirming(true) }}>Parar de acompanhar</Button>
         </Group>
         <Modal opened={editing} onClose={closeChange} closeOnClickOutside={false} centered title="Trocar a probe acompanhada">
           <form onSubmit={follow}>

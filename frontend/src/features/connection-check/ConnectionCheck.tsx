@@ -1,4 +1,5 @@
 import { Button, Text } from '@mantine/core'
+import SystemError from '../../lib/SystemError'
 import { useEffect, useRef, useState } from 'react'
 import { checkConnection, type Connection } from './connection'
 import './connection-check.css'
@@ -29,7 +30,7 @@ export default function ConnectionCheck() {
       setConnection(await checkConnection(controller.signal))
     } catch {
       if (!controller.signal.aborted) setConnection(null)
-      if (!controller.signal.aborted) setError('Não foi possível consultar agora. Confira se você está conectado à Internet e tente de novo.')
+      if (!controller.signal.aborted) setError('Confira se você está conectado à Internet e tente de novo.')
     } finally {
       if (!controller.signal.aborted) setChecking(false)
     }
@@ -38,7 +39,7 @@ export default function ConnectionCheck() {
   if (!connection) return <div className="connection-check" aria-live="polite">
     <Text size="sm">Descubra qual é o seu provedor e quantas probes já medem a partir dele.</Text>
     <Button mt="sm" onClick={check} loading={checking}>Verificar minha conexão</Button>
-    {error && <Text size="sm" mt="sm" className="form-error" role="alert">{error}</Text>}
+    {error && <SystemError title="Não foi possível consultar agora">{error}</SystemError>}
     <Text size="xs" c="dimmed" mt="sm">O seu navegador consulta o RIPEstat e o RIPE Atlas. A Sondatlas não guarda nada e não mostra o seu IP.</Text>
   </div>
 

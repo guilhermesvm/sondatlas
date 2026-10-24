@@ -144,6 +144,8 @@ export async function fetchSelectedProbe(signal: AbortSignal): Promise<number | 
   return (await response.json() as { probe_id: number | null }).probe_id
 }
 
+export class InvalidProbeError extends Error {}
+
 export async function saveSelectedProbe(probeId: number): Promise<SavedProbe> {
   let response: Response
   try {
@@ -153,11 +155,11 @@ export async function saveSelectedProbe(probeId: number): Promise<SavedProbe> {
   } catch {
     throw new Error(localApiDown)
   }
+  if (response.status === 404) throw new InvalidProbeError('Essa probe não existe no RIPE Atlas. Confira o ID e tente de novo.')
+  if (response.status === 422) throw new InvalidProbeError('Digite um ID válido, só com números.')
   if (!response.ok) {
     const messages: Record<number, string> = {
-      404: 'Essa probe não existe no RIPE Atlas. Confira o ID em Minhas probes.',
       405: oldApi,
-      422: 'Digite um ID válido, só com números.',
       503: 'O RIPE Atlas não respondeu agora. Tente de novo em instantes. A probe salva antes continua a mesma.',
     }
     throw new Error(messages[response.status] ?? 'Não foi possível salvar a probe. Tente de novo.')

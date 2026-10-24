@@ -43,7 +43,7 @@ function Layout() {
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
             <Burger opened={menuOpen} onClick={menu.toggle} hiddenFrom="sm" size="sm" color="white" aria-label="Abrir menu" />
-            <a className="brand" href="#/inicio" aria-label="Sondatlas, início"><Logo />Sondatlas</a>
+            <a className="brand" href="#/inicio" aria-label="Sondatlas, início"><Logo /><span className="brand-name">Sondatlas</span></a>
           </Group>
           <Group gap="md" wrap="nowrap">
             {look && <a className="header-status" href="#/minha-probe" aria-label={`Minha probe: ${look.label}`}><StatusLabel look={look} /></a>}

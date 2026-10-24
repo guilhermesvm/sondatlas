@@ -1,7 +1,7 @@
 import { Alert, Anchor, Box, Button, Group, List, SegmentedControl, Text, TextInput, Title } from '@mantine/core'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { StatusCard } from '../features/probe-status/ProbeStatusCard'
-import { fetchProbeStatus, ProbeNotFoundError, type ProbeStatus } from '../features/probe-status/status'
+import { fetchProbeStatus, parseProbeId, ProbeNotFoundError, type ProbeStatus } from '../features/probe-status/status'
 import Command from './Command'
 import Step from './Step'
 import './pages.css'
@@ -32,7 +32,7 @@ export default function Activate() {
       if (controller.signal.aborted) return
       if (reason instanceof ProbeNotFoundError) {
         setCheckedId(null)
-        setError('Essa probe não existe no RIPE Atlas. Confira o ID em Minhas probes.')
+        setError('Essa probe não existe no RIPE Atlas. Confira o ID e tente de novo.')
       } else setFailed(true)
     } finally {
       if (!controller.signal.aborted) setChecking(false)
@@ -44,12 +44,13 @@ export default function Activate() {
     setError('')
     setProbe(null)
     setCheckedId(null)
-    if (!/^\d+$/.test(typed.trim()) || Number(typed) === 0) {
+    const id = parseProbeId(typed)
+    if (id === null) {
       setError('Digite um ID válido, só com números.')
       return
     }
-    setCheckedId(Number(typed))
-    verify(Number(typed))
+    setCheckedId(id)
+    verify(id)
   }
 
   return <div className="install">
@@ -85,12 +86,11 @@ export default function Activate() {
           <Anchor href="https://atlas.ripe.net/probes/mine" target="_blank" rel="noreferrer">Minhas probes</Anchor>. Copie esse número e confira aqui.
         </Text>
         <form onSubmit={submit}>
-          <Group align="flex-end" gap="sm">
-            <TextInput label="ID da probe" inputMode="numeric" value={typed} onChange={event => setTyped(event.currentTarget.value)} w={180} />
-            <Button type="submit" loading={checking}>Verificar</Button>
+          <Group align="flex-start" gap="sm">
+            <TextInput label="ID da probe" inputMode="numeric" value={typed} onChange={event => setTyped(event.currentTarget.value)} w={220} error={error} />
+            <Button type="submit" loading={checking} mt={24}>Verificar</Button>
           </Group>
         </form>
-        {error && <Text size="sm" mt="sm" className="form-error" role="alert">{error}</Text>}
         {checkedId && <Box mt="sm">
           <StatusCard probeId={checkedId} probe={probe} error={failed} checking={checking} onCheck={() => verify(checkedId)}
             next={{ href: '#/acompanhar', label: 'Seguir para Acompanhar' }} />

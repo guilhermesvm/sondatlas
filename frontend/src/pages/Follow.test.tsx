@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ProbeProvider } from '../features/probe-status/ProbeProvider'
@@ -9,9 +9,10 @@ afterEach(() => vi.unstubAllGlobals())
 
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
 
-function stubBackend({ saved = null as number | null, getStatus = 200 } = {}) {
+function stubBackend({ saved = null as number | null, getStatus = 200, putStatus = 200 } = {}) {
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/probe' && init?.method === 'PUT') {
+      if (putStatus !== 200) return json({ detail: 'error' }, putStatus)
       saved = (JSON.parse(String(init.body)) as { probe_id: number }).probe_id
       return json({ probe_id: saved, is_public: true })
     }
@@ -60,6 +61,21 @@ it('changes the followed probe from a dialog', async () => {
   await userEvent.type(within(dialog).getByLabelText('ID da nova probe'), '1018246')
   await userEvent.click(within(dialog).getByRole('button', { name: 'Trocar probe' }))
   expect(await screen.findByText('A Sondatlas acompanha a probe 1018246.')).toBeInTheDocument()
+})
+
+it('marks the field for an unknown probe and shows a titled alert when RIPE Atlas is down', async () => {
+  const mock = stubBackend({ putStatus: 404 })
+  renderFollow()
+  const field = await screen.findByLabelText('ID da probe')
+  await userEvent.type(field, '999999999')
+  await userEvent.click(screen.getByRole('button', { name: 'Acompanhar esta probe' }))
+  await waitFor(() => expect(field).toHaveAccessibleDescription(/Essa probe não existe no RIPE Atlas/))
+  mock.mockImplementation(() => json({ detail: 'error' }, 503))
+  await userEvent.click(screen.getByRole('button', { name: 'Acompanhar esta probe' }))
+  const alert = await screen.findByRole('alert')
+  expect(alert).toHaveTextContent('Não foi possível acompanhar a probe')
+  expect(alert).toHaveTextContent('O RIPE Atlas não respondeu agora')
+  expect(field).not.toHaveAttribute('aria-invalid', 'true')
 })
 
 it('asks to rebuild when the running API does not know the probe route yet', async () => {

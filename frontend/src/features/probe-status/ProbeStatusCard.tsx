@@ -1,4 +1,5 @@
 import { Anchor, Button, Text } from '@mantine/core'
+import SystemError from '../../lib/SystemError'
 import { formatLocal } from '../../lib/time'
 import { useProbe } from './ProbeProvider'
 import { statusLook, type ProbeStatus } from './status'
@@ -35,7 +36,7 @@ export function StatusCard({ probeId, probe, error, checking, onCheck, next }: {
       <Guidance probe={probe} next={next} />
     </>}
     {!probe && !error && <Text size="sm">Consultando o RIPE Atlas…</Text>}
-    {error && <Text size="sm" role="alert">Não foi possível consultar o RIPE Atlas agora. Tente de novo em instantes.</Text>}
+    {error && <SystemError title="Não foi possível consultar o RIPE Atlas" mt="0">Tente de novo em instantes.</SystemError>}
     <div className="status-actions">
       <Button size="compact-sm" variant="default" loading={checking} onClick={onCheck}>Verificar de novo</Button>
       <Anchor size="sm" href={`https://atlas.ripe.net/probes/${probeId}/`} target="_blank" rel="noreferrer">Abrir a página da probe no RIPE Atlas</Anchor>

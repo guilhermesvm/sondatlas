@@ -6,6 +6,11 @@ export interface ProbeStatus {
 
 export class ProbeNotFoundError extends Error {}
 
+export function parseProbeId(typed: string) {
+  const id = Number(typed.trim())
+  return /^\d+$/.test(typed.trim()) && Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
 export async function fetchProbeStatus(probeId: number, signal: AbortSignal): Promise<ProbeStatus> {
   const response = await fetch(`https://atlas.ripe.net/api/v2/probes/${probeId}/?fields=status,is_public`, { signal })
   if (response.status === 404) throw new ProbeNotFoundError()

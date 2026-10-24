@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { render } from '../test/render'
@@ -38,8 +38,18 @@ it('explains an unknown probe without showing a status', async () => {
   stubRipe({ status: 404 })
   render(<Activate />)
   await verifyId('999999999')
-  expect(await screen.findByRole('alert')).toHaveTextContent('Essa probe não existe no RIPE Atlas')
+  const field = screen.getByLabelText('ID da probe')
+  await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'))
+  expect(field).toHaveAccessibleDescription(/Essa probe não existe no RIPE Atlas/)
   expect(screen.queryByText('Verificar de novo')).not.toBeInTheDocument()
+})
+
+it('refuses an ID too large to keep every digit without asking RIPE Atlas', async () => {
+  const mock = stubRipe()
+  render(<Activate />)
+  await verifyId('24126347344234234235')
+  expect(screen.getByLabelText('ID da probe')).toHaveAccessibleDescription('Digite um ID válido, só com números.')
+  expect(mock).not.toHaveBeenCalled()
 })
 
 it('warns about a non-public probe and guides a probe that never connected', async () => {

@@ -20,6 +20,7 @@
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-dimmed: #5c636a;
+  --mantine-color-error: var(--error-text);
 }
 :root[data-mantine-color-scheme='dark'] {
   --mantine-color-text: #e8e8e8;
@@ -41,6 +42,7 @@
   --status-never: var(--mantine-color-yellow-5);
   --status-abandoned: var(--mantine-color-gray-4);
   --error-text: var(--mantine-color-red-4);
+  --mantine-color-error: var(--error-text);
 }
 body { background: var(--page-bg); line-height: 1.5; }
 summary { cursor: pointer; }
@@ -69,4 +71,6 @@ h3 { font-size: 18px; font-weight: 600; }
   .page { padding: 0 0 16px; }
   .mantine-Input-input { font-size: 16px; }
 }
-.form-error { color: var(--error-text); }
+.mantine-InputWrapper-error { font-size: var(--mantine-font-size-sm); }
+.system-error .mantine-Alert-title, .system-error .mantine-Alert-icon { color: var(--error-text); }
+.system-error .mantine-Alert-message { color: var(--mantine-color-text); }
