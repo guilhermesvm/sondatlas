@@ -2,6 +2,7 @@
 .step-title { font-weight: 600; color: var(--brand-text); }
 @media (max-width: 650px) {
   .mantine-Stepper-stepBody { display: none; }
+  .mantine-Stepper-separator { margin-inline: 6px; }
 }
 .discover .reasons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 40px; margin-top: 8px; max-width: 900px; }
 .scale { display: grid; grid-template-columns: 1fr 1fr 1.6fr; background: var(--accent-bg); border-radius: var(--mantine-radius-md); }
@@ -45,3 +46,12 @@
 .command pre { flex: 1; margin: 0; overflow-x: auto; padding: 8px 0; font-size: 14px; }
 .install-note { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }
 .install-choice { margin-top: 16px; padding-left: 16px; border-left: 4px solid var(--accent-line); }
+.follow-box { margin-top: 28px; max-width: 720px; padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--mantine-radius-md); background: var(--surface); }
+.danger-button { color: var(--error-text); }
+.follow-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 32px; max-width: 900px; margin: 28px 0 0; }
+.follow-facts > div { border-left: 2px solid var(--mantine-primary-color-filled); padding-left: 14px; }
+.follow-facts dt { font-weight: 600; margin-bottom: 4px; }
+.follow-facts dd { margin: 0; font-size: 14px; }
+@media (max-width: 800px) {
+  .follow-facts { grid-template-columns: 1fr; }
+}

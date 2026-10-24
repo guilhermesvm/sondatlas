@@ -14,11 +14,11 @@ export default function MyProbe() {
     <Text maw={640} mt="xs">Ainda não tem uma probe? A jornada mostra como instalar uma em casa.</Text>
     <Group mt="lg">
       <Button component="a" href="#/conhecer">Começar pela fase Conhecer</Button>
-      <Button component="a" href="#/ativar" variant="light">Já tenho uma probe</Button>
+      <Button component="a" href="#/acompanhar" variant="light">Já tenho uma probe</Button>
     </Group>
   </>
   return <>
     <Title order={1} size="h2" mb="sm">Minha probe{probeId ? ` ${probeId}` : ''}</Title>
-    {loadError ? <Text className="form-error" role="alert">{loadError}</Text> : probeId && <ProbeStatusCard detailsLink={false} />}
+    {loadError ? <Text className="form-error" role="alert">{loadError}</Text> : <ProbeStatusCard />}
   </>
 }

@@ -4,71 +4,56 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { render } from '../test/render'
-import { ProbeProvider } from '../features/probe-status/ProbeProvider'
 import Activate from './Activate'
 
 afterEach(() => vi.unstubAllGlobals())
 
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
 
-function stubBackend({ saved = null as number | null, putStatus = 200, isPublic = true, statusId = 1, getStatus = 200 } = {}) {
+function stubRipe({ status = 200, isPublic = true, statusId = 1 } = {}) {
   const names = ['Never Connected', 'Connected', 'Disconnected', 'Abandoned']
-  const mock = vi.fn((url: string, init?: RequestInit) => {
-    if (url === '/api/probe' && init?.method === 'PUT') {
-      const { probe_id } = JSON.parse(String(init.body)) as { probe_id: number }
-      return putStatus === 200 ? json({ probe_id, is_public: isPublic }) : json({ detail: 'error' }, putStatus)
-    }
-    if (url === '/api/probe') return getStatus === 200 ? json({ probe_id: saved }) : json({ detail: 'Not Found' }, getStatus)
-    return json({ id: 1, is_public: isPublic, status: { id: statusId, name: names[statusId], since: '2026-10-23T22:30:24Z' } })
-  })
+  const mock = vi.fn((_url: string) => status === 200
+    ? json({ id: 1, is_public: isPublic, status: { id: statusId, name: names[statusId], since: '2026-10-23T22:30:24Z' } })
+    : json({ detail: 'Not found' }, status))
   vi.stubGlobal('fetch', mock)
   return mock
 }
 
-async function saveId(id: string) {
+async function verifyId(id: string) {
   await userEvent.type(screen.getByLabelText('ID da probe'), id)
-  await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Verificar' }))
 }
 
-it('saves the probe ID through the local API and shows its status from RIPE Atlas', async () => {
-  const mock = stubBackend()
-  render(<ProbeProvider><Activate /></ProbeProvider>)
-  expect(await screen.findByText('Salve o ID no passo 3 para ver o status da probe.')).toBeInTheDocument()
-  await saveId('1017210')
-  expect(await screen.findByText(/Probe 1017210 salva/)).toBeInTheDocument()
+it('checks the probe in RIPE Atlas without saving it and points to the next phase', async () => {
+  const mock = stubRipe()
+  render(<Activate />)
+  expect(screen.getByLabelText('ID da probe')).toHaveValue('')
+  await verifyId('1017210')
   expect(await screen.findByText('Conectada')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Ver Minha probe' })).toHaveAttribute('href', '#/minha-probe')
-  const put = mock.mock.calls.find(([, init]) => init?.method === 'PUT')
-  expect(put?.[1]?.body).toBe(JSON.stringify({ probe_id: 1017210 }))
-  expect(mock.mock.calls.some(([url]) => url === 'https://atlas.ripe.net/api/v2/probes/1017210/?fields=status,is_public')).toBe(true)
+  expect(screen.getByRole('link', { name: 'Seguir para Acompanhar' })).toHaveAttribute('href', '#/acompanhar')
+  expect(mock.mock.calls.map(([url]) => url)).toEqual(['https://atlas.ripe.net/api/v2/probes/1017210/?fields=status,is_public'])
 })
 
 it('explains an unknown probe without showing a status', async () => {
-  stubBackend({ putStatus: 404 })
-  render(<ProbeProvider><Activate /></ProbeProvider>)
-  await saveId('999999999')
+  stubRipe({ status: 404 })
+  render(<Activate />)
+  await verifyId('999999999')
   expect(await screen.findByRole('alert')).toHaveTextContent('Essa probe não existe no RIPE Atlas')
-  expect(screen.getByText('Salve o ID no passo 3 para ver o status da probe.')).toBeInTheDocument()
+  expect(screen.queryByText('Verificar de novo')).not.toBeInTheDocument()
 })
 
 it('warns about a non-public probe and guides a probe that never connected', async () => {
-  stubBackend({ isPublic: false, statusId: 0 })
-  render(<ProbeProvider><Activate /></ProbeProvider>)
-  await saveId('1002642')
+  stubRipe({ isPublic: false, statusId: 0 })
+  render(<Activate />)
+  await verifyId('1002642')
   expect(await screen.findByText('Sua probe não é pública')).toBeInTheDocument()
-  expect(await screen.findByText(/Você já ligou a probe no passo 2\?/)).toBeInTheDocument()
-})
-
-it('asks to rebuild when the running API does not know the probe route yet', async () => {
-  stubBackend({ getStatus: 404 })
-  render(<ProbeProvider><Activate /></ProbeProvider>)
-  expect(await screen.findByRole('alert')).toHaveTextContent('docker compose up -d --build')
+  expect(screen.getByText(/Você já ligou a probe no passo 2\?/)).toBeInTheDocument()
 })
 
 it('shows only start commands that the kit README documents', async () => {
-  stubBackend()
+  stubRipe()
   const readme = readFileSync(resolve('../lab/README.md'), 'utf-8')
-  const { container } = render(<ProbeProvider><Activate /></ProbeProvider>)
+  const { container } = render(<Activate />)
   const shown = () => [...container.querySelectorAll('.command code')].map(code => code.textContent ?? '')
   const commands = [...shown()]
   await userEvent.click(screen.getByText('Direto no sistema'))

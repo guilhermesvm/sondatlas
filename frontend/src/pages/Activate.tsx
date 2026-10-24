@@ -1,49 +1,60 @@
-import { Alert, Anchor, Button, Group, List, SegmentedControl, Text, TextInput, Title } from '@mantine/core'
-import { useEffect, useState, type FormEvent } from 'react'
-import { useProbe } from '../features/probe-status/ProbeProvider'
-import ProbeStatusCard from '../features/probe-status/ProbeStatusCard'
-import { saveSelectedProbe } from '../lib/api'
+import { Alert, Anchor, Box, Button, Group, List, SegmentedControl, Text, TextInput, Title } from '@mantine/core'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { StatusCard } from '../features/probe-status/ProbeStatusCard'
+import { fetchProbeStatus, ProbeNotFoundError, type ProbeStatus } from '../features/probe-status/status'
 import Command from './Command'
 import Step from './Step'
 import './pages.css'
 
 export default function Activate() {
-  const { probeId: savedId, loadError, select } = useProbe()
   const [method, setMethod] = useState('vm')
   const [typed, setTyped] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [checkedId, setCheckedId] = useState<number | null>(null)
+  const [probe, setProbe] = useState<ProbeStatus | null>(null)
+  const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
-  const [notPublic, setNotPublic] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const request = useRef<AbortController | null>(null)
 
-  useEffect(() => {
-    if (savedId) setTyped(String(savedId))
-  }, [savedId])
+  useEffect(() => () => request.current?.abort(), [])
 
-  async function save(event: FormEvent) {
+  async function verify(id: number) {
+    request.current?.abort()
+    const controller = new AbortController()
+    request.current = controller
+    setChecking(true)
+    setFailed(false)
+    try {
+      const result = await fetchProbeStatus(id, controller.signal)
+      if (controller.signal.aborted) return
+      setProbe(result)
+    } catch (reason) {
+      if (controller.signal.aborted) return
+      if (reason instanceof ProbeNotFoundError) {
+        setCheckedId(null)
+        setError('Essa probe não existe no RIPE Atlas. Confira o ID em Minhas probes.')
+      } else setFailed(true)
+    } finally {
+      if (!controller.signal.aborted) setChecking(false)
+    }
+  }
+
+  function submit(event: FormEvent) {
     event.preventDefault()
     setError('')
-    setNotice('')
+    setProbe(null)
+    setCheckedId(null)
     if (!/^\d+$/.test(typed.trim()) || Number(typed) === 0) {
       setError('Digite um ID válido, só com números.')
       return
     }
-    setSaving(true)
-    try {
-      const saved = await saveSelectedProbe(Number(typed))
-      select(saved.probe_id)
-      setNotPublic(saved.is_public === false)
-      setNotice(`Probe ${saved.probe_id} salva. A coleta dos dados dela começa no próximo ciclo da aplicação.`)
-    } catch (reason) {
-      setError((reason as Error).message)
-    } finally {
-      setSaving(false)
-    }
+    setCheckedId(Number(typed))
+    verify(Number(typed))
   }
 
   return <div className="install">
     <Title order={1} size="h2">Ativar a probe</Title>
-    <Text size="lg" mt="sm" maw={680}>Falta cadastrar a probe no RIPE Atlas, ligar a probe e informar o ID dela aqui.</Text>
+    <Text size="lg" mt="sm" maw={680}>Falta cadastrar a probe no RIPE Atlas, ligar a probe e conferir se ela está conectada.</Text>
 
     <ol className="install-steps">
       <Step title="Cadastre a probe no RIPE Atlas">
@@ -68,27 +79,25 @@ export default function Activate() {
           ? <><Text size="sm">Na pasta lab do projeto:</Text><Command>{'vagrant ssh -c "sudo systemctl enable --now ripe-atlas"'}</Command></>
           : <Command>sudo systemctl enable --now ripe-atlas</Command>}
       </Step>
-      <Step title="Informe o ID da probe">
+      <Step title="Confira se a probe está conectada">
         <Text size="sm" mb="sm">
           O RIPE Atlas mostra o número da sua probe em{' '}
-          <Anchor href="https://atlas.ripe.net/probes/mine" target="_blank" rel="noreferrer">Minhas probes</Anchor>. Copie esse número e salve no campo abaixo.
+          <Anchor href="https://atlas.ripe.net/probes/mine" target="_blank" rel="noreferrer">Minhas probes</Anchor>. Copie esse número e confira aqui.
         </Text>
-        <form onSubmit={save}>
+        <form onSubmit={submit}>
           <Group align="flex-end" gap="sm">
             <TextInput label="ID da probe" inputMode="numeric" value={typed} onChange={event => setTyped(event.currentTarget.value)} w={180} />
-            <Button type="submit" loading={saving}>Salvar</Button>
+            <Button type="submit" loading={checking}>Verificar</Button>
           </Group>
         </form>
-        {(error || loadError) && <Text size="sm" mt="sm" className="form-error" role="alert">{error || loadError}</Text>}
-        {notice && <Text size="sm" mt="sm">{notice}</Text>}
-        {notPublic && <Alert color="yellow" mt="sm" maw={720} title="Sua probe não é pública">
+        {error && <Text size="sm" mt="sm" className="form-error" role="alert">{error}</Text>}
+        {checkedId && <Box mt="sm">
+          <StatusCard probeId={checkedId} probe={probe} error={failed} checking={checking} onCheck={() => verify(checkedId)}
+            next={{ href: '#/acompanhar', label: 'Seguir para Acompanhar' }} />
+        </Box>}
+        {probe?.is_public === false && <Alert color="yellow" mt="sm" maw={720} title="Sua probe não é pública">
           A Sondatlas só lê dados públicos do RIPE Atlas, então os resultados desta probe podem não aparecer aqui. Confira a visibilidade na página da probe no RIPE Atlas.
         </Alert>}
-      </Step>
-      <Step title="Sua probe está conectada?">
-        {savedId
-          ? <ProbeStatusCard />
-          : <Text size="sm">Salve o ID no passo 3 para ver o status da probe.</Text>}
       </Step>
     </ol>
   </div>

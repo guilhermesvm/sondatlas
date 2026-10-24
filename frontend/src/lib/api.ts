@@ -164,3 +164,14 @@ export async function saveSelectedProbe(probeId: number): Promise<SavedProbe> {
   }
   return await response.json() as SavedProbe
 }
+
+export async function stopFollowingProbe(): Promise<void> {
+  let response: Response
+  try {
+    response = await fetch('/api/probe', { method: 'DELETE' })
+  } catch {
+    throw new Error(localApiDown)
+  }
+  if (response.status === 405) throw new Error(oldApi)
+  if (!response.ok) throw new Error('Não foi possível parar de acompanhar. Tente de novo.')
+}

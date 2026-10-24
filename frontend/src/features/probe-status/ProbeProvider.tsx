@@ -9,7 +9,7 @@ interface ProbeState {
   statusError: boolean
   checking: boolean
   check: () => void
-  select: (probeId: number) => void
+  select: (probeId: number | null) => void
 }
 
 const ProbeContext = createContext<ProbeState | null>(null)
@@ -59,9 +59,9 @@ export function ProbeProvider({ children }: { children: ReactNode }) {
     return () => request.current?.abort()
   }, [check])
 
-  const select = useCallback((id: number) => {
+  const select = useCallback((id: number | null) => {
     setLoadError('')
-    if (id === probeId) check()
+    if (id !== null && id === probeId) check()
     else setProbeId(id)
   }, [probeId, check])
 
