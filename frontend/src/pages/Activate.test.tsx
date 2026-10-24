@@ -4,6 +4,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { render } from '../test/render'
+import { ProbeProvider } from '../features/probe-status/ProbeProvider'
 import Activate from './Activate'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -31,7 +32,7 @@ async function saveId(id: string) {
 
 it('saves the probe ID through the local API and shows its status from RIPE Atlas', async () => {
   const mock = stubBackend()
-  render(<Activate />)
+  render(<ProbeProvider><Activate /></ProbeProvider>)
   expect(await screen.findByText('Salve o ID no passo 3 para ver o status da probe.')).toBeInTheDocument()
   await saveId('1017210')
   expect(await screen.findByText(/Probe 1017210 salva/)).toBeInTheDocument()
@@ -44,7 +45,7 @@ it('saves the probe ID through the local API and shows its status from RIPE Atla
 
 it('explains an unknown probe without showing a status', async () => {
   stubBackend({ putStatus: 404 })
-  render(<Activate />)
+  render(<ProbeProvider><Activate /></ProbeProvider>)
   await saveId('999999999')
   expect(await screen.findByRole('alert')).toHaveTextContent('Essa probe não existe no RIPE Atlas')
   expect(screen.getByText('Salve o ID no passo 3 para ver o status da probe.')).toBeInTheDocument()
@@ -52,7 +53,7 @@ it('explains an unknown probe without showing a status', async () => {
 
 it('warns about a non-public probe and guides a probe that never connected', async () => {
   stubBackend({ isPublic: false, statusId: 0 })
-  render(<Activate />)
+  render(<ProbeProvider><Activate /></ProbeProvider>)
   await saveId('1002642')
   expect(await screen.findByText('Sua probe não é pública')).toBeInTheDocument()
   expect(await screen.findByText(/Você já ligou a probe no passo 2\?/)).toBeInTheDocument()
@@ -60,14 +61,14 @@ it('warns about a non-public probe and guides a probe that never connected', asy
 
 it('asks to rebuild when the running API does not know the probe route yet', async () => {
   stubBackend({ getStatus: 404 })
-  render(<Activate />)
+  render(<ProbeProvider><Activate /></ProbeProvider>)
   expect(await screen.findByRole('alert')).toHaveTextContent('docker compose up -d --build')
 })
 
 it('shows only start commands that the kit README documents', async () => {
   stubBackend()
   const readme = readFileSync(resolve('../lab/README.md'), 'utf-8')
-  const { container } = render(<Activate />)
+  const { container } = render(<ProbeProvider><Activate /></ProbeProvider>)
   const shown = () => [...container.querySelectorAll('.command code')].map(code => code.textContent ?? '')
   const commands = [...shown()]
   await userEvent.click(screen.getByText('Direto no sistema'))

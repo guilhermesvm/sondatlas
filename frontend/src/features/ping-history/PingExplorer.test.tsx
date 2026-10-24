@@ -102,7 +102,7 @@ it('shows a loading state and prevents duplicate requests', async () => {
   const complete: ((response: Response) => void)[] = []
   vi.stubGlobal('fetch', vi.fn((path: string) => path === '/api/targets'
     ? Promise.resolve(new Response(JSON.stringify(catalog)))
-    : new Promise<Response>(resolve => { complete.push(resolve) })))
+    : new Promise<Response>(resolve => { if (path.startsWith('/api/ping')) complete.push(resolve) })))
   render(<App />)
   await fillPeriod()
   await userEvent.click(screen.getByRole('button', { name: /^Consultar$/ }))

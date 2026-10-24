@@ -3,6 +3,8 @@ import { useDisclosure } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
 import PingExplorer from '../features/ping-history/PingExplorer'
 import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
+import { ProbeProvider } from '../features/probe-status/ProbeProvider'
+import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
 import Home from '../pages/Home'
 import InConstruction from '../pages/InConstruction'
 import JourneyPage from '../pages/JourneyPage'
@@ -19,6 +21,11 @@ const groups = [
 ] as const
 
 export default function App() {
+  return <ProbeProvider><Layout /></ProbeProvider>
+}
+
+function Layout() {
+  const look = useStatusLook()
   const [hash, setHash] = useState(location.hash)
   const [menuOpen, menu] = useDisclosure()
   useEffect(() => {
@@ -37,6 +44,7 @@ export default function App() {
             <a className="brand" href="#/inicio" aria-label="Sondatlas, início"><Logo />Sondatlas</a>
           </Group>
           <Group gap="md" wrap="nowrap">
+            {look && <a className="header-status" href="#/minha-probe" aria-label={`Minha probe: ${look.label}`}><StatusLabel look={look} /></a>}
             <span className="header-label">RIPE Atlas · Projeto TCC</span>
             <ColorSchemeToggle />
           </Group>
@@ -49,6 +57,7 @@ export default function App() {
           {routes.filter(item => item.group === group.id).map(item => {
             const step = journey.indexOf(item)
             return <NavLink key={item.id} href={`#/${item.id}`} label={step >= 0 ? `${step + 1}. ${item.label}` : item.label}
+              description={item.id === 'minha-probe' && look ? <StatusLabel look={look} /> : undefined}
               active={item === route} aria-current={item === route ? 'page' : undefined} />
           })}
         </div>)}

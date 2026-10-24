@@ -1,14 +1,15 @@
 import { Alert, Anchor, Button, Group, List, SegmentedControl, Text, TextInput, Title } from '@mantine/core'
 import { useEffect, useState, type FormEvent } from 'react'
+import { useProbe } from '../features/probe-status/ProbeProvider'
 import ProbeStatusCard from '../features/probe-status/ProbeStatusCard'
-import { fetchSelectedProbe, saveSelectedProbe } from '../lib/api'
+import { saveSelectedProbe } from '../lib/api'
 import Command from './Command'
 import Step from './Step'
 import './pages.css'
 
 export default function Activate() {
+  const { probeId: savedId, loadError, select } = useProbe()
   const [method, setMethod] = useState('vm')
-  const [savedId, setSavedId] = useState<number | null>(null)
   const [typed, setTyped] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -16,15 +17,8 @@ export default function Activate() {
   const [notPublic, setNotPublic] = useState(false)
 
   useEffect(() => {
-    const controller = new AbortController()
-    fetchSelectedProbe(controller.signal).then(id => {
-      setSavedId(id)
-      if (id !== null) setTyped(String(id))
-    }).catch((reason: Error) => {
-      if (!controller.signal.aborted) setError(reason.message)
-    })
-    return () => controller.abort()
-  }, [])
+    if (savedId) setTyped(String(savedId))
+  }, [savedId])
 
   async function save(event: FormEvent) {
     event.preventDefault()
@@ -37,7 +31,7 @@ export default function Activate() {
     setSaving(true)
     try {
       const saved = await saveSelectedProbe(Number(typed))
-      setSavedId(saved.probe_id)
+      select(saved.probe_id)
       setNotPublic(saved.is_public === false)
       setNotice(`Probe ${saved.probe_id} salva. A coleta dos dados dela começa no próximo ciclo da aplicação.`)
     } catch (reason) {
@@ -85,16 +79,16 @@ export default function Activate() {
             <Button type="submit" loading={saving}>Salvar</Button>
           </Group>
         </form>
-        {error && <Text size="sm" mt="sm" className="form-error" role="alert">{error}</Text>}
+        {(error || loadError) && <Text size="sm" mt="sm" className="form-error" role="alert">{error || loadError}</Text>}
         {notice && <Text size="sm" mt="sm">{notice}</Text>}
         {notPublic && <Alert color="yellow" mt="sm" maw={720} title="Sua probe não é pública">
           A Sondatlas só lê dados públicos do RIPE Atlas, então os resultados desta probe podem não aparecer aqui. Confira a visibilidade na página da probe no RIPE Atlas.
         </Alert>}
       </Step>
       <Step title="Sua probe está conectada?">
-        {savedId === null
-          ? <Text size="sm">Salve o ID no passo 3 para ver o status da probe.</Text>
-          : <ProbeStatusCard probeId={savedId} />}
+        {savedId
+          ? <ProbeStatusCard />
+          : <Text size="sm">Salve o ID no passo 3 para ver o status da probe.</Text>}
       </Step>
     </ol>
   </div>

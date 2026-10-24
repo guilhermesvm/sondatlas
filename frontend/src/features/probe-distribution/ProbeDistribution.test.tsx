@@ -57,7 +57,7 @@ it('keeps dated global data during loading, concurrency and failure, permits ret
   expect(screen.getByText(/Coletando todas as páginas/)).toHaveAttribute('role', 'status')
   expect(screen.getByRole('region', { name: 'Total global' })).toHaveTextContent('14.098')
   expect(screen.getByText(/Coleta: 11\/10\/2026/)).toHaveTextContent('09:01:00')
-  await userEvent.click(screen.getByRole('link', { name: 'Minha probe' }))
+  await userEvent.click(within(screen.getByRole('navigation', { name: 'Páginas do dashboard' })).getByRole('link', { name: /^Minha probe/ }))
   await userEvent.click(screen.getByRole('button', { name: 'Consultar' }))
   await screen.findByRole('region', { name: 'Resumo de K-root' })
   await userEvent.click(screen.getByRole('link', { name: 'Rede global' }))
