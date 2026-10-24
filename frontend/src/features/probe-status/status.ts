@@ -2,6 +2,8 @@ export interface ProbeStatus {
   id: number
   is_public: boolean
   status: { id: number, name: string, since: string | null }
+  first_connected?: number | string | null
+  total_uptime?: number | null
 }
 
 export class ProbeNotFoundError extends Error {}
@@ -12,7 +14,7 @@ export function parseProbeId(typed: string) {
 }
 
 export async function fetchProbeStatus(probeId: number, signal: AbortSignal): Promise<ProbeStatus> {
-  const response = await fetch(`https://atlas.ripe.net/api/v2/probes/${probeId}/?fields=status,is_public`, { signal })
+  const response = await fetch(`https://atlas.ripe.net/api/v2/probes/${probeId}/?fields=status,is_public,first_connected,total_uptime`, { signal })
   if (response.status === 404) throw new ProbeNotFoundError()
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return await response.json() as ProbeStatus

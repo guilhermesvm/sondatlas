@@ -13,7 +13,8 @@ const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.
 function stubRipe({ status = 200, isPublic = true, statusId = 1 } = {}) {
   const names = ['Never Connected', 'Connected', 'Disconnected', 'Abandoned']
   const mock = vi.fn((_url: string) => status === 200
-    ? json({ id: 1, is_public: isPublic, status: { id: statusId, name: names[statusId], since: '2026-10-23T22:30:24Z' } })
+    ? json({ id: 1, is_public: isPublic, status: { id: statusId, name: names[statusId], since: '2026-10-23T22:30:24Z' },
+      first_connected: statusId === 0 ? null : 1787745600, total_uptime: statusId === 0 ? null : 2717414 })
     : json({ detail: 'Not found' }, status))
   vi.stubGlobal('fetch', mock)
   return mock
@@ -26,13 +27,18 @@ async function verifyId(id: string) {
 
 it('checks the probe in RIPE Atlas without saving it and points to the next phase', async () => {
   const mock = stubRipe()
-  render(<Activate />)
+  const { container } = render(<Activate />)
+  expect([...container.querySelectorAll('.install-step-title')].map(title => title.textContent)).toEqual([
+    'Cadastre a probe no RIPE Atlas', 'Pegue o ID da probe no seu email', 'Ligue a probe', 'Confira se a probe está conectada',
+  ])
+  expect(screen.getByRole('link', { name: 'Minhas probes' })).toHaveAttribute('href', 'https://atlas.ripe.net/probes/mine')
   expect(screen.getByLabelText('ID da probe')).toHaveValue('')
   await verifyId('1017210')
   expect(await screen.findByText('Conectada')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Seguir para Acompanhar' })).toHaveAttribute('href', '#/acompanhar')
   expect(screen.queryByRole('button', { name: 'Verificar de novo' })).not.toBeInTheDocument()
-  expect(mock.mock.calls.map(([url]) => url)).toEqual(['https://atlas.ripe.net/api/v2/probes/1017210/?fields=status,is_public'])
+  expect(screen.getByText('No RIPE Atlas desde 26/08/2026, cerca de 31 dias no ar no total.')).toBeInTheDocument()
+  expect(mock.mock.calls.map(([url]) => url)).toEqual(['https://atlas.ripe.net/api/v2/probes/1017210/?fields=status,is_public,first_connected,total_uptime'])
 })
 
 it('explains an unknown probe without showing a status', async () => {
@@ -58,7 +64,8 @@ it('warns about a non-public probe and guides a probe that never connected', asy
   render(<Activate />)
   await verifyId('1002642')
   expect(await screen.findByText('Sua probe não é pública')).toBeInTheDocument()
-  expect(screen.getByText(/Você já ligou a probe no passo 2\?/)).toBeInTheDocument()
+  expect(screen.getByText(/Você já ligou a probe\?/)).toBeInTheDocument()
+  expect(screen.queryByText(/No RIPE Atlas desde/)).not.toBeInTheDocument()
 })
 
 it('shows only start commands that the kit README documents', async () => {

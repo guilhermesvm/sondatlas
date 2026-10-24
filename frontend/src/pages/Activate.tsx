@@ -55,7 +55,7 @@ export default function Activate() {
 
   return <div className="install">
     <Title order={1} size="h2">Ativar a probe</Title>
-    <Text size="lg" mt="sm" maw={680}>Falta cadastrar a probe no RIPE Atlas, ligar a probe e conferir se ela está conectada.</Text>
+    <Text size="lg" mt="sm" maw={680}>Falta cadastrar a probe no RIPE Atlas, pegar o ID dela, ligar a probe e conferir se ela está conectada.</Text>
 
     <ol className="install-steps">
       <Step title="Cadastre a probe no RIPE Atlas">
@@ -72,6 +72,11 @@ export default function Activate() {
           <List.Item>Marque que leu e aceita os termos de serviço do RIPE Atlas e a declaração de privacidade do RIPE NCC e envie o cadastro.</List.Item>
         </List>
       </Step>
+      <Step title="Pegue o ID da probe no seu email">
+        <Text size="sm" maw={720}>
+          Depois do cadastro, a conta do RIPE que você usou recebe um email do RIPE Atlas avisando que a probe foi ativada. O ID da probe está nesse email. Ele é um número, e você vai usar no último passo.
+        </Text>
+      </Step>
       <Step title="Ligue a probe">
         <Text size="sm">A probe fica parada até o cadastro. Agora ligue a probe. Com este comando, ela também volta sozinha quando a máquina reiniciar.</Text>
         <SegmentedControl size="sm" my="sm" value={method} onChange={setMethod} aria-label="Como você instalou a probe"
@@ -81,9 +86,9 @@ export default function Activate() {
           : <Command>sudo systemctl enable --now ripe-atlas</Command>}
       </Step>
       <Step title="Confira se a probe está conectada">
-        <Text size="sm" mb="sm">
-          O RIPE Atlas mostra o número da sua probe em{' '}
-          <Anchor href="https://atlas.ripe.net/probes/mine" target="_blank" rel="noreferrer">Minhas probes</Anchor>. Copie esse número e confira aqui.
+        <Text size="sm" mb="sm" maw={720}>
+          Digite o ID que veio no email. Não achou o email? O RIPE Atlas também mostra o número da sua probe em{' '}
+          <Anchor href="https://atlas.ripe.net/probes/mine" target="_blank" rel="noreferrer">Minhas probes</Anchor>.
         </Text>
         <form onSubmit={submit}>
           <Group align="flex-start" gap="sm">

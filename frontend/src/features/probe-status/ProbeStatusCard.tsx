@@ -7,12 +7,27 @@ import './probe-status.css'
 
 type NextStep = { href: string, label: string }
 
+function uptime(seconds: number) {
+  const hours = seconds / 3600
+  if (hours < 1) return 'menos de 1 hora'
+  if (hours < 48) return `cerca de ${Math.round(hours)} horas`
+  return `cerca de ${Math.round(hours / 24)} dias`
+}
+
+function History({ probe }: { probe: ProbeStatus }) {
+  const first = probe.first_connected
+  if (first === null || first === undefined) return null
+  const date = new Date(typeof first === 'number' ? first * 1000 : first).toLocaleDateString('pt-BR')
+  const total = probe.total_uptime ? `, ${uptime(probe.total_uptime)} no ar no total` : ''
+  return <Text size="sm" mt={4}>No RIPE Atlas desde {date}{total}.</Text>
+}
+
 function Guidance({ probe, next }: { probe: ProbeStatus, next?: NextStep }) {
   const since = probe.status.since ? formatLocal(probe.status.since) : null
   const recent = probe.status.since !== null && Date.now() - Date.parse(probe.status.since) < 3600000
   switch (probe.status.id) {
     case 0: return <Text size="sm">
-      Sua probe ainda não se conectou ao RIPE Atlas. Você já ligou a probe no passo 2? Depois de ligada, ela deve conectar em cerca de um minuto.
+      Sua probe ainda não se conectou ao RIPE Atlas. Você já ligou a probe? Depois de ligada, ela deve conectar em cerca de um minuto.
     </Text>
     case 1: return <Text size="sm">
       Sua probe está conectada{since && ` desde ${since}`}.{recent && ' Os primeiros resultados podem levar cerca de meia hora para aparecer.'}
@@ -42,6 +57,7 @@ export function StatusCard({ probeId, probe, error, checking, onCheck, next }: {
     {look && probe && <>
       <Text className="status-name"><span className="status-dot" data-status={look.key} aria-hidden="true" />{look.label} <span className="status-original">({probe.status.name})</span></Text>
       <Guidance probe={probe} next={next} />
+      <History probe={probe} />
     </>}
     {!probe && <Text size="sm">Consultando o RIPE Atlas…</Text>}
     {probe && error && <Text size="sm" c="dimmed" mt="xs">Não foi possível atualizar agora. Este é o último status consultado.</Text>}
