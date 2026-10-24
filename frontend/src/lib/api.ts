@@ -122,3 +122,45 @@ export async function fetchDistribution(signal: AbortSignal, refresh = false): P
     throw error
   }
 }
+
+export interface SavedProbe {
+  probe_id: number
+  is_public: boolean | null
+}
+
+const localApiDown = 'A aplicação local não respondeu. Confira se o Docker Compose está rodando.'
+const oldApi = 'A API em execução ainda não tem essa função. Atualize com docker compose up -d --build.'
+
+export async function fetchSelectedProbe(signal: AbortSignal): Promise<number | null> {
+  let response: Response
+  try {
+    response = await fetch('/api/probe', { signal })
+  } catch (error) {
+    if (signal.aborted) throw error
+    throw new Error(localApiDown)
+  }
+  if (response.status === 404) throw new Error(oldApi)
+  if (!response.ok) throw new Error('Não foi possível ler a probe salva. Tente de novo.')
+  return (await response.json() as { probe_id: number | null }).probe_id
+}
+
+export async function saveSelectedProbe(probeId: number): Promise<SavedProbe> {
+  let response: Response
+  try {
+    response = await fetch('/api/probe', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ probe_id: probeId }),
+    })
+  } catch {
+    throw new Error(localApiDown)
+  }
+  if (!response.ok) {
+    const messages: Record<number, string> = {
+      404: 'Essa probe não existe no RIPE Atlas. Confira o ID em Minhas probes.',
+      405: oldApi,
+      422: 'Digite um ID válido, só com números.',
+      503: 'O RIPE Atlas não respondeu agora. Tente de novo em instantes. A probe salva antes continua a mesma.',
+    }
+    throw new Error(messages[response.status] ?? 'Não foi possível salvar a probe. Tente de novo.')
+  }
+  return await response.json() as SavedProbe
+}

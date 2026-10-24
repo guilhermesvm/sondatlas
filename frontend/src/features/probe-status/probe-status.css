@@ -1,0 +1,13 @@
+.status-card { max-width: 720px; padding: 14px 16px; border-left: 4px solid var(--line); border-radius: var(--mantine-radius-sm); background: var(--surface); }
+.status-connected { border-left-color: var(--status-connected); background: var(--mantine-color-green-light); }
+.status-disconnected { border-left-color: var(--status-disconnected); background: var(--mantine-color-red-light); }
+.status-never { border-left-color: var(--status-never); background: var(--mantine-color-yellow-light); }
+.status-abandoned { border-left-color: var(--status-abandoned); background: var(--mantine-color-gray-light); }
+.status-name { font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.status-connected .status-dot { background: var(--status-connected); }
+.status-disconnected .status-dot { background: var(--status-disconnected); }
+.status-never .status-dot { background: var(--status-never); }
+.status-abandoned .status-dot { background: var(--status-abandoned); }
+.status-original { font-weight: 400; font-size: 13px; color: var(--muted); }
+.status-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }

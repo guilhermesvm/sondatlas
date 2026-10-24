@@ -1,6 +1,7 @@
 import { Button, Group, Stepper } from '@mantine/core'
 import { useState } from 'react'
 import { journey, type Route } from '../app/routes'
+import Activate from './Activate'
 import Discover from './Discover'
 import InConstruction from './InConstruction'
 import Install from './Install'
@@ -16,7 +17,8 @@ export default function JourneyPage({ route }: { route: Route }) {
       {journey.map(item => <Stepper.Step key={item.id} label={item.label} aria-label={item.label} aria-current={item === route ? 'step' : undefined} />)}
     </Stepper>
     {route.id === 'conhecer' ? <Discover understood={understood} onUnderstoodChange={setUnderstood} />
-      : route.id === 'instalar' ? <Install /> : <InConstruction route={route} />}
+      : route.id === 'instalar' ? <Install />
+      : route.id === 'ativar' ? <Activate /> : <InConstruction route={route} />}
     <Group justify="space-between" mt="xl">
       {previous ? <Button component="a" href={`#/${previous.id}`} variant="default">Voltar: {previous.label}</Button> : <span />}
       {next && <Button component="a" href={`#/${next.id}`} variant={route.id === 'conhecer' && !understood ? 'default' : 'filled'}>Próximo: {next.label}</Button>}
