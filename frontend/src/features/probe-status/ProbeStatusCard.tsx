@@ -27,20 +27,25 @@ function Guidance({ probe, next }: { probe: ProbeStatus, next?: NextStep }) {
 }
 
 export function StatusCard({ probeId, probe, error, checking, onCheck, next }: {
-  probeId: number, probe: ProbeStatus | null, error: boolean, checking: boolean, onCheck: () => void, next?: NextStep
+  probeId: number, probe: ProbeStatus | null, error: boolean, checking: boolean, onCheck?: () => void, next?: NextStep
 }) {
+  const actions = <div className="status-actions">
+    {onCheck && <Button size="compact-sm" variant="default" loading={checking} onClick={onCheck}>Verificar de novo</Button>}
+    <Anchor size="sm" href={`https://atlas.ripe.net/probes/${probeId}/`} target="_blank" rel="noreferrer">Abrir a página da probe no RIPE Atlas</Anchor>
+  </div>
+  if (!probe && error) return <>
+    <SystemError title="Não foi possível consultar o RIPE Atlas" mt="0">Tente de novo em instantes.</SystemError>
+    {actions}
+  </>
   const look = probe ? statusLook(probe) : null
   return <div className={`status-card ${look ? `status-${look.key}` : ''}`} aria-live="polite">
     {look && probe && <>
       <Text className="status-name"><span className="status-dot" data-status={look.key} aria-hidden="true" />{look.label} <span className="status-original">({probe.status.name})</span></Text>
       <Guidance probe={probe} next={next} />
     </>}
-    {!probe && !error && <Text size="sm">Consultando o RIPE Atlas…</Text>}
-    {error && <SystemError title="Não foi possível consultar o RIPE Atlas" mt="0">Tente de novo em instantes.</SystemError>}
-    <div className="status-actions">
-      <Button size="compact-sm" variant="default" loading={checking} onClick={onCheck}>Verificar de novo</Button>
-      <Anchor size="sm" href={`https://atlas.ripe.net/probes/${probeId}/`} target="_blank" rel="noreferrer">Abrir a página da probe no RIPE Atlas</Anchor>
-    </div>
+    {!probe && <Text size="sm">Consultando o RIPE Atlas…</Text>}
+    {probe && error && <Text size="sm" c="dimmed" mt="xs">Não foi possível atualizar agora. Este é o último status consultado.</Text>}
+    {actions}
   </div>
 }
 

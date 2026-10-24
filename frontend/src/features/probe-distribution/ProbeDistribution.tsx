@@ -1,4 +1,5 @@
-import { Alert, Button, Loader, Paper, Title } from '@mantine/core'
+import { Button, Loader, Paper, Title } from '@mantine/core'
+import SystemError from '../../lib/SystemError'
 import { useEffect, useRef, useState } from 'react'
 import { fetchDistribution, type ProbeDistribution as Distribution } from '../../lib/api'
 import { formatLocal, localTimeZone } from '../../lib/time'
@@ -68,9 +69,9 @@ export default function ProbeDistribution({ active }: { active: boolean }) {
     {reading && <p role="status">Lendo a última coleta salva…</p>}
     {refreshing && <p role="status">Coletando todas as páginas e salvando o resumo. Isso pode levar alguns minutos; a coleta anterior permanece visível.</p>}
     {notice && <p role="status">{notice}</p>}
-    {error && <Alert className="message" color="red"><p>{error}</p>
-      <Button variant="outline" color="red" disabled={refreshing || reading} onClick={() => setAttempt(value => value + 1)}>Ler coleta salva novamente</Button>
-    </Alert>}
+    {error && <SystemError title="Não foi possível carregar a distribuição global" mt="md">{error}
+      <Button display="block" mt="sm" variant="default" disabled={refreshing || reading} onClick={() => setAttempt(value => value + 1)}>Ler coleta salva novamente</Button>
+    </SystemError>}
     {loaded && !distribution && <div className="message"><h2>Ainda não há uma coleta salva.</h2><p>Use “Atualizar distribuição” para consultar o cadastro público. Ausência de coleta não significa zero probes.</p></div>}
     {distribution && <>
       <p className="result-count">Coleta: {formatLocal(distribution.started_at_utc, true)} → {formatLocal(distribution.finished_at_utc, true)} · Fuso: {localTimeZone()}</p>

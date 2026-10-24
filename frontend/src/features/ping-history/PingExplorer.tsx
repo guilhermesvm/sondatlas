@@ -1,5 +1,6 @@
-import { Alert, Button, NativeSelect, Paper, Radio, TextInput, Title } from '@mantine/core'
+import { Button, NativeSelect, Paper, Radio, TextInput, Title } from '@mantine/core'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import SystemError from '../../lib/SystemError'
 import { fetchHistory, fetchTargets, type Catalog, type PingHistory, type PingRecord } from '../../lib/api'
 import { formatLocal, localInput, localPeriod, localTimeZone, quickPeriod } from '../../lib/time'
 import { formatMetric, summarizePingResults } from './chart'
@@ -113,9 +114,9 @@ export default function PingExplorer({ active }: { active: boolean }) {
     </section>
     <div className="measurement-context">{catalog && draftTarget && <strong>Probe {catalog.probe_id} → {draftTarget.target_name} · Ping IPv4</strong>}<span>Fuso: {timeZone}</span></div>
 
-    {error && <Alert className="message" color="red" title="Não foi possível consultar."><p>{error}</p>
-      {!catalog && <Button variant="outline" color="red" onClick={() => setCatalogAttempt(value => value + 1)}>Tentar carregar alvos novamente</Button>}
-    </Alert>}
+    {error && <SystemError title="Não foi possível consultar o histórico" mt="md">{error}
+      {!catalog && <Button display="block" mt="sm" variant="default" onClick={() => setCatalogAttempt(value => value + 1)}>Tentar carregar alvos novamente</Button>}
+    </SystemError>}
     {catalogLoading && <div className="message" role="status">Carregando os alvos da probe…</div>}
     {loading && <div className="message" role="status">Consultando o histórico armazenado…</div>}
     {!catalogLoading && !loading && !histories && !error && <p className="initial-state">Consulte o período para comparar K-root e Google. O destino seleciona o gráfico detalhado.</p>}

@@ -38,19 +38,25 @@ export interface PingHistory {
   results: PingRecord[]
 }
 
+const localApiDown = 'A aplicação no seu computador não respondeu. Confira se ela está rodando e tente de novo.'
+const oldApi = 'A aplicação em execução ainda não tem essa função. Atualize com docker compose up -d --build.'
+// The dev server and the web container answer 502 when they cannot reach the API.
+const proxyDown = 502
+
 async function readJson<T>(path: string, signal: AbortSignal): Promise<T> {
   let response: Response
   try {
     response = await fetch(path, { signal })
   } catch (error) {
     if (signal.aborted) throw error
-    throw new Error('Não foi possível acessar a API. Verifique se o backend está em execução e tente novamente.')
+    throw new Error(localApiDown)
   }
   if (!response.ok) {
     const messages: Record<number, string> = {
       404: 'Este alvo ou probe não está disponível no catálogo.',
       422: 'O período é inválido. Confira as datas e o limite de 60 dias.',
-      503: 'O histórico está temporariamente indisponível. Verifique o backend e tente novamente.',
+      [proxyDown]: localApiDown,
+      503: 'O histórico está temporariamente indisponível. Tente de novo em instantes.',
     }
     throw new Error(messages[response.status] ?? 'Não foi possível concluir a consulta. Tente novamente.')
   }
@@ -105,7 +111,8 @@ export async function fetchDistribution(signal: AbortSignal, refresh = false): P
     })
     if (!response.ok) {
       const messages: Record<number, string> = {
-        404: 'A API em execução ainda não disponibiliza a distribuição global. Reinicie o backend para carregar as novas rotas.',
+        404: oldApi,
+        [proxyDown]: localApiDown,
         409: 'Já há uma coleta global em andamento ou seu bloqueio não pôde ser verificado. Aguarde e tente novamente.',
         503: refresh ? 'A atualização falhou. A coleta anterior foi preservada. Tente novamente.' : 'Não foi possível ler a coleta salva. Tente novamente.',
         504: 'A atualização excedeu o limite de tempo. A coleta anterior foi preservada. Tente novamente.',
@@ -117,8 +124,8 @@ export async function fetchDistribution(signal: AbortSignal, refresh = false): P
     return payload.distribution
   } catch (error) {
     if (signal.aborted) throw error
-    if (timeout.aborted) throw new Error('A API demorou demais para responder. Leia a coleta salva antes de tentar atualizar novamente; a coleta no backend pode ainda estar em andamento.')
-    if (error instanceof TypeError) throw new Error('Não foi possível acessar a API. Verifique o backend e tente novamente; a coleta anterior não foi substituída nesta tela.')
+    if (timeout.aborted) throw new Error('A aplicação demorou demais para responder. A coleta pode ainda estar em andamento. Leia a coleta salva antes de tentar atualizar de novo.')
+    if (error instanceof TypeError) throw new Error(`${localApiDown} A coleta anterior continua salva.`)
     throw error
   }
 }
@@ -127,9 +134,6 @@ export interface SavedProbe {
   probe_id: number
   is_public: boolean | null
 }
-
-const localApiDown = 'A aplicação local não respondeu. Confira se o Docker Compose está rodando.'
-const oldApi = 'A API em execução ainda não tem essa função. Atualize com docker compose up -d --build.'
 
 export async function fetchSelectedProbe(signal: AbortSignal): Promise<number | null> {
   let response: Response
@@ -140,6 +144,7 @@ export async function fetchSelectedProbe(signal: AbortSignal): Promise<number | 
     throw new Error(localApiDown)
   }
   if (response.status === 404) throw new Error(oldApi)
+  if (response.status === proxyDown) throw new Error(localApiDown)
   if (!response.ok) throw new Error('Não foi possível ler a probe salva. Tente de novo.')
   return (await response.json() as { probe_id: number | null }).probe_id
 }
@@ -160,6 +165,7 @@ export async function saveSelectedProbe(probeId: number): Promise<SavedProbe> {
   if (!response.ok) {
     const messages: Record<number, string> = {
       405: oldApi,
+      [proxyDown]: localApiDown,
       503: 'O RIPE Atlas não respondeu agora. Tente de novo em instantes. A probe salva antes continua a mesma.',
     }
     throw new Error(messages[response.status] ?? 'Não foi possível salvar a probe. Tente de novo.')
@@ -175,5 +181,6 @@ export async function stopFollowingProbe(): Promise<void> {
     throw new Error(localApiDown)
   }
   if (response.status === 405) throw new Error(oldApi)
+  if (response.status === proxyDown) throw new Error(localApiDown)
   if (!response.ok) throw new Error('Não foi possível parar de acompanhar. Tente de novo.')
 }

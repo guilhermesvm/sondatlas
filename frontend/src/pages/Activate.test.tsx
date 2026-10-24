@@ -31,6 +31,7 @@ it('checks the probe in RIPE Atlas without saving it and points to the next phas
   await verifyId('1017210')
   expect(await screen.findByText('Conectada')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Seguir para Acompanhar' })).toHaveAttribute('href', '#/acompanhar')
+  expect(screen.queryByRole('button', { name: 'Verificar de novo' })).not.toBeInTheDocument()
   expect(mock.mock.calls.map(([url]) => url)).toEqual(['https://atlas.ripe.net/api/v2/probes/1017210/?fields=status,is_public'])
 })
 

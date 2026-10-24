@@ -92,7 +92,7 @@ export default function Activate() {
           </Group>
         </form>
         {checkedId && <Box mt="sm">
-          <StatusCard probeId={checkedId} probe={probe} error={failed} checking={checking} onCheck={() => verify(checkedId)}
+          <StatusCard probeId={checkedId} probe={probe} error={failed} checking={checking}
             next={{ href: '#/acompanhar', label: 'Seguir para Acompanhar' }} />
         </Box>}
         {probe?.is_public === false && <Alert color="yellow" mt="sm" maw={720} title="Sua probe não é pública">
