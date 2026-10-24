@@ -100,8 +100,8 @@ it('distinguishes an empty successful period from an error', async () => {
 
 it('shows a loading state and prevents duplicate requests', async () => {
   const complete: ((response: Response) => void)[] = []
-  vi.stubGlobal('fetch', vi.fn((path: string) => path === '/api/targets'
-    ? Promise.resolve(new Response(JSON.stringify(catalog)))
+  vi.stubGlobal('fetch', vi.fn((path: string) => path === '/api/targets' || path === '/api/probe'
+    ? Promise.resolve(new Response(JSON.stringify(path === '/api/probe' ? { probe_id: catalog.probe_id } : catalog)))
     : new Promise<Response>(resolve => { if (path.startsWith('/api/ping')) complete.push(resolve) })))
   render(<App />)
   await fillPeriod()

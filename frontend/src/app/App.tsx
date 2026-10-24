@@ -3,11 +3,12 @@ import { useDisclosure } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
 import PingExplorer from '../features/ping-history/PingExplorer'
 import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
-import { ProbeProvider } from '../features/probe-status/ProbeProvider'
+import { ProbeProvider, useProbe } from '../features/probe-status/ProbeProvider'
 import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
 import Home from '../pages/Home'
 import InConstruction from '../pages/InConstruction'
 import JourneyPage from '../pages/JourneyPage'
+import MyProbe from '../pages/MyProbe'
 import ColorSchemeToggle from './ColorSchemeToggle'
 import Footer from './Footer'
 import Logo from './Logo'
@@ -25,6 +26,7 @@ export default function App() {
 }
 
 function Layout() {
+  const { probeId } = useProbe()
   const look = useStatusLook()
   const [hash, setHash] = useState(location.hash)
   const [menuOpen, menu] = useDisclosure()
@@ -67,7 +69,8 @@ function Layout() {
           {route.id === 'inicio' && <Home />}
           {route.group === 'journey' && <JourneyPage route={route} />}
           {(route.id === 'desafios' || route.id === 'conquistas') && <InConstruction route={route} />}
-          <PingExplorer active={route.id === 'minha-probe'} />
+          {route.id === 'minha-probe' && <MyProbe />}
+          {probeId ? <PingExplorer key={probeId} active={route.id === 'minha-probe'} /> : null}
           <ProbeDistribution active={route.id === 'rede-global'} />
         </div>
         <Footer />
