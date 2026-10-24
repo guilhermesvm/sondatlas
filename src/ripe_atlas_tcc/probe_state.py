@@ -25,3 +25,7 @@ def save_selected_probe(state_path, probe_id):
         encoding="utf-8",
     )
     temporary_path.replace(state_path)
+
+
+def clear_selected_probe(state_path):
+    state_path.unlink(missing_ok=True)

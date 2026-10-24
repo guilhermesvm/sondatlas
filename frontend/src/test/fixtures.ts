@@ -1,4 +1,4 @@
-import type { PingHistory, PingRecord } from './api'
+import type { PingHistory, PingRecord } from '../lib/api'
 
 export function ping(overrides: Partial<PingRecord> = {}): PingRecord {
   return {
@@ -25,4 +25,9 @@ export const catalog = {
     { measurement_id: 1001, target_name: 'K-root', measurement_category: 'built-in' },
     { measurement_id: 86206926, target_name: 'Google', measurement_category: 'well-known' },
   ],
+}
+
+export const probeStatus = {
+  id: 1017210, is_public: true,
+  status: { id: 1, name: 'Connected', since: '2026-10-23T22:30:24Z' },
 }

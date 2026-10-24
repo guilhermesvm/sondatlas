@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { fetchHistory, fetchTargets } from './api'
-import { catalog, history } from './fixtures'
+import { fetchHistory, fetchSelectedProbe, fetchTargets } from './api'
+import { catalog, history } from '../test/fixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -28,9 +28,11 @@ it.each([404, 422, 503, 500])('reports HTTP %s without showing a raw error body'
   }
 })
 
-it('explains a network failure', async () => {
+it('explains a network failure and a stopped local API behind the proxy the same way', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
-  await expect(fetchTargets(new AbortController().signal)).rejects.toThrow('Verifique se o backend está em execução')
+  await expect(fetchTargets(new AbortController().signal)).rejects.toThrow('A aplicação no seu computador não respondeu')
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 502 })))
+  await expect(fetchSelectedProbe(new AbortController().signal)).rejects.toThrow('A aplicação no seu computador não respondeu')
 })
 
 it('rejects a malformed JSON response', async () => {

@@ -26,29 +26,48 @@ installation was validated on Windows.
 
 ## Quick start with Docker Compose
 
-Requirements: Docker Desktop (or Docker Engine with Compose) and Python 3 to
-generate the configuration. Your probe runs separately (see `lab/README.md`).
+Requirements: Docker Desktop, or Docker Engine with the Compose plugin
+**2.24.0 or later** (check with `docker compose version`; older versions reject
+the optional `.env`). No Python and no `.env` are needed. Your probe runs
+separately (see `lab/README.md`).
 
 ```bash
-python scripts/init_env.py
 docker compose up -d --build
 docker compose exec pipeline python fetch_results.py --probe-id <your probe ID>
 ```
 
-1. `init_env.py` creates `.env` from `.env.example` with a random InfluxDB
-   administrator password and token, without displaying them. It never
-   overwrites an existing `.env`. Without Python, copy `.env.example` to `.env`
-   and replace both placeholders with long random values.
-2. On the first start, InfluxDB configures itself from `.env` (user, password,
-   organization, bucket and token). This happens only when the database volume
-   is empty; an existing database is never reconfigured.
+1. On every `up`, the short-lived `init` service checks the InfluxDB password
+   and token in the `influxdb2-secrets` volume. Only on the first start does it
+   generate them, at random and without displaying them; later it changes
+   nothing and exits.
+2. On the first start, InfluxDB configures itself from those files (user
+   `admin`, organization, bucket and token). This happens only when the
+   database volume is empty; an existing database is never reconfigured.
 3. Selecting the probe starts collection at the next polling cycle.
 
 Open the dashboard at `http://127.0.0.1:8080/` and follow collection with
 `docker compose logs -f pipeline` (look for `Pontos enviados ao InfluxDB`).
-The InfluxDB interface is at `http://localhost:8086/`; log in as
-`INFLUXDB_ADMIN_USERNAME` with the password from `.env`. Every port listens
-only on this computer.
+The InfluxDB interface is at `http://localhost:8086/`; log in as `admin` with
+the password shown by:
+
+```bash
+docker compose exec influxdb2 cat /run/kit-secrets/influxdb-admin-password
+```
+
+If the database already existed before this setup (for example, configured by
+hand), no password is generated and that file does not exist: keep using the
+password you chose then.
+
+Every port listens only on this computer.
+
+The password and token live in a Docker volume next to the database, so they
+are created and deleted together:
+
+| You delete | Next `docker compose up` |
+|---|---|
+| Everything (`docker compose down -v`) | Starts from zero with new secrets |
+| Only the database volumes | Configures a new database with the same secrets |
+| Only `influxdb2-secrets` | `init` stops with a message instead of creating a token the database does not know; delete the database volumes too, or set `INFLUXDB_TOKEN` in `.env` |
 
 If `docker compose up` reports `port is already allocated`, choose another
 port in `.env` and run the same command again:
@@ -65,9 +84,10 @@ When running Python on the host instead, also point `INFLUXDB_URL` to the new
 InfluxDB port, and run `npm run dev` with `RIPE_ATLAS_API_URL` set to the new
 API port.
 
-The pipeline and the API use the administrator token generated in `.env`. This
-is acceptable only because everything runs locally; do not expose these ports
-to a network.
+The pipeline and the API use the generated administrator token. This is
+acceptable only because everything runs locally; do not expose these ports to
+a network. An `INFLUXDB_TOKEN` in `.env` takes precedence over the generated
+one, which keeps older installations configured by hand working.
 
 At this point, `fetch_results.py`:
 
@@ -126,6 +146,7 @@ src/ripe_atlas_tcc/
     api.py                  exposes ping reads and manual distribution refresh
     probe_distribution.py  collects, aggregates and saves public probe metadata
     console_output.py       formats terminal output
+    init_secrets.py         creates the InfluxDB password and token for Compose
 ```
 
 The root `fetch_results.py` file is a compatibility entry point that delegates
@@ -133,9 +154,9 @@ execution to the package.
 
 ## Prerequisites
 
-- Python 3.11 or later;
+- Python 3.11 or later (development on the host only);
 - Git Bash on Windows;
-- Docker Desktop.
+- Docker Desktop, or Docker Engine with Compose 2.24.0 or later.
 
 For the React dashboard, also install Node.js 22.12+ (22.x) or Node.js 24.x,
 with npm. Python-only collection and API commands do not require Node.js.
@@ -192,21 +213,13 @@ The server and its web interface are available only on this computer at
 `http://localhost:8086`. The data and server configuration are stored in named
 Docker volumes, so stopping or recreating the container does not remove them.
 
-With a `.env` created by `scripts/init_env.py`, the first start configures
-InfluxDB automatically (see [Quick start](#quick-start-with-docker-compose)).
-Without those variables, open `http://localhost:8086` and complete the setup
-with:
-
-- an administrator username and a strong password;
-- organization name `network-measurement-platform`;
-- bucket name `network-measurement-platform`;
-- no expiration for the bucket retention period.
-
-The initial setup creates an operator token. In a manual or shared installation,
-do not use this broad token in the Python pipeline. In the InfluxDB interface,
-open **Load Data > API Tokens** and
-create a read/write token limited to the `network-measurement-platform` bucket.
-Copy it when it is shown and store it only in the local `.env` file.
+The first start configures InfluxDB automatically, with organization and
+bucket `network-measurement-platform`, no retention limit, and a generated
+password and administrator token (see
+[Quick start](#quick-start-with-docker-compose)). In a manual or shared
+installation, do not give this broad token to the pipeline: in the InfluxDB
+interface, open **Load Data > API Tokens**, create a read/write token limited
+to the bucket and store it only in `.env` as `INFLUXDB_TOKEN`.
 
 Stop the service without deleting the container or volume:
 
@@ -216,15 +229,17 @@ docker compose stop
 
 ## InfluxDB configuration
 
-For a new checkout, create a local configuration file from the tracked
-example, with generated secrets:
+Docker Compose works without `.env`. To run the pipeline or the API on the
+host (`.venv`), create it from the tracked example and add the token that
+Compose generated:
 
 ```bash
-python scripts/init_env.py
+cp .env.example .env
+docker compose exec api cat /run/kit-secrets/influxdb-token
 ```
 
-To fill it by hand instead, run `cp .env.example .env` and replace the
-placeholders.
+Copy the printed value into `INFLUXDB_TOKEN=` in `.env`; do not paste it
+anywhere else.
 
 If `.env` already exists from the previous InfluxDB 3 setup, edit it instead of
 copying the example over it. Its InfluxDB configuration must use the following
@@ -234,12 +249,12 @@ keys:
 INFLUXDB_URL=http://localhost:8086
 INFLUXDB_ORG=network-measurement-platform
 INFLUXDB_BUCKET=network-measurement-platform
-INFLUXDB_TOKEN={replace_with_your_influxdb_api_token}
+INFLUXDB_TOKEN={your_influxdb_api_token}
 POLLING_INTERVAL_SECONDS=60
 ```
 
-Replace the token placeholder with the read/write token created for the
-pipeline. The URL, organization and bucket must match the values used during
+Replace the token placeholder with the token generated by Compose or a
+read/write token created for the pipeline. The URL, organization and bucket must match the values used during
 setup. The real `.env` file contains a secret and is not tracked by Git.
 
 Validate that Python can reach InfluxDB and access the configured bucket:
@@ -449,6 +464,24 @@ historical bucket as its `INFLUXDB_TOKEN`; the ingestion process still needs its
 own read/write token. Ping routes remain read-only: no database writes or ping
 collection commands are exposed. The separate distribution refresh route
 queries public metadata and saves only the latest summary without credentials.
+
+Read, change or stop following the selected probe (the same check and file as
+`--probe-id`; a running `--poll` follows the change on its next cycle):
+
+```bash
+curl http://127.0.0.1:8000/probe
+curl -X PUT -H "Content-Type: application/json" -d '{"probe_id": 1017210}' http://127.0.0.1:8000/probe
+curl -X DELETE http://127.0.0.1:8000/probe
+```
+
+`GET` returns `{"probe_id": null}` before the first selection. `PUT` answers
+404 for an unknown probe and 503 when RIPE Atlas is unavailable, keeping the
+previous selection in both cases; on success it also returns `is_public`.
+Results of non-public probes did not appear to anonymous API requests in a
+test on 2026-10-23, so this project may collect nothing for them.
+`DELETE` removes the selection: `--poll` waits until a probe is selected again,
+while stored results and checkpoints are kept, so selecting the same probe
+later resumes from its last checkpoint.
 
 List the configured targets for the selected probe:
 

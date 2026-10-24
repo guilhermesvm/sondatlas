@@ -1,0 +1,32 @@
+export interface ProbeStatus {
+  id: number
+  is_public: boolean
+  status: { id: number, name: string, since: string | null }
+  first_connected?: number | string | null
+  total_uptime?: number | null
+}
+
+export class ProbeNotFoundError extends Error {}
+
+export function parseProbeId(typed: string) {
+  const id = Number(typed.trim())
+  return /^\d+$/.test(typed.trim()) && Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
+export async function fetchProbeStatus(probeId: number, signal: AbortSignal): Promise<ProbeStatus> {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/probes/${probeId}/?fields=status,is_public,first_connected,total_uptime`, { signal })
+  if (response.status === 404) throw new ProbeNotFoundError()
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return await response.json() as ProbeStatus
+}
+
+const looks: Record<number, { key: string, label: string }> = {
+  0: { key: 'never', label: 'Nunca conectou' },
+  1: { key: 'connected', label: 'Conectada' },
+  2: { key: 'disconnected', label: 'Desconectada' },
+  3: { key: 'abandoned', label: 'Abandonada' },
+}
+
+export function statusLook(probe: ProbeStatus) {
+  return looks[probe.status.id] ?? { key: 'abandoned', label: probe.status.name }
+}

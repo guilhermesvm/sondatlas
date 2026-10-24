@@ -42,6 +42,7 @@ def test_load_influxdb_config_reports_missing_variables(monkeypatch):
         "INFLUXDB_ORG",
         "INFLUXDB_BUCKET",
         "INFLUXDB_TOKEN",
+        "INFLUXDB_TOKEN_FILE",
     ):
         monkeypatch.delenv(variable_name, raising=False)
 
@@ -52,6 +53,24 @@ def test_load_influxdb_config_reports_missing_variables(monkeypatch):
         "Missing required environment variables: "
         "INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN"
     )
+
+
+def test_load_influxdb_config_reads_token_file_unless_token_is_set(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(settings, "load_dotenv", lambda: None)
+    monkeypatch.setenv("INFLUXDB_URL", "http://influxdb2:8086")
+    monkeypatch.setenv("INFLUXDB_ORG", "test-org")
+    monkeypatch.setenv("INFLUXDB_BUCKET", "test-bucket")
+    token_file = tmp_path / "influxdb-token"
+    token_file.write_text("file-token\n", encoding="utf-8")
+    monkeypatch.setenv("INFLUXDB_TOKEN_FILE", str(token_file))
+    monkeypatch.delenv("INFLUXDB_TOKEN", raising=False)
+
+    assert settings.load_influxdb_config()["token"] == "file-token"
+
+    monkeypatch.setenv("INFLUXDB_TOKEN", "env-token")
+    assert settings.load_influxdb_config()["token"] == "env-token"
 
 
 def test_load_polling_interval_seconds_uses_default(monkeypatch):
