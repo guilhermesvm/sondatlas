@@ -12,6 +12,11 @@
   --chart-loss: #b26530;
   --accent-bg: var(--mantine-color-indigo-0);
   --accent-line: var(--mantine-color-indigo-2);
+  --status-connected: var(--mantine-color-green-8);
+  --status-disconnected: var(--mantine-color-red-7);
+  --status-never: var(--mantine-color-yellow-9);
+  --status-abandoned: var(--mantine-color-gray-7);
+  --error-text: var(--mantine-color-red-9);
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-dimmed: #5c636a;
@@ -31,6 +36,11 @@
   --chart-loss: #d9894f;
   --accent-bg: #2a2d3f;
   --accent-line: var(--mantine-color-dark-4);
+  --status-connected: var(--mantine-color-green-5);
+  --status-disconnected: var(--mantine-color-red-5);
+  --status-never: var(--mantine-color-yellow-5);
+  --status-abandoned: var(--mantine-color-gray-4);
+  --error-text: var(--mantine-color-red-4);
 }
 body { background: var(--page-bg); line-height: 1.5; }
 summary { cursor: pointer; }
@@ -59,3 +69,4 @@ h3 { font-size: 18px; font-weight: 600; }
   .page { padding: 0 0 16px; }
   .mantine-Input-input { font-size: 16px; }
 }
+.form-error { color: var(--error-text); }

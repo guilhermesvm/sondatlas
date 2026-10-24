@@ -38,7 +38,7 @@ export default function ConnectionCheck() {
   if (!connection) return <div className="connection-check" aria-live="polite">
     <Text size="sm">Descubra qual é o seu provedor e quantas probes já medem a partir dele.</Text>
     <Button mt="sm" onClick={check} loading={checking}>Verificar minha conexão</Button>
-    {error && <Text size="sm" mt="sm" className="connection-error" role="alert">{error}</Text>}
+    {error && <Text size="sm" mt="sm" className="form-error" role="alert">{error}</Text>}
     <Text size="xs" c="dimmed" mt="sm">O seu navegador consulta o RIPEstat e o RIPE Atlas. A Sondatlas não guarda nada e não mostra o seu IP.</Text>
   </div>
 
