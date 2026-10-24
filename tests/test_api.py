@@ -301,3 +301,15 @@ def test_invalid_probe_id_returns_422_without_asking_ripe(probe_api, body):
     assert client.put("/probe", json=body).status_code == 422
     assert checked == []
     assert not state_path.exists()
+
+
+def test_stop_following_removes_the_selection_and_can_repeat(probe_api):
+    client, state_path, checked = probe_api
+    save_selected_probe(state_path, 1017210)
+    for _ in range(2):
+        response = client.delete("/probe")
+        assert response.status_code == 200
+        assert response.json() == {"probe_id": None}
+    assert client.get("/probe").json() == {"probe_id": None}
+    assert not state_path.exists()
+    assert checked == []

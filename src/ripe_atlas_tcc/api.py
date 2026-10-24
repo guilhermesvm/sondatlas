@@ -8,7 +8,11 @@ import requests
 
 from ripe_atlas_tcc import probe_distribution
 from ripe_atlas_tcc.influxdb_queries import query_ping_results
-from ripe_atlas_tcc.probe_state import load_selected_probe, save_selected_probe
+from ripe_atlas_tcc.probe_state import (
+    clear_selected_probe,
+    load_selected_probe,
+    save_selected_probe,
+)
 from ripe_atlas_tcc.ripe_atlas_client import fetch_probe
 from ripe_atlas_tcc.settings import (
     PING_MEASUREMENTS,
@@ -79,6 +83,21 @@ def put_probe(probe_id: Annotated[int, Body(gt=0, embed=True)]):
         logger.warning("Probe selection not saved (%s)", type(error).__name__)
         raise HTTPException(status_code=503, detail="The selected probe could not be saved") from None
     return {"probe_id": probe_id, "is_public": probe.get("is_public")}
+
+
+@app.delete(
+    "/probe",
+    summary="Stop following the selected probe",
+    description="Removes the saved selection, so a running --poll waits at its next cycle. Stored results and checkpoints are kept; selecting the same probe again resumes from its last checkpoint.",
+    responses={503: {"description": "Selection could not be removed"}},
+)
+def delete_probe():
+    try:
+        clear_selected_probe(PROBE_STATE_PATH)
+    except OSError as error:
+        logger.warning("Probe selection not removed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="The selected probe could not be removed") from None
+    return {"probe_id": None}
 
 
 @app.get(

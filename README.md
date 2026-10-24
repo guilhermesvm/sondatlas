@@ -465,12 +465,13 @@ own read/write token. Ping routes remain read-only: no database writes or ping
 collection commands are exposed. The separate distribution refresh route
 queries public metadata and saves only the latest summary without credentials.
 
-Read and change the selected probe (the same check and file as
+Read, change or stop following the selected probe (the same check and file as
 `--probe-id`; a running `--poll` follows the change on its next cycle):
 
 ```bash
 curl http://127.0.0.1:8000/probe
 curl -X PUT -H "Content-Type: application/json" -d '{"probe_id": 1017210}' http://127.0.0.1:8000/probe
+curl -X DELETE http://127.0.0.1:8000/probe
 ```
 
 `GET` returns `{"probe_id": null}` before the first selection. `PUT` answers
@@ -478,6 +479,9 @@ curl -X PUT -H "Content-Type: application/json" -d '{"probe_id": 1017210}' http:
 previous selection in both cases; on success it also returns `is_public`.
 Results of non-public probes did not appear to anonymous API requests in a
 test on 2026-10-23, so this project may collect nothing for them.
+`DELETE` removes the selection: `--poll` waits until a probe is selected again,
+while stored results and checkpoints are kept, so selecting the same probe
+later resumes from its last checkpoint.
 
 List the configured targets for the selected probe:
 
