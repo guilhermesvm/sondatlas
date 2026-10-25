@@ -20,6 +20,18 @@ it('opens the page named in the address and falls back to the home page', async 
   expect(screen.getByRole('link', { name: 'Já tenho uma probe' })).toHaveAttribute('href', '#/ativar')
 })
 
+it('keeps the journey in five phases that end in Aprender and sends the old Ir além address home', async () => {
+  mockApi()
+  window.location.hash = '#/aprender'
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'Aprender' })).toBeInTheDocument()
+  const phases = within(screen.getByRole('navigation', { name: 'Páginas do dashboard' })).getAllByRole('link', { name: /^\d\. / })
+  expect(phases.map(link => link.textContent)).toEqual(['1. Conhecer', '2. Instalar', '3. Ativar', '4. Acompanhar', '5. Aprender'])
+  expect(screen.queryByRole('link', { name: /^Próximo/ })).not.toBeInTheDocument()
+  window.location.hash = '#/ir-alem'
+  expect(await screen.findByRole('heading', { name: /Participe do RIPE Atlas/ })).toBeInTheDocument()
+})
+
 it('switches between light and dark themes from the header', async () => {
   mockApi()
   render(<App />)

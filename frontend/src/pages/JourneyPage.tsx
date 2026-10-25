@@ -4,8 +4,8 @@ import { journey, type Route } from '../app/routes'
 import Activate from './Activate'
 import Discover from './Discover'
 import Follow from './Follow'
-import InConstruction from './InConstruction'
 import Install from './Install'
+import Learn from './Learn'
 import './pages.css'
 
 export default function JourneyPage({ route }: { route: Route }) {
@@ -20,7 +20,7 @@ export default function JourneyPage({ route }: { route: Route }) {
     {route.id === 'conhecer' ? <Discover understood={understood} onUnderstoodChange={setUnderstood} />
       : route.id === 'instalar' ? <Install />
       : route.id === 'ativar' ? <Activate />
-      : route.id === 'acompanhar' ? <Follow /> : <InConstruction route={route} />}
+      : route.id === 'acompanhar' ? <Follow /> : <Learn />}
     <Group justify="space-between" mt="xl">
       {previous ? <Button component="a" href={`#/${previous.id}`} variant="default">Voltar: {previous.label}</Button> : <span />}
       {next && <Button component="a" href={`#/${next.id}`} variant={route.id === 'conhecer' && !understood ? 'default' : 'filled'}>Próximo: {next.label}</Button>}
