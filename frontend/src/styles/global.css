@@ -17,6 +17,8 @@
   --status-never: var(--mantine-color-yellow-9);
   --status-abandoned: var(--mantine-color-gray-7);
   --error-text: var(--mantine-color-red-9);
+  --available-text: #1b6b31;
+  --available-bg: #e3f6e8;
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-dimmed: #5c636a;
@@ -43,6 +45,8 @@
   --status-abandoned: var(--mantine-color-gray-4);
   --error-text: var(--mantine-color-red-4);
   --mantine-color-error: var(--error-text);
+  --available-text: var(--mantine-color-green-3);
+  --available-bg: #16451f;
 }
 body { background: var(--page-bg); line-height: 1.5; }
 summary { cursor: pointer; }

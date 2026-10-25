@@ -21,6 +21,6 @@ export const routes: Route[] = [
 export const journey = routes.filter(route => route.group === 'journey')
 
 export function routeFromHash(hash: string) {
-  const id = hash.replace(/^#\/?/, '')
+  const id = hash.replace(/^#\/?/, '').split('/')[0]
   return routes.find(route => route.id === id) ?? routes[0]
 }

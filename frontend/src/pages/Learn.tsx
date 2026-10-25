@@ -1,44 +1,48 @@
-import { Anchor, Badge, Text, Title } from '@mantine/core'
+import { Anchor, Badge, Breadcrumbs, Button, Text, Title } from '@mantine/core'
+import type { ComponentType } from 'react'
+import { lessons, type Lesson } from '../features/lessons/lessons'
+import PingLesson from '../features/lessons/PingLesson'
 import './pages.css'
 
 const groups = [
-  {
-    title: 'Fundamentos de redes',
-    lessons: [
-      { title: 'IP e endereços', text: 'Como cada aparelho é encontrado na Internet e por que existem dois tipos de endereço, o IPv4 e o IPv6.' },
-      { title: 'Ping', text: 'Quanto tempo um pacote leva para ir e voltar, e quando ele se perde no caminho.' },
-      { title: 'Traceroute', text: 'Por quais redes os pacotes passam até chegar ao destino.' },
-      { title: 'DNS', text: 'Como um nome como ripe.net vira o endereço de um servidor.' },
-    ],
-  },
-  {
-    title: 'RIPE Atlas',
-    lessons: [
-      { title: 'O que a sua probe mede sozinha', text: 'As medições automáticas que toda probe faz, incluindo a sua.' },
-      { title: 'Créditos e medições próprias', text: 'Como a probe ligada gera créditos e como usar esses créditos nas suas próprias medições.' },
-    ],
-  },
-]
+  { id: 'basics', title: 'Fundamentos de redes' },
+  { id: 'atlas', title: 'RIPE Atlas' },
+] as const
+
+const contents: Record<string, ComponentType> = { ping: PingLesson }
 
 const courses = [
   { title: 'Internet Measurements', text: 'Módulos curtos sobre ping, traceroute e comutação de pacotes, e webinars sobre o RIPE Atlas.', href: 'https://academy.ripe.net/mod/page/view.php?id=937' },
   { title: 'IPv6', text: 'Do webinar de introdução ao curso IPv6 Fundamentals.', href: 'https://academy.ripe.net/mod/page/view.php?id=928' },
 ]
 
-export default function Learn() {
+function LessonPage({ lesson }: { lesson: Lesson }) {
+  const Content = contents[lesson.id]
+  return <div className="install">
+    <Breadcrumbs aria-label="Você está em" mb="xs"><Anchor href="#/aprender" size="sm">Aprender</Anchor><Text size="sm">{lesson.title}</Text></Breadcrumbs>
+    <Title order={1} size="h2">{lesson.title}</Title>
+    <Text size="lg" mt="sm" maw={680}>{lesson.text}</Text>
+    <Content />
+    <Button component="a" href="#/aprender" variant="default" mt="xl">Voltar ao índice</Button>
+  </div>
+}
+
+export default function Learn({ lesson }: { lesson?: Lesson | null }) {
+  if (lesson) return <LessonPage lesson={lesson} />
   return <div className="install">
     <Title order={1} size="h2">Aprender</Title>
     <Text size="lg" mt="sm" maw={680}>Entenda o que a sua probe mede, com os dados dela. Cada lição explica o conceito, mostra o seu dado, ensina a ler e diz o que ele não mostra.</Text>
 
-    {groups.map((group, index) => <section key={group.title} className="lesson-group" aria-labelledby={`lessons-${index}`}>
+    {groups.map((group, index) => <section key={group.id} className="lesson-group" aria-labelledby={`lessons-${index}`}>
       <Title order={2} size="h4" id={`lessons-${index}`}>{group.title}</Title>
       <ul className="lesson-list">
-        {group.lessons.map(lesson => <li key={lesson.title}>
-          <div>
-            <Text fw={600}>{lesson.title}</Text>
-            <Text size="sm">{lesson.text}</Text>
+        {lessons.filter(item => item.group === group.id).map(item => <li key={item.id}>
+          <div className="lesson-row">
+            <div><Text fw={600}>{item.title}</Text><Text size="sm">{item.text}</Text></div>
+            {item.ready
+              ? <Badge component="a" href={`#/aprender/${item.id}`} size="lg" tt="none" className="lesson-badge lesson-ready" aria-label={`Ler a lição ${item.title}`}>Ler lição</Badge>
+              : <Badge size="lg" variant="light" color="gray" tt="none" className="lesson-badge">Em breve</Badge>}
           </div>
-          <Badge variant="light" color="gray" tt="none" className="lesson-badge">Em breve</Badge>
         </li>)}
       </ul>
     </section>)}
@@ -49,7 +53,7 @@ export default function Learn() {
         Cursos gratuitos do RIPE NCC, que mantém o RIPE Atlas. Para se inscrever, use uma conta RIPE NCC Access, a mesma do RIPE Atlas. Os cursos estão em inglês.
       </Text>
       <ul className="lesson-list">
-        {courses.map(course => <li key={course.title}>
+        {courses.map(course => <li key={course.title} className="lesson-row">
           <div>
             <Anchor href={course.href} target="_blank" rel="noreferrer" fw={600}>{course.title}</Anchor>
             <Text size="sm">{course.text}</Text>
