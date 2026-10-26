@@ -11,7 +11,7 @@ from ripe_atlas_tcc.atlas_account import (
     ACCOUNT_STATE_PATH,
     KeyRefusedError,
     delete_key,
-    fetch_my_probes,
+    fetch_account,
     load_key,
     save_key,
 )
@@ -108,9 +108,9 @@ def delete_probe():
     return {"probe_id": None}
 
 
-def my_probes(key):
+def account_data(key):
     try:
-        return {"connected": True, "probes": fetch_my_probes(key)}
+        return fetch_account(key)
     except (requests.RequestException, ValueError, KeyError, TypeError) as error:
         logger.warning("RIPE Atlas account check failed (%s)", type(error).__name__)
         raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable") from None
@@ -119,7 +119,7 @@ def my_probes(key):
 @app.get(
     "/account",
     summary="Read the probes of the connected RIPE Atlas account",
-    description="Returns connected: false when no key is saved. Otherwise lists the probes managed by the key owner (GET /api/v2/probes/my/), with their IPv4 ASN but without addresses or prefixes. The key itself is never returned.",
+    description="Returns connected: false when no key is saved. Otherwise lists the probes managed by the key owner (GET /api/v2/probes/my/), with their IPv4 ASN but without addresses or prefixes, plus the credit balance (GET /api/v2/credits/). A saved key missing a permission still answers with what it can: probes or credits is null and missing_permissions says which. It is refused (403) only when no permission works. The key itself is never returned.",
     responses={
         403: {"description": "RIPE Atlas refused the saved key"},
         503: {"description": "Saved key cannot be read or RIPE Atlas unavailable"},
@@ -134,7 +134,7 @@ def get_account():
     if key is None:
         return {"connected": False}
     try:
-        return my_probes(key)
+        return account_data(key)
     except KeyRefusedError:
         raise HTTPException(status_code=403, detail="RIPE Atlas refused the saved key") from None
 
@@ -142,9 +142,9 @@ def get_account():
 @app.put(
     "/account",
     summary="Check a RIPE Atlas API key and save it locally",
-    description="The key is saved in data/state only after RIPE Atlas accepts it. On any failure the previous key is kept. The response lists the account probes, never the key.",
+    description="The key is saved in data/state only after RIPE Atlas accepts it with every required permission (probes and credits). On any failure the previous key is kept. The response lists the account probes, never the key.",
     responses={
-        422: {"description": "Empty key, or RIPE Atlas refused it; previous key is kept"},
+        422: {"description": "Empty key, RIPE Atlas refused it, or detail.missing_permissions lists what it lacks; previous key is kept"},
         503: {"description": "RIPE Atlas unavailable or key not saved; previous key is kept"},
     },
 )
@@ -153,9 +153,11 @@ def put_account(key: Annotated[str, Body(embed=True, max_length=200)]):
     if not key:
         raise HTTPException(status_code=422, detail="Key is empty")
     try:
-        account = my_probes(key)
+        account = account_data(key)
     except KeyRefusedError:
         raise HTTPException(status_code=422, detail="RIPE Atlas refused the key") from None
+    if account["missing_permissions"]:
+        raise HTTPException(status_code=422, detail={"missing_permissions": account["missing_permissions"]})
     try:
         save_key(ACCOUNT_STATE_PATH, key)
     except OSError as error:

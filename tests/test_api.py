@@ -337,8 +337,14 @@ def account_api(monkeypatch, tmp_path):
         key = headers["Authorization"].removeprefix("Key ")
         if key == "offline-key":
             raise requests.ConnectionError("offline")
-        if key != "good-key":
+        if key not in ("good-key", "probes-only-key", "credits-only-key"):
             return Response(403, {"detail": "refused"})
+        if url.endswith("/credits/"):
+            if key == "probes-only-key":
+                return Response(403, {"detail": "no permission"})
+            return Response(200, {"current_balance": 1206887, "estimated_daily_income": 21600, "max_daily_credits": 1000000})
+        if key == "credits-only-key":
+            return Response(403, {"detail": "no permission"})
         return Response(200, {"count": 1, "results": [{
             "id": 1017210, "description": "Casa", "is_public": True,
             "status": {"id": 1, "name": "Connected", "since": "2026-10-26T13:39:08Z"},
@@ -364,10 +370,13 @@ def test_account_key_is_checked_saved_and_never_returned(account_api):
             "id": 1017210, "description": "Casa", "is_public": True,
             "status": {"id": 1, "name": "Connected", "since": "2026-10-26T13:39:08Z"},
             "first_connected": 1787709821, "total_uptime": 2815592, "asn_v4": 64500,
-        }]}
+        }], "credits": {"current_balance": 1206887, "estimated_daily_income": 21600}, "missing_permissions": []}
         assert "good-key" not in response.text
         assert "203.0.113" not in response.text
-    assert calls == [("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key")] * 2
+    assert calls == [
+        ("https://atlas.ripe.net/api/v2/credits/", "Key good-key"),
+        ("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key"),
+    ] * 2
     assert atlas_account.load_key(state_path) == "good-key"
 
 
@@ -398,3 +407,22 @@ def test_disconnecting_removes_the_key_and_can_repeat(account_api):
     assert not state_path.exists()
     assert client.get("/account").json() == {"connected": False}
     assert calls == []
+
+
+@pytest.mark.parametrize("key, missing", [("probes-only-key", "credits"), ("credits-only-key", "probes")])
+def test_key_missing_one_permission_is_not_linked_and_says_which(account_api, key, missing):
+    client, state_path, _ = account_api
+    response = client.put("/account", json={"key": key})
+    assert response.status_code == 422
+    assert response.json() == {"detail": {"missing_permissions": [missing]}}
+    assert not state_path.exists()
+
+
+def test_saved_key_without_the_credits_permission_still_lists_probes(account_api):
+    client, state_path, _ = account_api
+
+    atlas_account.save_key(state_path, "probes-only-key")
+    account = client.get("/account").json()
+    assert [probe["id"] for probe in account["probes"]] == [1017210]
+    assert account["credits"] is None
+    assert account["missing_permissions"] == ["credits"]
