@@ -15,6 +15,7 @@ it('links only the ready lessons and points to the free RIPE NCC Academy courses
   expect(basics.getAllByRole('listitem')).toHaveLength(4)
   expect(basics.getByRole('link', { name: 'Ler a lição Ping' })).toHaveAttribute('href', '#/aprender/ping')
   expect(basics.getByRole('link', { name: 'Ler a lição IP e endereços' })).toHaveAttribute('href', '#/aprender/ip')
+  expect(basics.getByRole('link', { name: 'Ler a lição Traceroute' })).toHaveAttribute('href', '#/aprender/traceroute')
   expect(basics.queryByRole('link', { name: /DNS/ })).not.toBeInTheDocument()
   expect(within(screen.getByRole('region', { name: 'RIPE Atlas' })).getAllByText('Em breve')).toHaveLength(2)
   const academy = within(screen.getByRole('region', { name: 'Para ir mais fundo: RIPE NCC Academy' }))
@@ -97,4 +98,52 @@ it('keeps the IP lesson readable without a followed probe', async () => {
   render(<App />)
   expect(await screen.findByText('Acompanhe uma probe para ver os endereços dela aqui.')).toBeInTheDocument()
   expect(screen.getByText(/é um exemplo de endereço/)).toBeInTheDocument()
+})
+
+it('reads the latest route hop by hop with each network, the silent hops and the biggest jump', async () => {
+  const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)))
+  const packets = (from: string, rtt: number) => [{ from, rtt }, { from, rtt: rtt + 1 }, { from, rtt: rtt + 2 }]
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url === '/api/probe') return json({ probe_id: 1017210 })
+    if (url === '/api/targets') return json(catalog)
+    if (url.includes('/measurements/5001/latest/')) return json([{
+      timestamp: 1793049887, dst_addr: '193.0.14.129', proto: 'UDP', size: 40, from: '203.0.113.77', destination_ip_responded: true,
+      result: [
+        { hop: 1, result: packets('192.168.1.1', 4) },
+        { hop: 2, result: packets('186.208.80.22', 5) },
+        { hop: 3, result: [{ x: '*' }, { x: '*' }, { x: '*' }] },
+        { hop: 4, result: packets('187.16.221.197', 23) },
+        { hop: 5, result: packets('193.0.14.129', 134) },
+      ],
+    }])
+    if (url.includes('network-info')) return json({ data: { asns: url.includes('187.16.221.197') ? [] : url.includes('193.0.14.129') ? ['25152'] : ['263077'] } })
+    if (url.includes('as-overview')) return json({ data: { holder: url.includes('AS6939') ? 'HURRICANE - Hurricane Electric LLC' : url.includes('AS25152') ? 'K-ROOT-SERVER RIPE NCC' : 'AS263077 - Provedor Exemplo' } })
+    if (url.includes('peeringdb.com/api/netixlan')) return json({ data: [{ ipaddr4: '187.16.221.197', name: 'IX.br (PTT.br) São Paulo: ATM/MPLA', asn: 6939 }] })
+    return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
+  }))
+  window.location.hash = '#/aprender/traceroute'
+  render(<App />)
+  const terminal = await screen.findByText(/traceroute 193.0.14.129 \(K-root\), UDP, pacotes de 40 bytes/)
+  expect(terminal).toHaveTextContent('3 * * * 4 187.16.221.197')
+  const table = within(screen.getByRole('table', { name: 'Os saltos da rota, com a rede de cada endereço' }))
+  const rows = table.getAllByRole('row').slice(1)
+  expect(rows[0]).toHaveTextContent('Sua rede (endereço privado)')
+  expect(rows[1]).toHaveTextContent('Provedor Exemplo AS263077')
+  expect(rows[2]).toHaveTextContent('não respondeu')
+  expect(rows[3]).toHaveTextContent('IX.br (PTT.br) São Paulo')
+  expect(rows[3]).toHaveTextContent('entrada da Hurricane Electric LLC')
+  expect(rows[4]).toHaveTextContent('K-root, o destino')
+  const notes = within(screen.getByRole('region', { name: 'Como ler' }))
+  expect(notes.getByText(/no salto 3 quer dizer que esse roteador não respondeu\. Não é perda/)).toBeInTheDocument()
+  expect(notes.getByText(/um projeto do Comitê Gestor da Internet no Brasil/)).toBeInTheDocument()
+  expect(notes.getByText(/entre os saltos 4 e 5\. É o maior aumento de tempo/)).toHaveTextContent('De 24 ms para 135 ms')
+  expect(document.body).not.toHaveTextContent('203.0.113.77')
+})
+
+it('keeps the traceroute lesson readable without a followed probe', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url === '/api/probe' ? { probe_id: null } : {})))))
+  window.location.hash = '#/aprender/traceroute'
+  render(<App />)
+  expect(await screen.findByText('Acompanhe uma probe para ver a rota dela aqui.')).toBeInTheDocument()
+  expect(screen.getByText(/costuma ser o roteador da sua casa/)).toBeInTheDocument()
 })

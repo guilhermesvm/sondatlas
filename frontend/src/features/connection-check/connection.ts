@@ -18,7 +18,8 @@ async function readJson<T>(url: string, signal: AbortSignal): Promise<T> {
 
 export async function fetchHolder(asn: number, signal: AbortSignal) {
   const { data } = await readJson<{ data: { holder: string } }>(stat('as-overview', `AS${asn}`), signal)
-  return data.holder.replace(/^AS\d+\s*-\s*/, '')
+  // RIPEstat writes "HANDLE - Name", like "AS263077 - RazaoInfo Internet Ltda" or "HURRICANE - Hurricane Electric LLC".
+  return data.holder.replace(/^\S+\s+-\s+/, '')
 }
 
 export async function checkConnection(signal: AbortSignal): Promise<Connection> {

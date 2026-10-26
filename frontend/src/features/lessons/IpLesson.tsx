@@ -14,7 +14,7 @@ function Path({ addresses }: { addresses: Addresses }) {
       <li><strong>Sua probe</strong><span>{addresses.privateAddress ? <code>{addresses.privateAddress}</code> : 'endereço da probe'}</span></li>
       <li><strong>Seu roteador</strong><span>{addresses.behindNat ? 'troca pelo endereço público (NAT)' : 'leva para fora da casa'}</span></li>
       <li><strong>Seu provedor</strong><span>{addresses.asn ? <code>AS{addresses.asn}</code> : null} {addresses.holder}</span></li>
-      <li><strong>Outras redes</strong><span>o traceroute mostra quais são</span></li>
+      <li><strong>Outras redes</strong><span>a <Anchor href="#/aprender/traceroute" size="sm">lição de traceroute</Anchor> mostra quais são</span></li>
       <li><strong>K-root</strong><span><code>193.0.14.129</code> <code>AS25152</code> RIPE NCC</span></li>
     </ol>
   </figure>

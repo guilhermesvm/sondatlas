@@ -16,6 +16,12 @@
 .address-path li:not(:last-child)::after { content: "→" / ""; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
 .lesson-networks { list-style: none; margin: 6px 0 0; padding: 0; font-size: 14px; }
 .lesson-networks li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.lesson-table-wrap { margin-top: 16px; overflow-x: auto; }
+.lesson-route { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14px; }
+.lesson-route caption { text-align: left; font-weight: 600; padding-bottom: 6px; }
+.lesson-route th { text-align: left; font-weight: 600; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.lesson-route td { padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.lesson-route td:first-child, .lesson-route td:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .lesson-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 32px; margin: 12px 0 0; }
 .lesson-numbers dt { font-weight: 600; }
 .lesson-numbers dd { margin: 0; font-size: 14px; }
