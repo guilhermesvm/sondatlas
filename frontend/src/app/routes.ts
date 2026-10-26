@@ -1,7 +1,7 @@
 export type Route = {
   id: string
   label: string
-  group: 'home' | 'journey' | 'probe' | 'network'
+  group: 'home' | 'journey' | 'probe' | 'network' | 'settings'
   summary: string
 }
 
@@ -16,6 +16,7 @@ export const routes: Route[] = [
   { id: 'desafios', label: 'Desafios', group: 'probe', summary: 'Medições que você cria com os seus créditos, com o custo mostrado antes de confirmar.' },
   { id: 'conquistas', label: 'Conquistas', group: 'probe', summary: 'Marcos da sua jornada, como a primeira probe conectada e o primeiro ping.' },
   { id: 'rede-global', label: 'Rede global', group: 'network', summary: 'Onde estão as probes públicas conectadas do RIPE Atlas.' },
+  { id: 'configuracoes', label: 'Configurações', group: 'settings', summary: 'Conta RIPE: a chave de API que mostra à Sondatlas quais probes são suas.' },
 ]
 
 export const journey = routes.filter(route => route.group === 'journey')

@@ -48,6 +48,28 @@
 .install-choice { margin-top: 16px; padding-left: 16px; border-left: 4px solid var(--accent-line); }
 .follow-box { margin-top: 28px; max-width: 720px; padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--mantine-radius-md); background: var(--surface); }
 .danger-button { color: var(--error-text); }
+.settings-layout { display: grid; grid-template-columns: minmax(0, 680px); gap: 24px 40px; margin-top: 28px; }
+.settings-layout.with-guide { grid-template-columns: minmax(0, 680px) minmax(240px, 300px); }
+.settings-rows { margin: 16px 0 0; border-top: 1px solid var(--line); }
+.settings-rows > div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 6px 24px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.settings-rows dt { font-size: 14px; font-weight: 600; padding-top: 2px; }
+.settings-rows dd { margin: 0; min-width: 0; }
+.settings-state { display: inline-flex; align-items: center; gap: 8px; }
+.settings-key { color: var(--muted); }
+.settings-state[data-linked='true'] .settings-key { color: var(--mantine-primary-color-filled); }
+.settings-list { list-style: none; margin: 0; padding: 0; }
+.settings-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 16px; }
+.settings-list li + li { margin-top: 12px; }
+.settings-unlocks li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.settings-guide { align-self: start; padding: 16px 18px; background: var(--accent-bg); border-radius: var(--mantine-radius-md); }
+.settings-guide ol { margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
+.settings-guide li + li { margin-top: 6px; }
+@media (max-width: 1000px) {
+  .settings-layout.with-guide { grid-template-columns: minmax(0, 680px); }
+}
+@media (max-width: 600px) {
+  .settings-rows > div { grid-template-columns: minmax(0, 1fr); }
+}
 .follow-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 32px; max-width: 900px; margin: 28px 0 0; }
 .follow-facts > div { border-left: 2px solid var(--mantine-primary-color-filled); padding-left: 14px; }
 .follow-facts dt { font-weight: 600; margin-bottom: 4px; }
