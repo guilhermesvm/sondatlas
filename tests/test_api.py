@@ -363,7 +363,7 @@ def test_account_key_is_checked_saved_and_never_returned(account_api):
         assert response.json() == {"connected": True, "probes": [{
             "id": 1017210, "description": "Casa", "is_public": True,
             "status": {"id": 1, "name": "Connected", "since": "2026-10-26T13:39:08Z"},
-            "first_connected": 1787709821, "total_uptime": 2815592,
+            "first_connected": 1787709821, "total_uptime": 2815592, "asn_v4": 64500,
         }]}
         assert "good-key" not in response.text
         assert "203.0.113" not in response.text

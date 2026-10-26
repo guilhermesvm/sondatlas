@@ -5,7 +5,7 @@ import requests
 
 ACCOUNT_STATE_PATH = Path("data/state/atlas-account.json")
 STATE_VERSION = 1
-PROBE_FIELDS = ("id", "description", "status", "first_connected", "total_uptime", "is_public")
+PROBE_FIELDS = ("id", "description", "status", "first_connected", "total_uptime", "is_public", "asn_v4")
 
 
 class KeyRefusedError(Exception):

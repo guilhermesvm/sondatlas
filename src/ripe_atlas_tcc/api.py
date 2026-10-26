@@ -119,7 +119,7 @@ def my_probes(key):
 @app.get(
     "/account",
     summary="Read the probes of the connected RIPE Atlas account",
-    description="Returns connected: false when no key is saved. Otherwise lists the probes managed by the key owner (GET /api/v2/probes/my/), without addresses or prefixes. The key itself is never returned.",
+    description="Returns connected: false when no key is saved. Otherwise lists the probes managed by the key owner (GET /api/v2/probes/my/), with their IPv4 ASN but without addresses or prefixes. The key itself is never returned.",
     responses={
         403: {"description": "RIPE Atlas refused the saved key"},
         503: {"description": "Saved key cannot be read or RIPE Atlas unavailable"},
