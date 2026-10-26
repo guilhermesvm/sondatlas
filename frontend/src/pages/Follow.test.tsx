@@ -35,7 +35,6 @@ it('follows the probe through the local API and shows which one is followed', as
   await userEvent.type(await screen.findByLabelText('ID da probe'), '1017210')
   await userEvent.click(screen.getByRole('button', { name: 'Acompanhar esta probe' }))
   expect(await screen.findByText('A Sondatlas acompanha a probe 1017210.')).toBeInTheDocument()
-  expect(await screen.findByText('Conectada')).toBeInTheDocument()
   const put = mock.mock.calls.find(([, init]) => init?.method === 'PUT')
   expect(put?.[1]?.body).toBe(JSON.stringify({ probe_id: 1017210 }))
 })

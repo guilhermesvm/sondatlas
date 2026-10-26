@@ -1,7 +1,6 @@
 import { Alert, Anchor, Button, Group, Modal, Text, TextInput, Title } from '@mantine/core'
 import { useState, type FormEvent } from 'react'
 import { useProbe } from '../features/probe-status/ProbeProvider'
-import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
 import { parseProbeId } from '../features/probe-status/status'
 import { InvalidProbeError, saveSelectedProbe, stopFollowingProbe } from '../lib/api'
 import SystemError from '../lib/SystemError'
@@ -9,7 +8,6 @@ import './pages.css'
 
 export default function Follow() {
   const { probeId, loadError, select } = useProbe()
-  const look = useStatusLook()
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [typed, setTyped] = useState('')
@@ -104,7 +102,6 @@ export default function Follow() {
       </>}
       {!loadError && probeId && <>
         <Text fw={600}>A Sondatlas acompanha a probe {probeId}.</Text>
-        {look && <Text size="sm" mt={4}><StatusLabel look={look} /></Text>}
         <Group gap="sm" mt="md">
           <Button component="a" href="#/minha-probe">Ver Minha probe</Button>
           <Button variant="default" onClick={() => { setError(null); setFieldError(''); setEditing(true) }}>Trocar probe</Button>
