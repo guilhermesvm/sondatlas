@@ -64,6 +64,8 @@
 .settings-guide { align-self: start; padding: 16px 18px; background: var(--accent-bg); border-radius: var(--mantine-radius-md); }
 .settings-guide ol { margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
 .settings-guide li + li { margin-top: 6px; }
+.settings-permissions { margin: 6px 0; padding-left: 18px; list-style: disc; font-size: 14px; }
+.settings-permissions li + li { margin-top: 2px; }
 @media (max-width: 1000px) {
   .settings-layout.with-guide { grid-template-columns: minmax(0, 680px); }
 }

@@ -1,6 +1,7 @@
 import { Alert, Anchor, Badge, Button, Group, Modal, PasswordInput, Text, Title } from '@mantine/core'
-import { useEffect, useState, type SubmitEvent } from 'react'
+import { Fragment, useEffect, useState, type ReactNode, type SubmitEvent } from 'react'
 import { disconnectAccount, fetchAccount, KeyRefusedError, saveAccountKey, type Account, type AccountProbe } from '../features/atlas-account/account'
+import { keyAllows, missingPermissions, permissions } from '../features/atlas-account/permissions'
 import { useProbe } from '../features/probe-status/ProbeProvider'
 import SystemError from '../lib/SystemError'
 import './pages.css'
@@ -10,6 +11,19 @@ const keysPage = 'https://atlas.ripe.net/keys/'
 const keyIcon = <svg className="settings-key" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <circle cx="7.5" cy="15.5" r="4.5" /><path d="M10.7 12.3 20 3M16 7l3 3M14 9l2 2" />
 </svg>
+
+function Missing({ ids }: { ids: string[] }) {
+  const names = missingPermissions(ids)
+  return <>{names.length > 1 ? 'as permissões ' : 'a permissão '}{names.map((permission, index) => <Fragment key={permission.id}>
+    {index > 0 && ' e '}<strong>{permission.name}</strong>
+  </Fragment>)}</>
+}
+
+function PermissionList() {
+  return <ul className="settings-permissions">
+    {permissions.map(permission => <li key={permission.id}><strong>{permission.name}</strong>, no grupo {permission.group}</li>)}
+  </ul>
+}
 
 function KeyGuide() {
   return <aside className="settings-guide" aria-labelledby="key-guide">
@@ -21,7 +35,7 @@ function KeyGuide() {
       <li>Abra as <Anchor href={keysPage} target="_blank" rel="noreferrer">chaves de API do RIPE Atlas</Anchor> com a mesma conta em que você cadastrou a probe.</li>
       <li>Comece uma chave nova com o nome Sondatlas.</li>
       <li>Escolha a validade. Alguns meses, como até o fim do semestre, é um bom prazo. Quando a chave vencer, esta página avisa, e é só criar outra e trocar.</li>
-      <li>No campo Permission, abra a lista e escolha só <strong>Show information about your probes</strong>, no grupo PROBES.</li>
+      <li>No campo Permission, escolha cada permissão abaixo e clique em Add. A chave só precisa delas:<PermissionList /></li>
       <li>Crie e copie a chave. Ela aparece inteira só uma vez.</li>
       <li>Cole a chave no campo Chave de API e clique em Vincular.</li>
     </ol>
@@ -58,7 +72,7 @@ export default function Settings() {
   const [loadError, setLoadError] = useState('')
   const [changing, setChanging] = useState(false)
   const [typed, setTyped] = useState('')
-  const [fieldError, setFieldError] = useState('')
+  const [fieldError, setFieldError] = useState<ReactNode>(null)
   const [error, setError] = useState<{ title: string, message: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -78,14 +92,14 @@ export default function Settings() {
   function closeForm() {
     setChanging(false)
     setTyped('')
-    setFieldError('')
+    setFieldError(null)
     setError(null)
   }
 
   async function link(event: SubmitEvent) {
     event.preventDefault()
     setError(null)
-    setFieldError('')
+    setFieldError(null)
     if (!typed.trim()) {
       setFieldError('Cole a chave que você criou no RIPE Atlas.')
       return
@@ -96,7 +110,9 @@ export default function Settings() {
       setRefused(false)
       closeForm()
     } catch (reason) {
-      if (reason instanceof KeyRefusedError) setFieldError(reason.message)
+      if (reason instanceof KeyRefusedError) setFieldError(reason.missing.length
+        ? <>A chave não tem <Missing ids={reason.missing} />. Edite a chave no site do RIPE Atlas, acrescente o que falta e tente de novo.</>
+        : reason.message)
       else setError({ title: 'Não foi possível vincular a conta', message: (reason as Error).message })
     } finally {
       setBusy(false)
@@ -120,6 +136,7 @@ export default function Settings() {
   }
 
   const linked = account?.connected === true
+  const missing = account?.missing_permissions ?? []
   const ready = account !== null || refused
   const showForm = ready && !linked
   const inModal = changing || confirming
@@ -144,9 +161,13 @@ export default function Settings() {
             <dt>Situação</dt>
             <dd>
               <Text fw={600} className="settings-state" data-linked={linked && !refused}>{keyIcon}{linked ? 'Vinculada' : refused ? 'Chave recusada' : 'Não vinculada'}</Text>
-              {linked && <Text size="sm">A chave pode ver as suas probes.</Text>}
+              {linked && !missing.length && <Text size="sm">{keyAllows}</Text>}
+              {linked && missing.length > 0 && <Alert color="yellow" mt="xs" title={missing.length > 1 ? 'Faltam permissões na chave' : 'Falta uma permissão na chave'}>
+                A chave não tem <Missing ids={missing} />. Para acrescentar, edite a chave nas{' '}
+                <Anchor href={keysPage} target="_blank" rel="noreferrer">chaves de API do RIPE Atlas</Anchor>. Quando você voltar a esta página, a Sondatlas confere de novo.
+              </Alert>}
               {refused && <Alert color="yellow" mt="xs" title="O RIPE Atlas recusou a chave salva">
-                A chave pode ter vencido, ter sido apagada ou desativada no site, ter ficado congelada depois de muito tempo sem uso ou estar sem a permissão Show information about your probes. Vincule uma chave nova ou desvincule.
+                A chave pode ter vencido, ter sido apagada ou desativada no site, ter ficado congelada depois de muito tempo sem uso ou estar sem as permissões necessárias. Vincule uma chave nova ou desvincule.
               </Alert>}
             </dd>
           </div>
@@ -170,8 +191,19 @@ export default function Settings() {
             </dd>
           </div>
           {linked && <div>
+            <dt>Créditos</dt>
+            <dd>
+              {account.credits
+                ? <>
+                  <Text size="sm" fw={600}>{account.credits.current_balance.toLocaleString('pt-BR')} no saldo</Text>
+                  {account.credits.estimated_daily_income ? <Text size="sm" c="dimmed">Cerca de {account.credits.estimated_daily_income.toLocaleString('pt-BR')} por dia, somando todas as suas probes</Text> : null}
+                </>
+                : <Text size="sm">Falta a permissão de créditos na chave.</Text>}
+            </dd>
+          </div>}
+          {linked && <div>
             <dt>Suas probes</dt>
-            <dd><ProbeList probes={account.probes ?? []} /></dd>
+            <dd>{account.probes ? <ProbeList probes={account.probes} /> : <Text size="sm">Falta a permissão das probes na chave.</Text>}</dd>
           </div>}
           <div>
             <dt>O que a chave libera</dt>
@@ -196,8 +228,10 @@ export default function Settings() {
         <Text size="sm" mb="sm">Cole a chave nova. Ela só substitui a atual se o RIPE Atlas aceitar.</Text>
         {keyField('Chave nova')}
         <Text size="sm" mt="sm">
-          Para criar outra chave, abra as <Anchor href={keysPage} target="_blank" rel="noreferrer">chaves de API do RIPE Atlas</Anchor> e escolha só a permissão <strong>Show information about your probes</strong>. Depois de trocar, apague a chave antiga no site.
+          Para criar outra chave, abra as <Anchor href={keysPage} target="_blank" rel="noreferrer">chaves de API do RIPE Atlas</Anchor> e escolha estas permissões:
         </Text>
+        <PermissionList />
+        <Text size="sm">Depois de trocar, apague a chave antiga no site.</Text>
         {errorText}
         <Group gap="sm" mt="lg" justify="flex-end">
           <Button variant="default" onClick={closeForm}>Cancelar</Button>
