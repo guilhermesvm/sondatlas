@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import type { AccountProbe } from '../atlas-account/account'
-import { computeBadges } from './achievements'
+import { computeBadges, statusText } from './achievements'
 
 const day = 86400
 const probe = (id: number, days: number, first: number, isPublic: boolean): AccountProbe => ({
@@ -9,14 +9,14 @@ const probe = (id: number, days: number, first: number, isPublic: boolean): Acco
 })
 
 it('counts each badge per probe instead of adding the probes together', () => {
-  const badges = Object.fromEntries(computeBadges([probe(1, 10, 1787709821, false), probe(2, 5, 1787000000, true)], [2], { current_balance: 1206887, estimated_daily_income: 21600 }).map(badge => [badge.id, badge]))
-  expect(badges['first-contact']).toMatchObject({ earned: true, status: 'Probe 2, em 17/08/2026' })
-  expect(badges['open-data']).toMatchObject({ earned: true, status: 'Probe 2' })
-  expect(badges.pioneer).toMatchObject({ earned: true, status: 'Probe 2' })
-  expect(badges.collector).toMatchObject({ earned: true, status: '2 probes na conta' })
-  expect(badges['uptime-7d']).toMatchObject({ earned: true, status: 'Probe 1' })
+  const badges = Object.fromEntries(computeBadges([probe(1, 10, 1787709821, false), probe(2, 5, 1787000000, true)], [2], { current_balance: 1206887, estimated_daily_income: 21600 }).map(badge => [badge.id, { ...badge, text: statusText(badge) }]))
+  expect(badges['first-contact']).toMatchObject({ earned: true, text: 'Conquistada em 17/08/2026 pela probe 2' })
+  expect(badges['open-data']).toMatchObject({ earned: true, text: 'Conquistada pela probe 2' })
+  expect(badges.pioneer).toMatchObject({ earned: true, text: 'Conquistada em 17/08/2026 pela probe 2' })
+  expect(badges.collector).toMatchObject({ earned: true, text: 'Conquistada. 2 probes na conta' })
+  expect(badges['uptime-7d']).toMatchObject({ earned: true, text: 'Conquistada pela probe 1' })
   expect(badges['uptime-30d']).toMatchObject({ earned: false, status: 'Faltam cerca de 20 dias', progress: 1 / 3 })
-  expect(badges['credits-100k']).toMatchObject({ earned: true, status: 'Saldo de 1.206.887' })
+  expect(badges['credits-100k']).toMatchObject({ earned: true, text: 'Conquistada. Saldo de 1.206.887' })
   expect(badges['credits-1m']).toMatchObject({ earned: true, status: 'Saldo de 1.206.887' })
 })
 

@@ -1,6 +1,7 @@
 import { Alert, Button, Progress, Text, Title } from '@mantine/core'
 import { useEffect, useState } from 'react'
-import { computeBadges, findPioneers, type Badge, type Pioneers } from '../features/achievements/achievements'
+import { computeBadges, findPioneers, statusText, uptimeGoals, type Badge, type Pioneers } from '../features/achievements/achievements'
+import { findHistories, type Histories } from '../features/achievements/connections'
 import BadgeMark from '../features/achievements/BadgeMark'
 import '../features/achievements/achievements.css'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
@@ -10,6 +11,7 @@ import './pages.css'
 const groups = [
   { id: 'first', title: 'Primeiros passos', text: null },
   { id: 'uptime', title: 'Tempo no ar', text: 'Somando todo o tempo conectada, mesmo com quedas no meio.' },
+  { id: 'history', title: 'Histórico de conexão', text: 'Calculadas pelos registros de conexão e queda que o RIPE Atlas guarda de cada probe.' },
   { id: 'credits', title: 'Créditos', text: 'Os créditos ficam na sua conta e somam todas as suas probes. Cada probe rende 15 por minuto conectada e 1 por resultado de medição. Estes badges olham o saldo atual.' },
 ] as const
 
@@ -20,7 +22,7 @@ function BadgeTile({ badge }: { badge: Badge }) {
     <p className="badge-rule">{badge.rule}</p>
     {badge.progress !== undefined && <Progress className="badge-progress" value={Math.min(badge.progress, 1) * 100} color="orange.7" size="sm"
       aria-label={`Progresso de ${badge.title}`} />}
-    <p className="badge-status">{badge.earned ? `Conquistada. ${badge.status}` : badge.status}</p>
+    <p className="badge-status">{statusText(badge)}</p>
   </li>
 }
 
@@ -29,13 +31,18 @@ export default function Achievements() {
   const [refused, setRefused] = useState(false)
   const [error, setError] = useState('')
   const [pioneers, setPioneers] = useState<Pioneers>('checking')
+  const [histories, setHistories] = useState<Histories>('checking')
 
   useEffect(() => {
     const controller = new AbortController()
     fetchAccount(controller.signal)
       .then(result => {
         setAccount(result)
-        return findPioneers(result.probes ?? [], controller.signal).then(setPioneers, () => {
+        const probes = result.probes ?? []
+        findHistories(probes, uptimeGoals, controller.signal).then(setHistories, () => {
+          if (!controller.signal.aborted) setHistories('failed')
+        })
+        return findPioneers(probes, controller.signal).then(setPioneers, () => {
           if (!controller.signal.aborted) setPioneers('failed')
         })
       })
@@ -48,7 +55,7 @@ export default function Achievements() {
   }, [])
 
   const linked = account?.connected === true
-  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers, linked ? account.credits ?? null : undefined)
+  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers, linked ? account.credits ?? null : undefined, histories)
   const earned = badges.filter(badge => badge.earned).length
 
   return <div className="install">
