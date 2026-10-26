@@ -48,7 +48,7 @@ function ProbeList({ probes }: { probes: AccountProbe[] }) {
 }
 
 const unlocks = [
-  { title: 'Conquistas', text: 'Contam só as suas probes.' },
+  { title: 'Conquistas', text: 'Contam só as suas probes.', href: '#/conquistas', link: 'Ver conquistas' },
   { title: 'Desafios', text: 'Medições criadas por você, com os seus créditos. Vão pedir mais permissões na chave.' },
 ]
 
@@ -179,7 +179,9 @@ export default function Settings() {
               <ul className="settings-list settings-unlocks">
                 {unlocks.map(item => <li key={item.title}>
                   <div><Text size="sm" fw={600}>{item.title}</Text><Text size="sm" c="dimmed">{item.text}</Text></div>
-                  <Badge variant="light" color="gray" tt="none">Em breve</Badge>
+                  {'href' in item
+                    ? <Anchor href={item.href} size="sm">{item.link}</Anchor>
+                    : <Badge variant="light" color="gray" tt="none">Em breve</Badge>}
                 </li>)}
               </ul>
             </dd>
