@@ -10,7 +10,7 @@ import './pages.css'
 const groups = [
   { id: 'first', title: 'Primeiros passos', text: null },
   { id: 'uptime', title: 'Tempo no ar', text: 'Somando todo o tempo conectada, mesmo com quedas no meio.' },
-  { id: 'credits', title: 'Créditos', text: 'Estimados pelo tempo conectado. Cada minuto conectada rende 15 créditos.' },
+  { id: 'credits', title: 'Créditos', text: 'Os créditos ficam na sua conta e somam todas as suas probes. Cada probe rende 15 por minuto conectada e 1 por resultado de medição. Estes badges olham o saldo atual.' },
 ] as const
 
 function BadgeTile({ badge }: { badge: Badge }) {
@@ -48,7 +48,7 @@ export default function Achievements() {
   }, [])
 
   const linked = account?.connected === true
-  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers)
+  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers, linked ? account.credits ?? null : undefined)
   const earned = badges.filter(badge => badge.earned).length
 
   return <div className="install">
@@ -56,6 +56,10 @@ export default function Achievements() {
     <Text size="lg" mt="sm" maw={680}>Marcos das suas probes no RIPE Atlas, calculados com os dados do próprio RIPE.</Text>
     {linked && <Text fw={600} mt="md">{earned} de {badges.length} conquistadas</Text>}
 
+    {linked && (account.missing_permissions ?? []).length > 0 && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
+      Algumas conquistas precisam de uma permissão que a chave não tem. Veja o que falta em Configurações.
+      <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
+    </Alert>}
     {error && <SystemError title="Não foi possível consultar a sua conta">{error}</SystemError>}
     {(account?.connected === false || refused) && <Alert variant="light" mt="lg" maw={720}
       title={refused ? 'O RIPE Atlas recusou a chave salva' : 'Vincule a sua conta do RIPE Atlas'}>

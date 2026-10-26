@@ -27,15 +27,17 @@ it('shows the badges of the linked probes, the progress of the next ones and the
   stubBackend({ connected: true, probes: [{
     id: 1017210, description: null, is_public: true, status: { id: 1, name: 'Connected', since: null },
     first_connected: first, total_uptime: 86896, asn_v4: 64500,
-  }] })
+  }], credits: { current_balance: 150000, estimated_daily_income: 25000 }, missing_permissions: [] })
   render(<Achievements />)
-  expect(await screen.findByText('4 de 10 conquistadas')).toBeInTheDocument()
+  expect(await screen.findByText('5 de 10 conquistadas')).toBeInTheDocument()
   expect(badge('Primeiro contato').getByText(/^Conquistada\. Probe 1017210, em /)).toBeInTheDocument()
   expect(badge('Pioneiro').getByText('Conquistada. Probe 1017210')).toBeInTheDocument()
   expect(badge('24 horas no ar').getByText('Conquistada. Probe 1017210')).toBeInTheDocument()
   expect(badge('7 dias no ar').getByText('Faltam cerca de 6 dias')).toBeInTheDocument()
   expect(badge('7 dias no ar').getByRole('progressbar')).toBeInTheDocument()
   expect(badge('Colecionador').getByText('1 de 2 probes')).toBeInTheDocument()
+  expect(badge('100 mil créditos').getByText('Conquistada. Saldo de 150.000')).toBeInTheDocument()
+  expect(badge('1 milhão de créditos').getByText('Faltam cerca de 34 dias')).toBeInTheDocument()
 })
 
 it('keeps the goals visible and points to the settings without a linked account', async () => {

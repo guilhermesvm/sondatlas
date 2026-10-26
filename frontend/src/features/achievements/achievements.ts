@@ -1,9 +1,7 @@
-import type { AccountProbe } from '../atlas-account/account'
+import type { AccountProbe, Credits } from '../atlas-account/account'
 
 const hour = 3600
 const day = 24 * hour
-// RIPE Atlas pays 15 credits per connected minute, so each credit takes 4 seconds.
-const secondsPerCredit = 4
 
 export type Group = 'first' | 'uptime' | 'credits'
 export type Pioneers = 'checking' | 'failed' | number[]
@@ -36,7 +34,21 @@ function timeGoal(id: string, group: Group, title: string, rule: string, mark: s
   return { id, group, title, rule, mark, earned: false, status: best ? left(goal - uptime) : 'Ainda não', progress: best ? uptime / goal : undefined }
 }
 
-export function computeBadges(probes: AccountProbe[], pioneers: Pioneers): Badge[] {
+// credits is undefined without a linked account and null when the key lacks the credits permission.
+function creditGoal(id: string, title: string, mark: string, goal: number, credits: Credits | null | undefined): Badge {
+  const rule = `Ter ${title} na sua conta.`
+  const base = { id, group: 'credits' as const, title, rule, mark }
+  if (!credits) return { ...base, earned: false, status: credits === null ? 'Falta a permissão de créditos na chave' : 'Ainda não' }
+  const balance = credits.current_balance
+  if (balance >= goal) return { ...base, earned: true, status: `Saldo de ${balance.toLocaleString('pt-BR')}` }
+  const daily = credits.estimated_daily_income
+  return {
+    ...base, earned: false, progress: balance / goal,
+    status: daily ? left((goal - balance) / daily * day) : `Faltam ${(goal - balance).toLocaleString('pt-BR')} créditos`,
+  }
+}
+
+export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credits?: Credits | null): Badge[] {
   const connected = probes
     .map(probe => ({ probe, first: seconds(probe.first_connected) }))
     .filter((item): item is { probe: AccountProbe, first: number } => item.first !== null)
@@ -76,8 +88,8 @@ export function computeBadges(probes: AccountProbe[], pioneers: Pioneers): Badge
     timeGoal('uptime-7d', 'uptime', '7 dias no ar', 'Uma probe sua somou 7 dias conectada.', '7 dias', 7 * day, best),
     timeGoal('uptime-30d', 'uptime', '30 dias no ar', 'Uma probe sua somou 30 dias conectada.', '30 dias', 30 * day, best),
     timeGoal('uptime-90d', 'uptime', '90 dias no ar', 'Uma probe sua somou 90 dias conectada.', '90 dias', 90 * day, best),
-    timeGoal('credits-100k', 'credits', '100 mil créditos', 'Uma probe sua rendeu cerca de 100 mil créditos.', '100 mil', 100000 * secondsPerCredit, best),
-    timeGoal('credits-1m', 'credits', '1 milhão de créditos', 'Uma probe sua rendeu cerca de 1 milhão de créditos.', '1 milhão', 1000000 * secondsPerCredit, best),
+    creditGoal('credits-100k', '100 mil créditos', '100 mil', 100000, credits),
+    creditGoal('credits-1m', '1 milhão de créditos', '1 milhão', 1000000, credits),
   ]
 }
 
