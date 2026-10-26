@@ -1,5 +1,5 @@
 import { Alert, Anchor, Badge, Button, Group, Modal, PasswordInput, Text, Title } from '@mantine/core'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 import { disconnectAccount, fetchAccount, KeyRefusedError, saveAccountKey, type Account, type AccountProbe } from '../features/atlas-account/account'
 import { useProbe } from '../features/probe-status/ProbeProvider'
 import SystemError from '../lib/SystemError'
@@ -82,7 +82,7 @@ export default function Settings() {
     setError(null)
   }
 
-  async function link(event: FormEvent) {
+  async function link(event: SubmitEvent) {
     event.preventDefault()
     setError(null)
     setFieldError('')

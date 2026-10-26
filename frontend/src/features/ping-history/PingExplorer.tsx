@@ -1,5 +1,5 @@
 import { Button, NativeSelect, Paper, Radio, TextInput, Title } from '@mantine/core'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react'
 import SystemError from '../../lib/SystemError'
 import { fetchHistory, fetchTargets, type Catalog, type PingHistory, type PingRecord } from '../../lib/api'
 import { formatLocal, localInput, localPeriod, localTimeZone, quickPeriod } from '../../lib/time'
@@ -48,7 +48,7 @@ export default function PingExplorer({ active }: { active: boolean }) {
 
   useEffect(() => () => request.current?.abort(), [])
 
-  async function consult(event: FormEvent) {
+  async function consult(event: SubmitEvent) {
     event.preventDefault()
     if (!catalog || !target) return
     setError('')

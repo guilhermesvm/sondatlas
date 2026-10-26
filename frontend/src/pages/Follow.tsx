@@ -1,5 +1,5 @@
 import { Alert, Anchor, Button, Group, Modal, Text, TextInput, Title } from '@mantine/core'
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { useProbe } from '../features/probe-status/ProbeProvider'
 import { parseProbeId } from '../features/probe-status/status'
 import { InvalidProbeError, saveSelectedProbe, stopFollowingProbe } from '../lib/api'
@@ -16,7 +16,7 @@ export default function Follow() {
   const [error, setError] = useState<{ title: string, message: string } | null>(null)
   const [notPublic, setNotPublic] = useState(false)
 
-  async function follow(event: FormEvent) {
+  async function follow(event: SubmitEvent) {
     event.preventDefault()
     setError(null)
     setFieldError('')
