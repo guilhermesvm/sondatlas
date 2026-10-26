@@ -7,6 +7,14 @@ from fastapi import Body, FastAPI, HTTPException, Query
 import requests
 
 from ripe_atlas_tcc import probe_distribution
+from ripe_atlas_tcc.atlas_account import (
+    ACCOUNT_STATE_PATH,
+    KeyRefusedError,
+    delete_key,
+    fetch_my_probes,
+    load_key,
+    save_key,
+)
 from ripe_atlas_tcc.influxdb_queries import query_ping_results
 from ripe_atlas_tcc.probe_state import (
     clear_selected_probe,
@@ -98,6 +106,77 @@ def delete_probe():
         logger.warning("Probe selection not removed (%s)", type(error).__name__)
         raise HTTPException(status_code=503, detail="The selected probe could not be removed") from None
     return {"probe_id": None}
+
+
+def my_probes(key):
+    try:
+        return {"connected": True, "probes": fetch_my_probes(key)}
+    except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+        logger.warning("RIPE Atlas account check failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable") from None
+
+
+@app.get(
+    "/account",
+    summary="Read the probes of the connected RIPE Atlas account",
+    description="Returns connected: false when no key is saved. Otherwise lists the probes managed by the key owner (GET /api/v2/probes/my/), without addresses or prefixes. The key itself is never returned.",
+    responses={
+        403: {"description": "RIPE Atlas refused the saved key"},
+        503: {"description": "Saved key cannot be read or RIPE Atlas unavailable"},
+    },
+)
+def get_account():
+    try:
+        key = load_key(ACCOUNT_STATE_PATH)
+    except (OSError, ValueError, KeyError) as error:
+        logger.warning("Saved account unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Saved account is unavailable") from None
+    if key is None:
+        return {"connected": False}
+    try:
+        return my_probes(key)
+    except KeyRefusedError:
+        raise HTTPException(status_code=403, detail="RIPE Atlas refused the saved key") from None
+
+
+@app.put(
+    "/account",
+    summary="Check a RIPE Atlas API key and save it locally",
+    description="The key is saved in data/state only after RIPE Atlas accepts it. On any failure the previous key is kept. The response lists the account probes, never the key.",
+    responses={
+        422: {"description": "Empty key, or RIPE Atlas refused it; previous key is kept"},
+        503: {"description": "RIPE Atlas unavailable or key not saved; previous key is kept"},
+    },
+)
+def put_account(key: Annotated[str, Body(embed=True, max_length=200)]):
+    key = key.strip()
+    if not key:
+        raise HTTPException(status_code=422, detail="Key is empty")
+    try:
+        account = my_probes(key)
+    except KeyRefusedError:
+        raise HTTPException(status_code=422, detail="RIPE Atlas refused the key") from None
+    try:
+        save_key(ACCOUNT_STATE_PATH, key)
+    except OSError as error:
+        logger.warning("Account key not saved (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="The key could not be saved") from None
+    return account
+
+
+@app.delete(
+    "/account",
+    summary="Forget the saved RIPE Atlas API key",
+    description="Removes the key from data/state. The key stays valid in RIPE Atlas until it is disabled or deleted there.",
+    responses={503: {"description": "Key could not be removed"}},
+)
+def delete_account():
+    try:
+        delete_key(ACCOUNT_STATE_PATH)
+    except OSError as error:
+        logger.warning("Account key not removed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="The key could not be removed") from None
+    return {"connected": False}
 
 
 @app.get(

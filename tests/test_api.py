@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 import pytest
 import requests
 
-from ripe_atlas_tcc import api
+from ripe_atlas_tcc import api, atlas_account
 from ripe_atlas_tcc.probe_state import save_selected_probe
 
 
@@ -313,3 +313,88 @@ def test_stop_following_removes_the_selection_and_can_repeat(probe_api):
     assert client.get("/probe").json() == {"probe_id": None}
     assert not state_path.exists()
     assert checked == []
+
+
+@pytest.fixture
+def account_api(monkeypatch, tmp_path):
+    state_path = tmp_path / "state" / "atlas-account.json"
+    calls = []
+
+    class Response:
+        def __init__(self, status_code, body=None):
+            self.status_code = status_code
+            self.body = body
+
+        def json(self):
+            return self.body
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError(str(self.status_code))
+
+    def get(url, headers, timeout):
+        calls.append((url, headers["Authorization"]))
+        key = headers["Authorization"].removeprefix("Key ")
+        if key == "offline-key":
+            raise requests.ConnectionError("offline")
+        if key != "good-key":
+            return Response(403, {"detail": "refused"})
+        return Response(200, {"count": 1, "results": [{
+            "id": 1017210, "description": "Casa", "is_public": True,
+            "status": {"id": 1, "name": "Connected", "since": "2026-10-26T13:39:08Z"},
+            "first_connected": 1787709821, "total_uptime": 2815592,
+            "address_v4": "203.0.113.77", "prefix_v4": "203.0.113.0/24", "asn_v4": 64500,
+        }]})
+
+    monkeypatch.setattr(api, "ACCOUNT_STATE_PATH", state_path)
+    monkeypatch.setattr(atlas_account.requests, "get", get)
+    with TestClient(api.app) as client:
+        yield client, state_path, calls
+
+
+def test_account_key_is_checked_saved_and_never_returned(account_api):
+    client, state_path, calls = account_api
+    assert client.get("/account").json() == {"connected": False}
+    assert calls == []
+
+    responses = [client.put("/account", json={"key": " good-key "}), client.get("/account")]
+    for response in responses:
+        assert response.status_code == 200
+        assert response.json() == {"connected": True, "probes": [{
+            "id": 1017210, "description": "Casa", "is_public": True,
+            "status": {"id": 1, "name": "Connected", "since": "2026-10-26T13:39:08Z"},
+            "first_connected": 1787709821, "total_uptime": 2815592,
+        }]}
+        assert "good-key" not in response.text
+        assert "203.0.113" not in response.text
+    assert calls == [("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key")] * 2
+    assert atlas_account.load_key(state_path) == "good-key"
+
+
+@pytest.mark.parametrize("key, status", [("bad-key", 422), ("offline-key", 503), ("   ", 422)])
+def test_refused_or_unchecked_key_keeps_the_previous_one(account_api, key, status):
+    client, state_path, _ = account_api
+    atlas_account.save_key(state_path, "good-key")
+    assert client.put("/account", json={"key": key}).status_code == status
+    assert atlas_account.load_key(state_path) == "good-key"
+
+
+@pytest.mark.parametrize("key, status", [("bad-key", 403), ("offline-key", 503)])
+def test_saved_key_refused_later_or_ripe_offline(account_api, key, status):
+    client, state_path, _ = account_api
+    atlas_account.save_key(state_path, key)
+    response = client.get("/account")
+    assert response.status_code == status
+    assert key not in response.text
+
+
+def test_disconnecting_removes_the_key_and_can_repeat(account_api):
+    client, state_path, calls = account_api
+    atlas_account.save_key(state_path, "good-key")
+    for _ in range(2):
+        response = client.delete("/account")
+        assert response.status_code == 200
+        assert response.json() == {"connected": False}
+    assert not state_path.exists()
+    assert client.get("/account").json() == {"connected": False}
+    assert calls == []
