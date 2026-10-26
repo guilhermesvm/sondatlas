@@ -1,10 +1,11 @@
-import { Alert, Button, Progress, Text, Title } from '@mantine/core'
+import { Alert, Button, Loader, Progress, Text, Title } from '@mantine/core'
 import { useEffect, useState } from 'react'
-import { computeBadges, findPioneers, statusText, uptimeGoals, type Badge, type Pioneers } from '../features/achievements/achievements'
+import { checking, computeBadges, findPioneers, statusText, uptimeGoals, type Badge, type Pioneers } from '../features/achievements/achievements'
 import { findHistories, type Histories } from '../features/achievements/connections'
 import BadgeMark from '../features/achievements/BadgeMark'
 import '../features/achievements/achievements.css'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
+import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
 import './pages.css'
 
@@ -22,7 +23,7 @@ function BadgeTile({ badge }: { badge: Badge }) {
     <p className="badge-rule">{badge.rule}</p>
     {badge.progress !== undefined && <Progress className="badge-progress" value={Math.min(badge.progress, 1) * 100} color="orange.7" size="sm"
       aria-label={`Progresso de ${badge.title}`} />}
-    <p className="badge-status">{statusText(badge)}</p>
+    <p className="badge-status">{badge.status === checking && <Loader size={10} aria-hidden="true" className="badge-loader" />}{statusText(badge)}</p>
   </li>
 }
 
@@ -75,7 +76,7 @@ export default function Achievements() {
         : 'As conquistas contam só as probes da sua conta. Vincule a conta em Configurações para ver as suas.'}
       <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
     </Alert>}
-    {!account && !refused && !error && <Text size="sm" mt="lg">Consultando a sua conta…</Text>}
+    {!account && !refused && !error && <Loading mt="lg">Consultando a sua conta…</Loading>}
 
     {(account || refused) && groups.map(group => <section key={group.id} className="badge-group" aria-labelledby={`badges-${group.id}`}>
       <Title order={2} size="h4" id={`badges-${group.id}`}>{group.title}</Title>

@@ -1,4 +1,5 @@
 import { Anchor, Button, List, Paper, Text } from '@mantine/core'
+import Loading from '../../lib/Loading'
 import SystemError from '../../lib/SystemError'
 import { formatLocal } from '../../lib/time'
 import { formatMetric } from '../ping-history/chart'
@@ -38,7 +39,7 @@ function YourData({ probeId, days, error, latest, latestFailed }: ReturnType<typ
     <Button component="a" href="#/acompanhar" variant="light" size="sm" mt="sm">Ir para Acompanhar</Button>
   </>
   if (error) return <SystemError title="Não foi possível ler os dados da sua probe" mt="0">{error}</SystemError>
-  if (!days) return <Text size="sm">Lendo os dados da sua probe…</Text>
+  if (!days) return <Loading>Lendo os dados da sua probe…</Loading>
   const measured = days.filter(day => day.history.count > 0)
   const empty = days.filter(day => day.history.count === 0)
   return <>

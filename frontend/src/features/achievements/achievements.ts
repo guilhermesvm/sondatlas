@@ -59,9 +59,11 @@ function timeGoal(title: string, mark: string, goal: number, best: AccountProbe 
   return { ...base, earned: false, status: best ? left(goal - uptime) : 'Ainda não', progress: best ? uptime / goal : undefined }
 }
 
+export const checking = 'Conferindo no RIPE Atlas…'
+
 function pending(probes: AccountProbe[], histories: Histories) {
   if (!probes.length) return 'Ainda não'
-  return histories === 'checking' ? 'Conferindo no RIPE Atlas…' : 'Não foi possível conferir agora'
+  return histories === 'checking' ? checking : 'Não foi possível conferir agora'
 }
 
 function historyBadges(probes: AccountProbe[], histories: Histories): Badge[] {
@@ -125,7 +127,7 @@ export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credit
       rule: 'Uma probe sua é a mais antiga do seu provedor no RIPE Atlas.',
       // The probe became the oldest of its provider at its own first connection.
       earned: Boolean(pioneer), by: pioneer?.id, on: pioneer ? seconds(pioneer.first_connected) ?? undefined : undefined,
-      status: pioneer ? '' : pioneers === 'checking' && probes.length ? 'Conferindo no RIPE Atlas…'
+      status: pioneer ? '' : pioneers === 'checking' && probes.length ? checking
         : pioneers === 'failed' ? 'Não foi possível conferir agora' : 'Ainda não',
     },
     {

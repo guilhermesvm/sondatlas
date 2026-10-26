@@ -8,6 +8,7 @@
 .badge-rule { margin: 0; font-size: 14px; }
 .badge-status { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 .badge[data-earned='true'] .badge-status { color: var(--badge-text); font-weight: 600; }
+.badge-loader { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .badge-progress { margin-top: 8px; max-width: 160px; }
 @media (max-width: 600px) {
   .badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }

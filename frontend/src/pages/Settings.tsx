@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState, type ReactNode, type SubmitEvent } from 
 import { disconnectAccount, fetchAccount, KeyRefusedError, saveAccountKey, type Account, type AccountProbe } from '../features/atlas-account/account'
 import { keyAllows, missingPermissions, permissions } from '../features/atlas-account/permissions'
 import { useProbe } from '../features/probe-status/ProbeProvider'
+import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
 import './pages.css'
 
@@ -154,7 +155,7 @@ export default function Settings() {
         <Text size="sm" mt={4} maw={620}>Vincule a sua conta do RIPE Atlas para a Sondatlas saber quais probes são suas.</Text>
 
         {loadError && <SystemError title="Não foi possível consultar a sua conta">{loadError}</SystemError>}
-        {!loadError && !ready && <Text size="sm" mt="lg">Consultando a sua conta…</Text>}
+        {!loadError && !ready && <Loading mt="lg">Consultando a sua conta…</Loading>}
 
         {ready && <dl className="settings-rows">
           <div>
