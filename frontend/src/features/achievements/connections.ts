@@ -3,6 +3,7 @@ import type { AccountProbe } from '../atlas-account/account'
 export interface ConnectionEvent {
   timestamp: number
   event: 'connect' | 'disconnect'
+  asn?: number | null
 }
 
 export const longOutage = 10 * 60
@@ -49,10 +50,11 @@ export function summarizeConnections(events: ConnectionEvent[], now: number, goa
   return { record, comeback, marathonAt, marks }
 }
 
-async function fetchEvents(probe: AccountProbe, now: number, signal: AbortSignal) {
-  const first = typeof probe.first_connected === 'number' ? probe.first_connected : Date.parse(String(probe.first_connected)) / 1000
-  if (!probe.first_connected || Number.isNaN(first)) return []
-  const url = `https://atlas.ripe.net/api/v2/measurements/7000/results/?probe_ids=${probe.id}&start=${Math.floor(first) - 3600}&stop=${now}`
+// Measurement 7000 logs every connection and disconnection of every probe, publicly.
+export async function fetchConnectionEvents(probeId: number, firstConnected: number | string | null | undefined, now: number, signal: AbortSignal) {
+  const first = typeof firstConnected === 'number' ? firstConnected : Date.parse(String(firstConnected)) / 1000
+  if (!firstConnected || Number.isNaN(first)) return []
+  const url = `https://atlas.ripe.net/api/v2/measurements/7000/results/?probe_ids=${probeId}&start=${Math.floor(first) - 3600}&stop=${now}`
   const response = await fetch(url, { signal })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return await response.json() as ConnectionEvent[]
@@ -60,6 +62,6 @@ async function fetchEvents(probe: AccountProbe, now: number, signal: AbortSignal
 
 export async function findHistories(probes: AccountProbe[], goals: number[], signal: AbortSignal) {
   const now = Math.floor(Date.now() / 1000)
-  const summaries = await Promise.all(probes.map(async probe => [probe.id, summarizeConnections(await fetchEvents(probe, now, signal), now, goals)] as const))
+  const summaries = await Promise.all(probes.map(async probe => [probe.id, summarizeConnections(await fetchConnectionEvents(probe.id, probe.first_connected, now, signal), now, goals)] as const))
   return Object.fromEntries(summaries) as Record<number, ConnectionSummary>
 }

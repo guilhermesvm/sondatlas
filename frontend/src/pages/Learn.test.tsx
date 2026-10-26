@@ -66,18 +66,26 @@ it('shows the private address and the provider of the followed probe but never i
   vi.stubGlobal('fetch', vi.fn((url: string) => {
     if (url === '/api/probe') return json({ probe_id: 1017210 })
     if (url === '/api/targets') return json(catalog)
-    if (url.includes('/probes/1017210/?fields=tags')) return json({ id: 1017210, tags: [{ slug: 'system-ipv4-rfc1918' }], asn_v4: 64500, address_v6: null })
+    if (url.includes('/probes/1017210/?fields=tags')) return json({ id: 1017210, tags: [{ slug: 'system-ipv4-rfc1918' }], asn_v4: 64500, address_v6: null, first_connected: 1787709821 })
+    if (url.includes('/measurements/7000/results/')) return json([
+      { timestamp: 1790000000, event: 'connect', asn: 64500 }, { timestamp: 1787709821, event: 'connect', asn: 64500 },
+      { timestamp: 1788000000, event: 'connect', asn: 64501 }, { timestamp: 1788100000, event: 'disconnect', asn: null },
+    ])
     if (url.includes('/measurements/1001/latest/')) return json([{ src_addr: '192.168.1.5', from: '203.0.113.77' }])
-    if (url.includes('stat.ripe.net/data/as-overview')) return json({ data: { holder: 'AS64500 - Provedor Exemplo' } })
+    if (url.includes('stat.ripe.net/data/as-overview')) return json({ data: { holder: url.includes('AS64501') ? 'AS64501 - Outra Rede' : 'AS64500 - Provedor Exemplo' } })
     return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
   }))
   window.location.hash = '#/aprender/ip'
   render(<App />)
   expect(screen.getByRole('heading', { level: 1, name: 'IP e endereços' })).toBeInTheDocument()
   const data = within(screen.getByRole('region', { name: 'O seu dado' }))
-  expect(await data.findByText('192.168.1.5')).toBeInTheDocument()
-  expect(data.getByText('AS64500')).toBeInTheDocument()
-  expect(data.getByText('Provedor Exemplo')).toBeInTheDocument()
+  expect(await data.findAllByText('192.168.1.5')).toHaveLength(2)
+  expect(data.getAllByText('AS64500')).toHaveLength(3)
+  expect(within(data.getByRole('list', { name: 'Caminho da probe até o K-root' })).getByText('AS25152')).toBeInTheDocument()
+  expect(data.getByText('A sua probe já se conectou por 2 redes')).toBeInTheDocument()
+  const [current, previous] = data.getAllByRole('listitem').filter(item => item.closest('.lesson-networks'))
+  expect(current).toHaveTextContent('AS64500 Provedor Exemplo2 conexões, a mais recente em')
+  expect(previous).toHaveTextContent('AS64501 Outra Rede1 conexão, a última em')
   expect(data.getByText('Não tem')).toBeInTheDocument()
   expect(data.getByText('system-ipv4-rfc1918')).toBeInTheDocument()
   expect(document.body).not.toHaveTextContent('203.0.113.77')

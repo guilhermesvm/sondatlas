@@ -1,9 +1,41 @@
 import { Anchor, Button, List, Text } from '@mantine/core'
+import Loading from '../../lib/Loading'
 import SystemError from '../../lib/SystemError'
 import LessonParts from './LessonParts'
 import { useAddresses, type Addresses } from './useAddresses'
 import './lessons.css'
 
+const date = (timestamp: number) => new Date(timestamp * 1000).toLocaleDateString('pt-BR')
+
+function Path({ addresses }: { addresses: Addresses }) {
+  return <figure className="lesson-figure">
+    <Text size="sm" component="figcaption">O caminho de uma medição da sua probe até o K-root:</Text>
+    <ol className="address-path" aria-label="Caminho da probe até o K-root">
+      <li><strong>Sua probe</strong><span>{addresses.privateAddress ? <code>{addresses.privateAddress}</code> : 'endereço da probe'}</span></li>
+      <li><strong>Seu roteador</strong><span>{addresses.behindNat ? 'troca pelo endereço público (NAT)' : 'leva para fora da casa'}</span></li>
+      <li><strong>Seu provedor</strong><span>{addresses.asn ? <code>AS{addresses.asn}</code> : null} {addresses.holder}</span></li>
+      <li><strong>Outras redes</strong><span>o traceroute mostra quais são</span></li>
+      <li><strong>K-root</strong><span><code>193.0.14.129</code> <code>AS25152</code> RIPE NCC</span></li>
+    </ol>
+  </figure>
+}
+
+function Networks({ networks }: { networks: Addresses['networks'] }) {
+  if (networks === null) return <Text size="sm" c="dimmed" mt="md">Não foi possível ler agora as redes por onde a sua probe passou.</Text>
+  if (networks.length === 0) return null
+  return <>
+    <Text size="sm" fw={600} mt="lg">
+      {networks.length === 1 ? 'A sua probe sempre se conectou pela mesma rede' : `A sua probe já se conectou por ${networks.length} redes`}
+    </Text>
+    <ul className="lesson-networks">
+      {networks.map((network, index) => <li key={network.asn}>
+        <span><code>AS{network.asn}</code> {network.holder}</span>
+        <span>{network.connections} {network.connections === 1 ? 'conexão' : 'conexões'}, {index === 0 ? 'a mais recente' : 'a última'} em {date(network.last)}</span>
+      </li>)}
+    </ul>
+    {networks.length > 1 && <Text size="sm" mt="xs">Cada vez que a probe muda de rede, o provedor e o endereço público mudam junto.</Text>}
+  </>
+}
 
 function YourData({ probeId, addresses, error }: ReturnType<typeof useAddresses>) {
   if (probeId === null) return <>
@@ -11,8 +43,9 @@ function YourData({ probeId, addresses, error }: ReturnType<typeof useAddresses>
     <Button component="a" href="#/acompanhar" variant="light" size="sm" mt="sm">Ir para Acompanhar</Button>
   </>
   if (error) return <SystemError title="Não foi possível ler os dados da sua probe" mt="0">{error}</SystemError>
-  if (!addresses) return <Text size="sm">Lendo os dados da sua probe…</Text>
+  if (!addresses) return <Loading>Lendo os dados da sua probe…</Loading>
   return <>
+    <Path addresses={addresses} />
     <dl className="lesson-numbers">
       <div>
         <dt>Dentro da sua rede</dt>
@@ -21,7 +54,7 @@ function YourData({ probeId, addresses, error }: ReturnType<typeof useAddresses>
       </div>
       <div>
         <dt>Na Internet</dt>
-        <dd className="lesson-number-value">{addresses.asn ? `AS${addresses.asn}` : 'Rede do provedor'}</dd>
+        <dd className="lesson-number-value">{addresses.asn ? `AS${addresses.asn}` : 'Indisponível'}</dd>
         <dd>
           Rede do provedor{addresses.holder ? <> <strong>{addresses.holder}</strong></> : ''}. A probe sai para a Internet com um endereço público dessa rede.
           A Sondatlas não mostra esse endereço, porque ele identifica a sua conexão.
@@ -38,6 +71,7 @@ function YourData({ probeId, addresses, error }: ReturnType<typeof useAddresses>
     {addresses.behindNat && <Text size="sm" mt="md">
       O RIPE Atlas marcou a sua probe com a etiqueta <code>system-ipv4-rfc1918</code>. Ela quer dizer que a probe usa um endereço privado e sai para a Internet por NAT.
     </Text>}
+    <Networks networks={addresses.networks} />
   </>
 }
 
@@ -77,10 +111,10 @@ export default function IpLesson() {
           Todo aparelho conectado à Internet precisa de um endereço para receber dados, como uma casa precisa de um número na rua. Esse endereço é o IP, do inglês Internet Protocol.
         </Text>
         <Text size="sm" mt="sm">
-          Existem dois formatos. O IPv4 tem 32 bits e é escrito como quatro números separados por pontos, como <code>193.0.14.129</code>. O IPv6 tem 128 bits e é escrito em grupos separados por dois-pontos, como <code>2001:7fd::1</code>. Os dois são endereços do K-root, o servidor que a sua probe mede na lição de ping.
+          Existem dois formatos. O IPv4 tem 32 bits e é escrito como quatro números separados por pontos, como <code>193.0.14.129</code>. O IPv6 tem 128 bits e é escrito em grupos separados por dois-pontos, como <code>2001:7fd::1</code>. Os dois são do K-root, que a sua probe mede na <Anchor href="#/aprender/ping">lição de ping</Anchor>.
         </Text>
         <Text size="sm" mt="sm">
-          Os endereços IPv4 acabaram. O RIPE NCC, que distribui endereços na Europa, ficou sem IPv4 livre em novembro de 2019. O LACNIC, que distribui na América Latina e no Brasil, reservou o último bloco disponível em agosto de 2020. O IPv6 foi criado para resolver essa falta.
+          Os endereços IPv4 acabaram. O RIPE NCC, que distribui endereços na Europa, no Oriente Médio e em partes da Ásia Central, ficou sem IPv4 livre em novembro de 2019. O LACNIC, que distribui na América Latina e no Brasil, reservou o último bloco disponível em agosto de 2020. O IPv6 foi criado para resolver essa falta.
         </Text>
         <Text size="sm" mt="sm">
           Enquanto isso, as casas economizam endereços com o NAT. Dentro de casa, cada aparelho recebe um endereço privado, que só vale ali. Na saída para a Internet, o roteador troca esse endereço pelo endereço público que o provedor deu para a casa.
@@ -93,7 +127,7 @@ export default function IpLesson() {
       title: 'O que não mostra',
       content: <ul className="lesson-limits">
         <li><Text size="sm">O IP não diz o endereço da sua rua. A localização a partir de um IP é aproximada.</Text></li>
-        <li><Text size="sm">O endereço público pode mudar. Muitos provedores trocam o endereço da casa de tempos em tempos.</Text></li>
+        <li><Text size="sm">O endereço público pode mudar. Alguns provedores trocam o endereço da casa de tempos em tempos.</Text></li>
         <li><Text size="sm">Com CGNAT, várias casas dividem o mesmo endereço público. Esta lição não tem como saber se é o seu caso.</Text></li>
         <li><Text size="sm">O endereço privado só vale dentro da sua rede. Outra casa pode usar o mesmo sem problema.</Text></li>
       </ul>,
