@@ -7,7 +7,7 @@ export interface Lesson {
 }
 
 export const lessons: Lesson[] = [
-  { id: 'ip', title: 'IP e endereços', text: 'Como cada aparelho é encontrado na Internet e por que existem dois tipos de endereço, o IPv4 e o IPv6.', group: 'basics', ready: false },
+  { id: 'ip', title: 'IP e endereços', text: 'Como cada aparelho é encontrado na Internet e por que existem dois tipos de endereço, o IPv4 e o IPv6.', group: 'basics', ready: true },
   { id: 'ping', title: 'Ping', text: 'Quanto tempo um pacote leva para ir e voltar, e quando ele se perde no caminho.', group: 'basics', ready: true },
   { id: 'traceroute', title: 'Traceroute', text: 'Por quais redes os pacotes passam até chegar ao destino.', group: 'basics', ready: false },
   { id: 'dns', title: 'DNS', text: 'Como um nome como ripe.net vira o endereço de um servidor.', group: 'basics', ready: false },

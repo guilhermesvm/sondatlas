@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from '../app/App'
-import { history, ping } from '../test/fixtures'
+import { catalog, history, ping } from '../test/fixtures'
 import { mockApi } from '../test/mock-api'
 import { render } from '../test/render'
 
@@ -14,6 +14,7 @@ it('links only the ready lessons and points to the free RIPE NCC Academy courses
   const basics = within(screen.getByRole('region', { name: 'Fundamentos de redes' }))
   expect(basics.getAllByRole('listitem')).toHaveLength(4)
   expect(basics.getByRole('link', { name: 'Ler a lição Ping' })).toHaveAttribute('href', '#/aprender/ping')
+  expect(basics.getByRole('link', { name: 'Ler a lição IP e endereços' })).toHaveAttribute('href', '#/aprender/ip')
   expect(basics.queryByRole('link', { name: /DNS/ })).not.toBeInTheDocument()
   expect(within(screen.getByRole('region', { name: 'RIPE Atlas' })).getAllByText('Em breve')).toHaveLength(2)
   const academy = within(screen.getByRole('region', { name: 'Para ir mais fundo: RIPE NCC Academy' }))
@@ -58,4 +59,34 @@ it('keeps the lesson readable without a followed probe and sends unknown lessons
   expect(screen.getByText(/é um exemplo de tempo de ida e volta/)).toBeInTheDocument()
   window.location.hash = '#/aprender/dns'
   expect(await screen.findByRole('heading', { level: 1, name: 'Aprender' })).toBeInTheDocument()
+})
+
+it('shows the private address and the provider of the followed probe but never its public address', async () => {
+  const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)))
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url === '/api/probe') return json({ probe_id: 1017210 })
+    if (url === '/api/targets') return json(catalog)
+    if (url.includes('/probes/1017210/?fields=tags')) return json({ id: 1017210, tags: [{ slug: 'system-ipv4-rfc1918' }], asn_v4: 64500, address_v6: null })
+    if (url.includes('/measurements/1001/latest/')) return json([{ src_addr: '192.168.1.5', from: '203.0.113.77' }])
+    if (url.includes('stat.ripe.net/data/as-overview')) return json({ data: { holder: 'AS64500 - Provedor Exemplo' } })
+    return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
+  }))
+  window.location.hash = '#/aprender/ip'
+  render(<App />)
+  expect(screen.getByRole('heading', { level: 1, name: 'IP e endereços' })).toBeInTheDocument()
+  const data = within(screen.getByRole('region', { name: 'O seu dado' }))
+  expect(await data.findByText('192.168.1.5')).toBeInTheDocument()
+  expect(data.getByText('AS64500')).toBeInTheDocument()
+  expect(data.getByText('Provedor Exemplo')).toBeInTheDocument()
+  expect(data.getByText('Não tem')).toBeInTheDocument()
+  expect(data.getByText('system-ipv4-rfc1918')).toBeInTheDocument()
+  expect(document.body).not.toHaveTextContent('203.0.113.77')
+})
+
+it('keeps the IP lesson readable without a followed probe', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url === '/api/probe' ? { probe_id: null } : {})))))
+  window.location.hash = '#/aprender/ip'
+  render(<App />)
+  expect(await screen.findByText('Acompanhe uma probe para ver os endereços dela aqui.')).toBeInTheDocument()
+  expect(screen.getByText(/é um exemplo de endereço/)).toBeInTheDocument()
 })
