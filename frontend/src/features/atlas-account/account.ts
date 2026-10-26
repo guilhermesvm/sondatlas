@@ -1,7 +1,7 @@
 import { localApiDown, oldApi, proxyDown } from '../../lib/api'
 import type { ProbeStatus } from '../probe-status/status'
 
-export type AccountProbe = ProbeStatus & { description: string | null }
+export type AccountProbe = ProbeStatus & { description: string | null, asn_v4?: number | null }
 
 export interface Account {
   connected: boolean

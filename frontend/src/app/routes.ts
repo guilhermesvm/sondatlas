@@ -14,7 +14,7 @@ export const routes: Route[] = [
   { id: 'aprender', label: 'Aprender', group: 'journey', summary: 'Lições curtas de redes e do RIPE Atlas, com os dados da sua probe e cursos gratuitos do RIPE NCC para ir mais fundo.' },
   { id: 'minha-probe', label: 'Minha probe', group: 'probe', summary: 'Histórico de ping da sua probe.' },
   { id: 'desafios', label: 'Desafios', group: 'probe', summary: 'Medições que você cria com os seus créditos, com o custo mostrado antes de confirmar.' },
-  { id: 'conquistas', label: 'Conquistas', group: 'probe', summary: 'Marcos da sua jornada, como a primeira probe conectada e o primeiro ping.' },
+  { id: 'conquistas', label: 'Conquistas', group: 'probe', summary: 'Marcos das suas probes no RIPE Atlas, como o primeiro contato e o tempo no ar.' },
   { id: 'rede-global', label: 'Rede global', group: 'network', summary: 'Onde estão as probes públicas conectadas do RIPE Atlas.' },
   { id: 'configuracoes', label: 'Configurações', group: 'settings', summary: 'Conta RIPE: a chave de API que mostra à Sondatlas quais probes são suas.' },
 ]

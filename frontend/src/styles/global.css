@@ -19,6 +19,9 @@
   --error-text: var(--mantine-color-red-9);
   --available-text: #1b6b31;
   --available-bg: #e3f6e8;
+  --badge-text: #9a3412;
+  --badge-bg: #ffedd5;
+  --badge-line: #fdba74;
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-dimmed: #5c636a;
@@ -47,6 +50,9 @@
   --mantine-color-error: var(--error-text);
   --available-text: var(--mantine-color-green-3);
   --available-bg: #16451f;
+  --badge-text: #fdba74;
+  --badge-bg: #43260f;
+  --badge-line: #9a3412;
 }
 body { background: var(--page-bg); line-height: 1.5; }
 summary { cursor: pointer; }

@@ -6,6 +6,7 @@ import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
 import { lessonFromHash } from '../features/lessons/lessons'
 import { ProbeProvider, useProbe } from '../features/probe-status/ProbeProvider'
 import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
+import Achievements from '../pages/Achievements'
 import Home from '../pages/Home'
 import InConstruction from '../pages/InConstruction'
 import JourneyPage from '../pages/JourneyPage'
@@ -81,7 +82,8 @@ function Layout() {
         <div className="page">
           {route.id === 'inicio' && <Home />}
           {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} />}
-          {(route.id === 'desafios' || route.id === 'conquistas') && <InConstruction route={route} />}
+          {route.id === 'desafios' && <InConstruction route={route} />}
+          {route.id === 'conquistas' && <Achievements />}
           {route.id === 'minha-probe' && <MyProbe />}
           {route.id === 'configuracoes' && <Settings />}
           {probeId ? <PingExplorer key={probeId} active={route.id === 'minha-probe'} /> : null}
