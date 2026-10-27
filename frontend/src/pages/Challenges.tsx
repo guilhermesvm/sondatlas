@@ -1,5 +1,5 @@
 import { Alert, Anchor, Autocomplete, Button, Group, Modal, SegmentedControl, Select, Text, TextInput, Title } from '@mantine/core'
-import { Fragment, useEffect, useState, type SubmitEvent } from 'react'
+import { Fragment, useEffect, useState, type MouseEvent, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
 import { ChallengeError, createPing, destinations, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Challenge, type Measurement, type PingResult } from '../features/challenges/challenge'
@@ -75,6 +75,9 @@ function Explained({ round, target, kRoot }: { round: PingResult, target: string
 }
 
 const backToForm = () => { location.hash = '#/desafios' }
+const backIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M19 12H5M11 6l-6 6 6 6" />
+</svg>
 
 function Result({ id }: { id: number }) {
   const [measurement, setMeasurement] = useState<Measurement | null>()
@@ -82,6 +85,7 @@ function Result({ id }: { id: number }) {
   const [round, setRound] = useState<PingResult | null>(null)
   const [gaveUp, setGaveUp] = useState(false)
   const [kRoot, setKRoot] = useState<number | null>(null)
+  const [polled, setPolled] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const ping = measurement?.type === 'ping'
   const probeId = measurement?.probeId
@@ -106,12 +110,14 @@ function Result({ id }: { id: number }) {
     let timer: ReturnType<typeof setTimeout>
     const poll = () => fetchPingResult(id, controller.signal)
       .then(result => {
+        setPolled(true)
         if (result) setRound(result)
         else if (++tries >= pollTimes) setGaveUp(true)
         else timer = setTimeout(poll, pollEvery)
       })
       .catch(() => {
         if (controller.signal.aborted) return
+        setPolled(true)
         if (++tries >= pollTimes) setGaveUp(true)
         else timer = setTimeout(poll, pollEvery)
       })
@@ -121,24 +127,25 @@ function Result({ id }: { id: number }) {
 
   const page = `https://atlas.ripe.net/measurements/${id}/`
   const pageLink = (text: string) => <Anchor href={page} target="_blank" rel="noreferrer">{text}</Anchor>
-  const measuring = ping && !round && !gaveUp
-  const again = <Button variant="default" mt="md" onClick={() => measuring ? setLeaving(true) : backToForm()}>Fazer outro ping</Button>
+  const measuring = ping && polled && !round && !gaveUp
+  const leave = () => measuring ? setLeaving(true) : backToForm()
+  const again = <Button variant="default" mt="md" onClick={leave}>Fazer outro ping</Button>
 
-  if (lookupError) return <>
+  let body
+  if (lookupError) body = <>
     <SystemError title="Não foi possível consultar a medição">O RIPE Atlas não respondeu agora. Recarregue a página em instantes.</SystemError>
     {again}
   </>
-  if (measurement === undefined) return <Loading mt="lg">Consultando a medição {id}…</Loading>
-  if (measurement === null) return <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
+  else if (measurement === undefined || (ping && !polled)) body = <Loading mt="lg">Consultando a medição {id}…</Loading>
+  else if (measurement === null) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
     Confira o número no endereço da página.
     <div>{again}</div>
   </Alert>
-  if (!ping) return <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não é um ping`}>
+  else if (!ping) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não é um ping`}>
     Esta página explica só resultados de ping. Veja esta medição na {pageLink('página dela no RIPE Atlas')}.
     <div>{again}</div>
   </Alert>
-
-  return <section className="follow-box" aria-labelledby="challenge-result">
+  else body = <section className="follow-box" aria-labelledby="challenge-result">
     <Text fw={600} id="challenge-result">Ping {probeId ? `da probe ${probeId} ` : ''}até {measurement.target}</Text>
     {measuring && <Loading mt="sm">A probe está medindo. O resultado costuma chegar em alguns segundos…</Loading>}
     {gaveUp && <Text size="sm" mt="sm">
@@ -153,16 +160,24 @@ function Result({ id }: { id: number }) {
       </Text>
     </>}
     {again}
+  </section>
+
+  return <>
+    <Button component="a" href="#/desafios" variant="light" size="sm" radius="xl" mt="lg" leftSection={backIcon}
+      onClick={(event: MouseEvent) => { if (measuring) { event.preventDefault(); setLeaving(true) } }}>
+      Voltar para Desafios
+    </Button>
+    {body}
     <Modal opened={leaving} onClose={() => setLeaving(false)} centered title="Sair antes do resultado?">
       <Text size="sm">
         A probe continua medindo, e o resultado fica guardado no RIPE Atlas. Você pode vê-lo depois na {pageLink('página da medição')} ou na <MineLink />.
       </Text>
       <Group gap="sm" mt="lg" justify="flex-end">
         <Button variant="default" onClick={() => setLeaving(false)}>Esperar o resultado</Button>
-        <Button onClick={backToForm}>Fazer outro ping</Button>
+        <Button onClick={backToForm}>Sair agora</Button>
       </Group>
     </Modal>
-  </section>
+  </>
 }
 
 function PingChallenge({ account }: { account: Account }) {
