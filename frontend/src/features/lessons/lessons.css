@@ -39,6 +39,7 @@
 .lesson-reading { margin: 0; }
 .lesson-reading > div { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4px 24px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .lesson-reading > div:first-child { border-top: 1px solid var(--line); }
+.lesson-reading > div:last-child { border-bottom: 0; padding-bottom: 0; }
 .lesson-reading dt { font-weight: 700; font-variant-numeric: tabular-nums; }
 .lesson-reading dd { margin: 0; font-size: 14px; }
 .lesson-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 32px; margin: 12px 0 0; }

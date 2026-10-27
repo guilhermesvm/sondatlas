@@ -1,6 +1,7 @@
 import { Anchor, Badge, Breadcrumbs, Button, Text, Title } from '@mantine/core'
 import type { ComponentType } from 'react'
 import { lessons, type Lesson } from '../features/lessons/lessons'
+import CreditsLesson from '../features/lessons/CreditsLesson'
 import IpLesson from '../features/lessons/IpLesson'
 import OwnMeasurementsLesson from '../features/lessons/OwnMeasurementsLesson'
 import PingLesson from '../features/lessons/PingLesson'
@@ -12,7 +13,7 @@ const groups = [
   { id: 'atlas', title: 'RIPE Atlas' },
 ] as const
 
-const contents: Record<string, ComponentType> = { ip: IpLesson, ping: PingLesson, traceroute: TracerouteLesson, 'medicoes-automaticas': OwnMeasurementsLesson }
+const contents: Record<string, ComponentType> = { ip: IpLesson, ping: PingLesson, traceroute: TracerouteLesson, 'medicoes-automaticas': OwnMeasurementsLesson, creditos: CreditsLesson }
 
 const courses = [
   { title: 'Internet Measurements', text: 'Módulos curtos sobre ping, traceroute e comutação de pacotes, e webinars sobre o RIPE Atlas.', href: 'https://academy.ripe.net/mod/page/view.php?id=937' },

@@ -19,7 +19,8 @@ it('links only the ready lessons and points to the free RIPE NCC Academy courses
   expect(basics.getByRole('link', { name: 'Ler a lição Traceroute' })).toHaveAttribute('href', '#/aprender/traceroute')
   expect(basics.queryByRole('link', { name: /DNS/ })).not.toBeInTheDocument()
   const atlas = within(screen.getByRole('region', { name: 'RIPE Atlas' }))
-  expect(atlas.getAllByText('Em breve')).toHaveLength(1)
+  expect(atlas.queryByText('Em breve')).not.toBeInTheDocument()
+  expect(atlas.getByRole('link', { name: 'Ler a lição Créditos e medições próprias' })).toHaveAttribute('href', '#/aprender/creditos')
   expect(atlas.getByRole('link', { name: 'Ler a lição O que a sua probe mede sozinha' })).toHaveAttribute('href', '#/aprender/medicoes-automaticas')
   const academy = within(screen.getByRole('region', { name: 'Para ir mais fundo: RIPE NCC Academy' }))
   expect(academy.getByRole('link', { name: 'Internet Measurements' })).toHaveAttribute('href', 'https://academy.ripe.net/mod/page/view.php?id=937')
@@ -224,4 +225,47 @@ it('groups what the probe measures on its own and explains the DNS root servers'
   const reading = within(screen.getByRole('region', { name: 'Como ler' }))
   expect(reading.getByText('1 do sistema de etiquetas')).toBeInTheDocument()
   expect(reading.getByText('3 de outras pessoas')).toBeInTheDocument()
+})
+
+it('shows the balance, what the probes earn and what the balance pays for in the credits lesson', async () => {
+  const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)))
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url === '/api/probe') return json({ probe_id: 1017210 })
+    if (url === '/api/targets') return json(catalog)
+    if (url === '/api/account') return json({
+      connected: true, probes: [], missing_permissions: [],
+      credits: { current_balance: 1214346, estimated_daily_income: 29113 },
+      income: [{ probe_id: 1017210, estimated_daily_income: 29113, yesterday_results_reward: 7513 }],
+    })
+    return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
+  }))
+  window.location.hash = '#/aprender/creditos'
+  render(<App />)
+  const data = within(screen.getByRole('region', { name: 'O seu dado' }))
+  expect(await data.findByText('1.214.346')).toBeInTheDocument()
+  expect(data.getByText('7.513')).toBeInTheDocument()
+  expect(data.getByText(/Com esse saldo, você poderia criar cerca de/)).toHaveTextContent('202 mil pings ou 20 mil traceroutes')
+  expect(within(screen.getByRole('region', { name: 'Como ler' })).getByText('7.513 ontem')).toBeInTheDocument()
+})
+
+it('points to the settings in the credits lesson without a linked account', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url === '/api/account' ? { connected: false } : url === '/api/probe' ? { probe_id: null } : {})))))
+  window.location.hash = '#/aprender/creditos'
+  render(<App />)
+  expect(await screen.findByText('Vincule a sua conta do RIPE Atlas em Configurações para ver o seu saldo aqui.')).toBeInTheDocument()
+  expect(screen.getByText('Com a conta vinculada, aqui aparece o que os seus números querem dizer.')).toBeInTheDocument()
+})
+
+it('explains in the credits lesson that the balance belongs to the account when no probe is followed', async () => {
+  const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)))
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url === '/api/probe') return json({ probe_id: null })
+    if (url === '/api/account') return json({ connected: true, probes: [], missing_permissions: [], credits: { current_balance: 1000, estimated_daily_income: 21600 }, income: [] })
+    return json({})
+  }))
+  window.location.hash = '#/aprender/creditos'
+  render(<App />)
+  expect(await screen.findByText(/A Sondatlas não acompanha nenhuma probe agora, mas os créditos são da sua conta/)).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Acompanhar' })).toHaveAttribute('href', '#/acompanhar')
+  expect(screen.getByText('1.000')).toBeInTheDocument()
 })

@@ -12,7 +12,7 @@ export const lessons: Lesson[] = [
   { id: 'traceroute', title: 'Traceroute', text: 'Por quais redes os pacotes passam até chegar ao destino.', group: 'basics', ready: true },
   { id: 'dns', title: 'DNS', text: 'Como um nome como ripe.net vira o endereço de um servidor.', group: 'basics', ready: false },
   { id: 'medicoes-automaticas', title: 'O que a sua probe mede sozinha', text: 'As medições automáticas que toda probe faz, incluindo a sua.', group: 'atlas', ready: true },
-  { id: 'creditos', title: 'Créditos e medições próprias', text: 'Como a probe ligada gera créditos e como usar esses créditos nas suas próprias medições.', group: 'atlas', ready: false },
+  { id: 'creditos', title: 'Créditos e medições próprias', text: 'Como a probe ligada gera créditos e como usar esses créditos nas suas próprias medições.', group: 'atlas', ready: true },
 ]
 
 export function lessonFromHash(hash: string) {

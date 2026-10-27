@@ -8,10 +8,17 @@ export interface Credits {
   estimated_daily_income: number | null
 }
 
+export interface ProbeIncome {
+  probe_id: number
+  estimated_daily_income: number
+  yesterday_results_reward: number | null
+}
+
 export interface Account {
   connected: boolean
   probes?: AccountProbe[] | null
   credits?: Credits | null
+  income?: ProbeIncome[] | null
   missing_permissions?: string[]
 }
 
