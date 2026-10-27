@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 
@@ -12,7 +12,7 @@ from ripe_atlas_tcc.atlas_account import (
     KeyRefusedError,
     MeasurementRejectedError,
     MissingPermissionError,
-    create_ping,
+    create_measurement,
     delete_key,
     fetch_account,
     fetch_challenges,
@@ -197,17 +197,21 @@ def local_only(request: Request):
         raise HTTPException(status_code=403, detail="Only requests addressed to this computer may spend credits")
 
 
+CHALLENGE_RESPONSES = {
+    403: {"description": "Request not addressed to this computer, or RIPE Atlas refused the saved key"},
+    409: {"description": "No RIPE Atlas account linked"},
+    422: {"description": "Invalid target, a probe that is not the account's, a missing permission (detail.missing_permissions) or a measurement RIPE Atlas refused (detail.ripe_error)"},
+    503: {"description": "RIPE Atlas unavailable or the saved key cannot be read"},
+}
+CHALLENGE_RULES = "packets goes from 1 to 16 like in RIPE Atlas; description is optional (up to 100 characters, a Sondatlas limit). The measurement is public, as RIPE Atlas makes it by default, and always tagged sondatlas. A host name is resolved by the probe (resolve_on_probe), so the address is the one the probe's network would use. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned."
+
+
 @app.post(
     "/challenges/ping",
     summary="Create a one-off IPv4 ping from one of the account probes",
-    description="Spends the account credits (2 per packet for a one-off ping, 6 for the default 3 packets). packets goes from 1 to 16 like in RIPE Atlas; description is optional (up to 100 characters, a Sondatlas limit). The measurement is public, as RIPE Atlas makes it by default, and always tagged sondatlas. A host name is resolved by the probe (resolve_on_probe), so the address is the one the probe's network would use. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned.",
+    description="Spends the account credits (2 per packet for a one-off ping, 6 for the default 3 packets). " + CHALLENGE_RULES,
     dependencies=[Depends(local_only)],
-    responses={
-        403: {"description": "Request not addressed to this computer, or RIPE Atlas refused the saved key"},
-        409: {"description": "No RIPE Atlas account linked"},
-        422: {"description": "Invalid target, a probe that is not the account's, a missing permission (detail.missing_permissions) or a measurement RIPE Atlas refused (detail.ripe_error)"},
-        503: {"description": "RIPE Atlas unavailable or the saved key cannot be read"},
-    },
+    responses=CHALLENGE_RESPONSES,
 )
 def post_ping_challenge(
     probe_id: Annotated[int, Body(gt=0)],
@@ -215,8 +219,28 @@ def post_ping_challenge(
     packets: Annotated[int, Body(ge=1, le=16)] = 3,
     description: Annotated[str | None, Body(max_length=100)] = None,
 ):
+    return run_challenge("ping", probe_id, target, packets, description)
+
+
+@app.post(
+    "/challenges/traceroute",
+    summary="Create a one-off IPv4 traceroute from one of the account probes",
+    description="Spends the account credits (20 per packet for a one-off traceroute, 60 for the default 3 packets per hop, ICMP like the RIPE Atlas default). " + CHALLENGE_RULES,
+    dependencies=[Depends(local_only)],
+    responses=CHALLENGE_RESPONSES,
+)
+def post_traceroute_challenge(
+    probe_id: Annotated[int, Body(gt=0)],
+    target: Annotated[str, Body(min_length=1, max_length=253)],
+    packets: Annotated[int, Body(ge=1, le=16)] = 3,
+    description: Annotated[str | None, Body(max_length=100)] = None,
+):
+    return run_challenge("traceroute", probe_id, target, packets, description)
+
+
+def run_challenge(kind, probe_id, target, packets, description):
     target = target.strip().lower()
-    description = (description or "").strip() or f"Sondatlas: ping para {target}"
+    description = (description or "").strip() or f"Sondatlas: {kind} para {target}"
     if not valid_target(target):
         raise HTTPException(status_code=422, detail="Target must be a host name or a public IPv4 address")
     try:
@@ -229,7 +253,7 @@ def post_ping_challenge(
     try:
         if probe_id not in {probe["id"] for probe in fetch_my_probes(key)}:
             raise HTTPException(status_code=422, detail="The probe is not in the linked account")
-        return {"measurement_id": create_ping(key, probe_id, target, packets, description)}
+        return {"measurement_id": create_measurement(key, probe_id, kind, target, packets, description)}
     except KeyRefusedError:
         raise HTTPException(status_code=403, detail="RIPE Atlas refused the saved key") from None
     except MissingPermissionError:
@@ -237,7 +261,7 @@ def post_ping_challenge(
     except MeasurementRejectedError as error:
         raise HTTPException(status_code=422, detail={"ripe_error": str(error)}) from None
     except (requests.RequestException, ValueError, KeyError, IndexError) as error:
-        logger.warning("Ping challenge failed (%s)", type(error).__name__)
+        logger.warning("%s challenge failed (%s)", kind, type(error).__name__)
         raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable") from None
 
 
@@ -251,7 +275,10 @@ def post_ping_challenge(
         503: {"description": "RIPE Atlas unavailable or the saved key cannot be read"},
     },
 )
-def get_challenges(oldest: Annotated[bool, Query(description="Oldest first, to date the first, 10th, 25th and 50th challenge")] = False):
+def get_challenges(
+    oldest: Annotated[bool, Query(description="Oldest first, to date the first, 10th, 25th and 50th challenge")] = False,
+    kind: Annotated[Literal["ping", "traceroute"] | None, Query(alias="type", description="Only one type of measurement")] = None,
+):
     try:
         key = load_key(ACCOUNT_STATE_PATH)
     except (OSError, ValueError, KeyError) as error:
@@ -260,7 +287,7 @@ def get_challenges(oldest: Annotated[bool, Query(description="Oldest first, to d
     if key is None:
         raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
     try:
-        return fetch_challenges(key, oldest)
+        return fetch_challenges(key, oldest, kind)
     except MissingPermissionError:
         raise HTTPException(status_code=422, detail={"missing_permissions": ["my_measurements"]}) from None
     except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as error:

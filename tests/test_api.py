@@ -519,6 +519,13 @@ def test_ping_challenge_creates_one_public_one_off_ping_from_the_account_probe(c
     })]
     client.post("/challenges/ping", json={"probe_id": 1017210, "target": "8.8.8.8", "packets": 10, "description": " Meu teste "})
     assert created[1][2]["definitions"][0] == {"type": "ping", "af": 4, "target": "8.8.8.8", "packets": 10, "description": "Meu teste", "tags": ["sondatlas"]}
+    response = client.post("/challenges/traceroute", json={"probe_id": 1017210, "target": "Wikipedia.org", "packets": 10})
+    assert response.json() == {"measurement_id": 123456789}
+    assert created[2][2] == {
+        "definitions": [{"type": "traceroute", "af": 4, "target": "wikipedia.org", "packets": 10, "description": "Sondatlas: traceroute para wikipedia.org", "tags": ["sondatlas"], "resolve_on_probe": True}],
+        "probes": [{"type": "probes", "value": "1017210", "requested": 1}],
+        "is_oneoff": True,
+    }
 
 
 @pytest.mark.parametrize("headers, body, status", [
@@ -531,7 +538,8 @@ def test_ping_challenge_creates_one_public_one_off_ping_from_the_account_probe(c
 ])
 def test_ping_challenge_refuses_foreign_hosts_other_probes_and_bad_targets_without_spending(challenge_api, headers, body, status):
     client, _, created, _ = challenge_api
-    assert client.post("/challenges/ping", json=body, headers=headers).status_code == status
+    for kind in ("ping", "traceroute"):
+        assert client.post(f"/challenges/{kind}", json=body, headers=headers).status_code == status
     assert created == []
 
 
@@ -585,7 +593,10 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
                       "&fields=id,type,target,creation_time,probes&optional_fields=probes", "Key good-key")]
     assert created == []
     client.get("/challenges", params={"oldest": True})
-    assert asked[1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50")
+    assert asked[1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&fields=")
+    client.get("/challenges", params={"oldest": True, "type": "traceroute"})
+    assert asked[2][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&type=traceroute&fields=")
+    assert client.get("/challenges", params={"type": "dns"}).status_code == 422
 
 
 @pytest.mark.parametrize("status, expected, detail", [

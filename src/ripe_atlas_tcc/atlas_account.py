@@ -134,10 +134,11 @@ def can_list(key):
     return True
 
 
-def fetch_challenges(key, oldest=False):
-    """The 50 newest (or oldest) measurements the key owner created through Sondatlas (tag sondatlas), with the total."""
+def fetch_challenges(key, oldest=False, kind=None):
+    """The 50 newest (or oldest) measurements the key owner created through Sondatlas (tag sondatlas), with the total.
+    kind keeps only one type, such as traceroute."""
     response = requests.get(
-        f"{MY_MEASUREMENTS_URL}?tags=sondatlas&sort={'id' if oldest else '-id'}&page_size=50"
+        f"{MY_MEASUREMENTS_URL}?tags=sondatlas&sort={'id' if oldest else '-id'}&page_size=50{f'&type={kind}' if kind else ''}"
         "&fields=id,type,target,creation_time,probes&optional_fields=probes",
         headers={"Authorization": f"Key {key}"},
         timeout=30,
@@ -217,13 +218,13 @@ def is_address(target):
         return False
 
 
-def create_ping(key, probe_id, target, packets, description):
-    """One-off IPv4 ping from one probe, public by RIPE Atlas default and tagged sondatlas,
+def create_measurement(key, probe_id, kind, target, packets, description):
+    """One-off IPv4 ping or traceroute from one probe, public by RIPE Atlas default and tagged sondatlas,
     so anyone can count the measurements made through Sondatlas. Returns the measurement ID.
     A name is resolved by the probe's own DNS, like a computer on that network would:
     resolved centrally, a service with servers around the world may answer with one far from the probe."""
     definition = {
-        "type": "ping",
+        "type": kind,
         "af": 4,
         "target": target,
         "packets": packets,
