@@ -11,6 +11,7 @@ const first = 1791940871
 function stubBackend(account: unknown) {
   const mock = vi.fn((url: string) => {
     if (url === '/api/account') return json(account)
+    if (url === '/api/challenges?oldest=true&type=traceroute') return json({ count: 0, challenges: [] })
     if (url === '/api/challenges?oldest=true') return json({ count: 12, challenges: Array.from({ length: 12 }, (_, index) => ({
       id: 228248657 + index, type: 'ping', target: 'google.com', created: first + 86400 * index, probe_id: 1017210,
     })) })
@@ -36,7 +37,7 @@ it('shows the badges of the linked probes, the progress of the next ones and the
     first_connected: first, total_uptime: 86896, asn_v4: 64500,
   }], credits: { current_balance: 150000, estimated_daily_income: 25000 }, missing_permissions: [] })
   render(<Achievements />)
-  expect(await screen.findByText('8 de 16 conquistadas')).toBeInTheDocument()
+  expect(await screen.findByText('8 de 17 conquistadas')).toBeInTheDocument()
   expect(badge('Primeiro contato').getByText(/^Conquistada em \d\d\/10\/2026 pela probe 1017210$/)).toBeInTheDocument()
   expect(badge('Pioneiro').getByText(/^Conquistada em \d\d\/10\/2026 pela probe 1017210$/)).toBeInTheDocument()
   expect(badge('24 horas no ar').getByText('Conquistada em 14/10/2026 pela probe 1017210')).toBeInTheDocument()
@@ -51,13 +52,14 @@ it('shows the badges of the linked probes, the progress of the next ones and the
   expect(badge('Explorador').getByText(`Conquistada em ${new Date((first + 86400 * 9) * 1000).toLocaleDateString('pt-BR')} pela probe 1017210`)).toBeInTheDocument()
   expect(badge('Navegador').getByText('Faltam 13 desafios')).toBeInTheDocument()
   expect(badge('Navegador').getByRole('progressbar')).toBeInTheDocument()
+  expect(badge('Primeiro caminho').getByText('Ainda não')).toBeInTheDocument()
 })
 
 it('keeps the goals visible and points to the settings without a linked account', async () => {
   stubBackend({ connected: false })
   render(<Achievements />)
   expect(await screen.findByRole('link', { name: 'Ir para Configurações' })).toHaveAttribute('href', '#/configuracoes')
-  expect(screen.getAllByRole('listitem')).toHaveLength(16)
+  expect(screen.getAllByRole('listitem')).toHaveLength(17)
   expect(badge('Primeiro contato').getByText('Ainda não')).toBeInTheDocument()
   expect(screen.queryByText(/conquistadas$/)).not.toBeInTheDocument()
   expect(badge('Cartógrafo').getByText('Ainda não')).toBeInTheDocument()

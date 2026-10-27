@@ -31,7 +31,9 @@ function stubBackend(account: unknown, results: unknown[] = [round], challenges:
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/account') return json(account)
     if (url === '/api/challenges') return json(...challenges)
-    if (url === '/api/challenges/ping') return json({ measurement_id: 123456789 })
+    if (url === '/api/challenges/ping' || url === '/api/challenges/traceroute') return json({ measurement_id: 123456789 })
+    if (url.startsWith('https://stat.ripe.net/data/network-info/')) return json({ data: { asns: url.includes('142.250.0.1') ? ['15169'] : ['64500'] } })
+    if (url.startsWith('https://stat.ripe.net/data/as-overview/')) return json({ data: { holder: url.includes('AS15169') ? 'GOOGLE - Google LLC' : 'EXAMPLE - Provedor Exemplo' } })
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(measurement)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/results/')) return json(results)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/1001/latest/?probe_ids=1017210')) return json([{ avg: 30, rcvd: 3 }])
@@ -106,12 +108,12 @@ it('opens a result from its own address and confirms before leaving while the pr
   expect(screen.getByText('Ping da probe 1017210 até google.com')).toBeInTheDocument()
   expect(screen.queryByText('Vincule a sua conta do RIPE Atlas')).not.toBeInTheDocument()
   expect(mock.mock.calls.some(([url]) => url === '/api/challenges/ping')).toBe(false)
-  await userEvent.click(screen.getByRole('button', { name: 'Fazer outro ping' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Fazer outro desafio' }))
   const dialog = screen.getByRole('dialog', { name: 'Sair antes do resultado?' })
   expect(dialog).toHaveTextContent('A probe continua medindo, e o resultado fica guardado no RIPE Atlas.')
   await userEvent.click(within(dialog).getByRole('button', { name: 'Esperar o resultado' }))
   expect(window.location.hash).toBe('#/desafios/123456789')
-  await userEvent.click(screen.getByRole('button', { name: 'Fazer outro ping' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Fazer outro desafio' }))
   await userEvent.click(screen.getByRole('link', { name: 'Voltar para Desafios' }))
   await userEvent.click(within(screen.getByRole('dialog', { name: 'Sair antes do resultado?' })).getByRole('button', { name: 'Sair agora' }))
   expect(window.location.hash).toBe('#/desafios')
@@ -169,4 +171,74 @@ it('says when the name was resolved by RIPE Atlas, in a challenge made before th
   renderChallenges()
   expect(await screen.findByText('3 de 3 pacotes')).toBeInTheDocument()
   expect(screen.queryByText(/Serviços grandes costumam ter servidores/)).not.toBeInTheDocument()
+})
+
+const route = {
+  timestamp: 1793049887, dst_addr: '142.250.0.1', proto: 'ICMP', size: 48, destination_ip_responded: true,
+  result: [
+    { hop: 1, result: [{ from: '192.168.0.1', rtt: 1 }, { from: '192.168.0.1', rtt: 1 }, { from: '192.168.0.1', rtt: 1 }] },
+    { hop: 2, result: [{ x: '*' }, { x: '*' }, { x: '*' }] },
+    { hop: 3, result: [{ from: '203.0.113.9', rtt: 8 }, { from: '203.0.113.9', rtt: 9 }, { from: '203.0.113.9', rtt: 8 }] },
+    { hop: 4, result: [{ from: '142.250.0.1', rtt: 15 }, { from: '142.250.0.1', rtt: 16 }, { from: '142.250.0.1', rtt: 15 }] },
+  ],
+}
+
+it('creates a traceroute with the cost of the packets per hop and reads the route like the lesson', async () => {
+  const mock = stubBackend(linked, [route], [noChallenges], { ...detail, type: 'traceroute' })
+  renderChallenges()
+  await userEvent.click(await screen.findByRole('radio', { name: 'Traceroute' }))
+  expect(screen.getAllByRole('radio').map(radio => radio.getAttribute('value'))).toEqual(['ping', 'traceroute', '3', '10'])
+  await userEvent.type(screen.getByRole('combobox', { name: 'Destino' }), 'google.com')
+  await userEvent.click(screen.getByRole('radio', { name: '10' }))
+  expect(screen.getByLabelText('Descrição (opcional)')).toHaveAttribute('placeholder', 'Sondatlas: traceroute para google.com')
+  await userEvent.click(screen.getByRole('button', { name: 'Ver o custo' }))
+  const dialog = screen.getByRole('dialog', { name: 'Criar este traceroute?' })
+  expect(dialog).toHaveTextContent('Da probe 1017210 até google.com, com 10 pacotes por salto.')
+  expect(dialog).toHaveTextContent('Custa cerca de 200 créditos')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Criar o traceroute' }))
+  const post = mock.mock.calls.find(([url]) => url === '/api/challenges/traceroute')
+  expect(post?.[1]?.body).toBe(JSON.stringify({ probe_id: 1017210, target: 'google.com', packets: 10, description: null }))
+  expect(window.location.hash).toBe('#/desafios/123456789')
+
+  expect(await screen.findByText('Traceroute da probe 1017210 até google.com')).toBeInTheDocument()
+  expect(await screen.findByText(/^traceroute google\.com \(142\.250\.0\.1\), ICMP, pacotes de 48 bytes/)).toBeInTheDocument()
+  expect(screen.getAllByRole('row')[4]).toHaveTextContent('google.com, o destino')
+  const stages = within(screen.getByRole('list', { name: 'A rota até google.com, em etapas' })).getAllByRole('listitem')
+  expect(stages.map(stage => stage.getAttribute('data-kind'))).toEqual(['home', 'provider', 'destination'])
+  expect(stages[2]).toHaveTextContent('O destino google.com, 142.250.0.1, respondeu em cerca de 15 ms.')
+  expect(screen.getByText(/É o endereço de google.com que a probe recebeu ao perguntar ao DNS da rede dela/)).toBeInTheDocument()
+  expect(screen.queryByText(/cópia perto/)).not.toBeInTheDocument()
+  expect(mock.mock.calls.some(([url]) => String(url).includes('/measurements/1001/'))).toBe(false)
+})
+
+it('explains a traceroute that did not reach the destination or could not resolve the name', async () => {
+  window.location.hash = '#/desafios/123456789'
+  stubBackend({ connected: false }, [{ ...route, destination_ip_responded: false, result: route.result.slice(0, 3) }], [noChallenges], { ...detail, type: 'traceroute' })
+  const { unmount } = renderChallenges()
+  const lost = await screen.findByText(/O destino google.com não respondeu\./)
+  expect(lost).toHaveTextContent('Muitos servidores não respondem aos pacotes do traceroute, e isso não quer dizer que estejam fora do ar.')
+  expect(lost).not.toHaveTextContent('30 minutos')
+  unmount()
+
+  stubBackend({ connected: false }, [{ timestamp: 1793123230, proto: 'ICMP', size: 48, destination_ip_responded: false,
+    result: [{ error: 'name resolution failed: non-recoverable failure in name resolution' }] }], [noChallenges], { ...detail, type: 'traceroute' })
+  renderChallenges()
+  expect(await screen.findByText(/traceroute: name resolution failed: non-recoverable failure in name resolution/)).toBeInTheDocument()
+  expect(screen.getByText('Nenhum pacote enviado')).toBeInTheDocument()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+})
+
+it('does not call a private address in the middle of the route your home', async () => {
+  window.location.hash = '#/desafios/123456789'
+  stubBackend({ connected: false }, [{ ...route, result: [
+    { hop: 1, result: [{ from: '203.0.113.9', rtt: 1 }] },
+    { hop: 2, result: [{ from: '172.25.138.2', rtt: 8 }] },
+    { hop: 3, result: [{ from: '142.250.0.1', rtt: 15 }] },
+  ] }], [noChallenges], { ...detail, type: 'traceroute' })
+  renderChallenges()
+  expect(await screen.findByText('Endereço privado dentro de outra rede')).toBeInTheDocument()
+  const stages = within(screen.getByRole('list', { name: 'A rota até google.com, em etapas' })).getAllByRole('listitem')
+  expect(stages.map(stage => stage.getAttribute('data-kind'))).toEqual(['provider', 'transit', 'destination'])
+  expect(stages[1]).toHaveTextContent('Um roteador com endereço privado, 172.25.138.2, usado dentro da rede de algum provedor.')
+  expect(screen.queryByText(/Na sua casa/)).not.toBeInTheDocument()
 })

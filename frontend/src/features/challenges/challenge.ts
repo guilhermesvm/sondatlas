@@ -1,4 +1,5 @@
 import { localApiDown, oldApi, proxyDown } from '../../lib/api'
+import { describeRoute, type RawRound } from '../lessons/useTraceroute'
 
 export interface PingResult {
   timestamp: number
@@ -14,10 +15,13 @@ export interface PingResult {
   result: { rtt?: number, error?: string }[]
 }
 
-// A periodic ping costs 1 credit per packet and a one-off result costs twice as much (credits docs): 6 for the default 3 packets.
-export const pingCost = (packets: number) => 2 * packets
+export type Kind = 'ping' | 'traceroute'
 
-export const packetChoices = [3, 5, 10]
+// Credits docs: a periodic ping costs 1 per packet and a traceroute 10 per packet (packets up to 1,500 bytes), and a one-off result costs twice as much.
+export const kinds: Record<Kind, { noun: string, packets: number[], cost: (packets: number) => number }> = {
+  ping: { noun: 'o ping', packets: [3, 5, 10], cost: packets => 2 * packets },
+  traceroute: { noun: 'o traceroute', packets: [3, 10], cost: packets => 20 * packets },
+}
 
 // Owners checked on RIPEstat (2026-10-27): AS13335 Cloudflare, AS15169 Google, AS19281 Quad9, AS25152 K-root.
 export const destinations = [
@@ -57,10 +61,10 @@ export class ChallengeError extends Error {
   }
 }
 
-export async function createPing(probeId: number, target: string, packets: number, description: string) {
+export async function createChallenge(kind: Kind, probeId: number, target: string, packets: number, description: string) {
   let response: Response
   try {
-    response = await fetch('/api/challenges/ping', {
+    response = await fetch(`/api/challenges/${kind}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ probe_id: probeId, target: target.trim().toLowerCase(), packets, description: description.trim() || null }),
     })
@@ -70,7 +74,7 @@ export async function createPing(probeId: number, target: string, packets: numbe
   if (response.ok) return (await response.json() as { measurement_id: number }).measurement_id
   const { detail } = await response.json().catch(() => ({})) as { detail?: string | { missing_permissions?: string[], ripe_error?: string } }
   if (typeof detail === 'object' && detail.missing_permissions) throw new ChallengeError('A chave não tem a permissão para criar medições.', detail.missing_permissions)
-  if (typeof detail === 'object' && detail.ripe_error) throw new ChallengeError(`O RIPE Atlas recusou o ping: ${detail.ripe_error}`)
+  if (typeof detail === 'object' && detail.ripe_error) throw new ChallengeError(`O RIPE Atlas recusou ${kinds[kind].noun}: ${detail.ripe_error}`)
   const messages: Record<number, string> = {
     404: oldApi,
     405: oldApi,
@@ -79,7 +83,7 @@ export async function createPing(probeId: number, target: string, packets: numbe
     [proxyDown]: localApiDown,
     503: 'O RIPE Atlas não respondeu agora. Nada foi criado. Tente de novo em instantes.',
   }
-  throw new ChallengeError(messages[response.status] ?? 'Não foi possível criar o ping. Tente de novo.')
+  throw new ChallengeError(messages[response.status] ?? `Não foi possível criar ${kinds[kind].noun}. Tente de novo.`)
 }
 
 export function measurementFromHash(hash: string) {
@@ -111,10 +115,11 @@ export interface Challenge {
   probe_id: number | null
 }
 
-export async function fetchChallenges(signal: AbortSignal, oldest = false) {
+export async function fetchChallenges(signal: AbortSignal, oldest = false, kind?: Kind) {
   let response: Response
   try {
-    response = await fetch(oldest ? '/api/challenges?oldest=true' : '/api/challenges', { signal })
+    const query = new URLSearchParams({ ...(oldest ? { oldest: 'true' } : {}), ...(kind ? { type: kind } : {}) }).toString()
+    response = await fetch(query ? `/api/challenges?${query}` : '/api/challenges', { signal })
   } catch (error) {
     if (signal.aborted) throw error
     throw new ChallengeError(localApiDown)
@@ -150,4 +155,12 @@ export async function fetchKRootAverage(probeId: number, signal: AbortSignal) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const [round] = await response.json() as { avg?: number, rcvd?: number }[]
   return round?.rcvd && round.avg && round.avg > 0 ? round.avg : null
+}
+
+// A one-off traceroute is public too, and its single round is read like the lesson reads the probe's latest route. Null while it runs.
+export async function fetchTracerouteRoute(measurementId: number, signal: AbortSignal) {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/results/`, { signal })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const [round] = await response.json() as RawRound[]
+  return round ? describeRoute(round, signal) : null
 }

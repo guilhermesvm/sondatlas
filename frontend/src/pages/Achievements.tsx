@@ -36,6 +36,7 @@ export default function Achievements() {
   const [pioneers, setPioneers] = useState<Pioneers>('checking')
   const [histories, setHistories] = useState<Histories>('checking')
   const [challenges, setChallenges] = useState<ChallengeHistory>('checking')
+  const [traceroutes, setTraceroutes] = useState<ChallengeHistory>('checking')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -46,10 +47,14 @@ export default function Achievements() {
         findHistories(probes, uptimeGoals, controller.signal).then(setHistories, () => {
           if (!controller.signal.aborted) setHistories('failed')
         })
-        if (result.missing_permissions?.includes('my_measurements')) setChallenges('missing')
-        else if (result.connected) fetchChallenges(controller.signal, true).then(list => setChallenges({ count: list.count, oldest: list.challenges }), (reason: Error) => {
-          if (!controller.signal.aborted) setChallenges(reason instanceof ChallengeError && reason.missing.length ? 'missing' : 'failed')
-        })
+        const history = (set: typeof setChallenges, kind?: 'traceroute') => {
+          if (result.missing_permissions?.includes('my_measurements')) set('missing')
+          else if (result.connected) fetchChallenges(controller.signal, true, kind).then(list => set({ count: list.count, oldest: list.challenges }), (reason: Error) => {
+            if (!controller.signal.aborted) set(reason instanceof ChallengeError && reason.missing.length ? 'missing' : 'failed')
+          })
+        }
+        history(setChallenges)
+        history(setTraceroutes, 'traceroute')
         return findPioneers(probes, controller.signal).then(setPioneers, () => {
           if (!controller.signal.aborted) setPioneers('failed')
         })
@@ -63,7 +68,7 @@ export default function Achievements() {
   }, [])
 
   const linked = account?.connected === true
-  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers, linked ? account.credits ?? null : undefined, histories, linked ? challenges : undefined)
+  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers, linked ? account.credits ?? null : undefined, histories, linked ? challenges : undefined, linked ? traceroutes : undefined)
   const earned = badges.filter(badge => badge.earned).length
 
   return <div className="install">

@@ -2,8 +2,10 @@ import { Alert, Anchor, Autocomplete, Button, Group, Modal, SegmentedControl, Se
 import { Fragment, useEffect, useState, type MouseEvent, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
-import { ChallengeError, createPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Challenge, type Measurement, type PingResult } from '../features/challenges/challenge'
+import { ChallengeError, createChallenge, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, fetchTracerouteRoute, kinds, measurementFromHash, validTarget, type Challenge, type Kind, type Measurement, type PingResult } from '../features/challenges/challenge'
 import { formatMetric } from '../features/ping-history/chart'
+import { HopTable, MissingSources, RouteStages, Terminal as RouteTerminal } from '../features/lessons/RouteReading'
+import type { Route } from '../features/lessons/useTraceroute'
 import '../features/lessons/lessons.css'
 import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
@@ -13,9 +15,10 @@ import './pages.css'
 const ms = (value: number) => `${formatMetric(value)} ms`
 const count = (value: number) => value.toLocaleString('pt-BR')
 const notes = new Map(destinations.flatMap(group => group.items.map(item => [item.value, item.note] as const)))
-const autoDescription = (target: string) => `Sondatlas: ping para ${target.trim().toLowerCase() || 'o destino'}`
-const pollEvery = 3000
-const pollTimes = 40
+const autoDescription = (kind: Kind, target: string) => `Sondatlas: ${kind} para ${target.trim().toLowerCase() || 'o destino'}`
+// A traceroute waits for every hop, so it takes longer than a ping.
+const polling: Record<Kind, { every: number, times: number }> = { ping: { every: 3000, times: 40 }, traceroute: { every: 5000, times: 60 } }
+const titles: Record<Kind, string> = { ping: 'Ping', traceroute: 'Traceroute' }
 
 const MineLink = () => <Anchor href="https://atlas.ripe.net/measurements/mine" target="_blank" rel="noreferrer">lista das suas medições</Anchor>
 
@@ -26,7 +29,7 @@ function Missing({ ids }: { ids: string[] }) {
   </Fragment>)}</>
 }
 
-function Terminal({ round, target }: { round: PingResult, target: string }) {
+function PingTerminal({ round, target }: { round: PingResult, target: string }) {
   const address = round.dst_addr ?? round.dst_name
   const lost = round.sent - round.rcvd
   const failure = dnsFailure(round)
@@ -51,9 +54,9 @@ function comparison(avg: number, kRoot: number) {
 
 const isAddress = (target: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(target)
 
-function Address({ round, target, resolvedOnProbe }: { round: PingResult, target: string, resolvedOnProbe: boolean }) {
+function Address({ address, target, resolvedOnProbe }: { address: string, target: string, resolvedOnProbe: boolean }) {
   return <div>
-    <dt>{round.dst_addr}</dt>
+    <dt>{address}</dt>
     <dd>
       {resolvedOnProbe
         ? `É o endereço de ${target} que a probe recebeu ao perguntar ao DNS da rede dela, antes de medir.`
@@ -64,8 +67,8 @@ function Address({ round, target, resolvedOnProbe }: { round: PingResult, target
   </div>
 }
 
-function Explained({ round, target, kRoot, resolvedOnProbe }: { round: PingResult, target: string, kRoot: number | null, resolvedOnProbe: boolean }) {
-  if (dnsFailure(round)) return <dl className="lesson-reading">
+function DnsFailed({ target }: { target: string }) {
+  return <dl className="lesson-reading">
     <div>
       <dt>Nenhum pacote enviado</dt>
       <dd>
@@ -74,6 +77,10 @@ function Explained({ round, target, kRoot, resolvedOnProbe }: { round: PingResul
       </dd>
     </div>
   </dl>
+}
+
+function PingExplained({ round, target, kRoot, resolvedOnProbe }: { round: PingResult, target: string, kRoot: number | null, resolvedOnProbe: boolean }) {
+  if (dnsFailure(round)) return <DnsFailed target={target} />
   return <dl className="lesson-reading">
     {round.rcvd > 0 && <div>
       <dt>{ms(round.avg)}</dt>
@@ -82,7 +89,7 @@ function Explained({ round, target, kRoot, resolvedOnProbe }: { round: PingResul
         {kRoot ? <> O ping que a sua probe faz sozinha até o K-root leva cerca de {ms(kRoot)}, então {target} está {comparison(round.avg, kRoot)} da sua probe, pela rede.</> : ''}
       </dd>
     </div>}
-    {!isAddress(target) && round.dst_addr && <Address round={round} target={target} resolvedOnProbe={resolvedOnProbe} />}
+    {!isAddress(target) && round.dst_addr && <Address address={round.dst_addr} target={target} resolvedOnProbe={resolvedOnProbe} />}
     <div>
       <dt>{round.rcvd} de {round.sent} pacotes</dt>
       <dd>{round.rcvd === round.sent
@@ -105,16 +112,67 @@ const backIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
   <path d="M19 12H5M11 6l-6 6 6 6" />
 </svg>
 
+function TracerouteExplained({ route, measurement, onRetry }: { route: Route, measurement: Measurement, onRetry: () => void }) {
+  const destination = { name: measurement.target, root: false }
+  const terminal = <RouteTerminal route={route} destination={destination} caption="O seu traceroute" />
+  const heading = <Title order={3} size="h5" mt="lg" mb="xs">O que o resultado quer dizer</Title>
+  if (route.failure) return <>{terminal}{heading}<DnsFailed target={measurement.target} /></>
+  return <>
+    {route.missing.length > 0 && <MissingSources missing={route.missing} onRetry={onRetry} />}
+    {terminal}
+    <HopTable route={route} destination={destination} />
+    {heading}
+    {!isAddress(measurement.target) && route.destination && <dl className="lesson-reading" style={{ marginBottom: 'var(--mantine-spacing-lg)' }}>
+      <Address address={route.destination} target={measurement.target} resolvedOnProbe={measurement.resolvedOnProbe} />
+    </dl>}
+    <RouteStages route={route} destination={destination} />
+    <Text size="sm" mt="md">A <Anchor href="#/aprender/traceroute">lição de traceroute</Anchor> explica como o caminho é descoberto e o que ele não mostra.</Text>
+  </>
+}
+
+// Asks RIPE Atlas for the result until it arrives, then stops. attempt asks again, for example when RIPEstat or PeeringDB failed.
+function useResult(id: number, kind: Kind | null, attempt: number) {
+  const [ping, setPing] = useState<PingResult | null>(null)
+  const [route, setRoute] = useState<Route | null>(null)
+  const [polled, setPolled] = useState(false)
+  const [gaveUp, setGaveUp] = useState(false)
+
+  useEffect(() => {
+    if (!kind) return
+    const controller = new AbortController()
+    const { every, times } = polling[kind]
+    let tries = 0
+    let timer: ReturnType<typeof setTimeout>
+    const again = () => {
+      if (++tries >= times) setGaveUp(true)
+      else timer = setTimeout(poll, every)
+    }
+    const read = (): Promise<boolean> => kind === 'ping'
+      ? fetchPingResult(id, controller.signal).then(result => { if (result) setPing(result); return Boolean(result) })
+      : fetchTracerouteRoute(id, controller.signal).then(result => { if (result) setRoute(result); return Boolean(result) })
+    const poll = () => read()
+      .then(found => { setPolled(true); if (!found) again() })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setPolled(true)
+        again()
+      })
+    poll()
+    return () => { controller.abort(); clearTimeout(timer) }
+  }, [id, kind, attempt])
+
+  return { ping, route, polled, gaveUp }
+}
+
 function Result({ id }: { id: number }) {
   const [measurement, setMeasurement] = useState<Measurement | null>()
   const [lookupError, setLookupError] = useState(false)
-  const [round, setRound] = useState<PingResult | null>(null)
-  const [gaveUp, setGaveUp] = useState(false)
   const [kRoot, setKRoot] = useState<number | null>(null)
-  const [polled, setPolled] = useState(false)
   const [leaving, setLeaving] = useState(false)
-  const ping = measurement?.type === 'ping'
+  const [attempt, setAttempt] = useState(0)
+  const kind = measurement?.type === 'ping' || measurement?.type === 'traceroute' ? measurement.type : null
   const probeId = measurement?.probeId
+  const { ping, route, polled, gaveUp } = useResult(id, kind, attempt)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -123,68 +181,50 @@ function Result({ id }: { id: number }) {
   }, [id])
 
   useEffect(() => {
-    if (!probeId) return
+    if (!probeId || kind !== 'ping') return
     const controller = new AbortController()
     fetchKRootAverage(probeId, controller.signal).then(setKRoot, () => setKRoot(null))
     return () => controller.abort()
-  }, [probeId])
-
-  useEffect(() => {
-    if (!ping) return
-    const controller = new AbortController()
-    let tries = 0
-    let timer: ReturnType<typeof setTimeout>
-    const poll = () => fetchPingResult(id, controller.signal)
-      .then(result => {
-        setPolled(true)
-        if (result) setRound(result)
-        else if (++tries >= pollTimes) setGaveUp(true)
-        else timer = setTimeout(poll, pollEvery)
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return
-        setPolled(true)
-        if (++tries >= pollTimes) setGaveUp(true)
-        else timer = setTimeout(poll, pollEvery)
-      })
-    poll()
-    return () => { controller.abort(); clearTimeout(timer) }
-  }, [id, ping])
+  }, [probeId, kind])
 
   const page = `https://atlas.ripe.net/measurements/${id}/`
   const pageLink = (text: string) => <Anchor href={page} target="_blank" rel="noreferrer">{text}</Anchor>
-  const measuring = ping && polled && !round && !gaveUp
+  const done = kind === 'ping' ? ping : route
+  const measuring = Boolean(kind) && polled && !done && !gaveUp
   const leave = () => measuring ? setLeaving(true) : backToForm()
-  const again = <Button variant="default" mt="md" onClick={leave}>Fazer outro ping</Button>
+  const again = <Button variant="default" mt="md" onClick={leave}>Fazer outro desafio</Button>
 
   let body
   if (lookupError) body = <>
     <SystemError title="Não foi possível consultar a medição">O RIPE Atlas não respondeu agora. Recarregue a página em instantes.</SystemError>
     {again}
   </>
-  else if (measurement === undefined || (ping && !polled)) body = <Loading mt="lg">Consultando a medição {id}…</Loading>
+  else if (measurement === undefined || (kind && !polled)) body = <Loading mt="lg">Consultando a medição {id}…</Loading>
   else if (measurement === null) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
     Confira o número no endereço da página.
     <div>{again}</div>
   </Alert>
-  else if (!ping) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não é um ping`}>
-    Esta página explica só resultados de ping. Veja esta medição na {pageLink('página dela no RIPE Atlas')}.
+  else if (!kind) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não é um ping nem um traceroute`}>
+    Esta página explica só resultados de ping e de traceroute. Veja esta medição na {pageLink('página dela no RIPE Atlas')}.
     <div>{again}</div>
   </Alert>
   else body = <section className="follow-box" aria-labelledby="challenge-result">
-    <Text fw={600} id="challenge-result">Ping {probeId ? `da probe ${probeId} ` : ''}até {measurement.target}</Text>
-    {measuring && <Loading mt="sm">A probe está medindo. O resultado costuma chegar em alguns segundos…</Loading>}
+    <Text fw={600} id="challenge-result">{titles[kind]} {probeId ? `da probe ${probeId} ` : ''}até {measurement.target}</Text>
+    {measuring && <Loading mt="sm">{kind === 'ping'
+      ? 'A probe está medindo. O resultado costuma chegar em alguns segundos…'
+      : 'A probe está descobrindo o caminho, salto por salto. Um traceroute pode levar alguns minutos…'}</Loading>}
     {gaveUp && <Text size="sm" mt="sm">
       O resultado ainda não chegou. A medição foi criada, e você pode ver o resultado mais tarde na {pageLink('página dela no RIPE Atlas')}.
     </Text>}
-    {round && <>
-      <Terminal round={round} target={measurement.target} />
+    {ping && <>
+      <PingTerminal round={ping} target={measurement.target} />
       <Title order={3} size="h5" mt="lg" mb="xs">O que o resultado quer dizer</Title>
-      <Explained round={round} target={measurement.target} kRoot={kRoot} resolvedOnProbe={measurement.resolvedOnProbe} />
-      <Text size="sm" mt="md">
-        Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a {pageLink('página dela')} quando quiser.
-      </Text>
+      <PingExplained round={ping} target={measurement.target} kRoot={kRoot} resolvedOnProbe={measurement.resolvedOnProbe} />
     </>}
+    {route && <TracerouteExplained route={route} measurement={measurement} onRetry={() => setAttempt(value => value + 1)} />}
+    {done && <Text size="sm" mt="md">
+      Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a {pageLink('página dela')} quando quiser.
+    </Text>}
     {again}
   </section>
 
@@ -206,12 +246,13 @@ function Result({ id }: { id: number }) {
   </>
 }
 
-function PingChallenge({ account }: { account: Account }) {
+function NewChallenge({ account }: { account: Account }) {
   const probes = account.probes ?? []
   const connected = probes.filter(probe => probe.status.id === 1)
+  const [kind, setKind] = useState<Kind>('ping')
   const [probeId, setProbeId] = useState<string | null>(connected[0] ? String(connected[0].id) : null)
   const [target, setTarget] = useState('')
-  const [packets, setPackets] = useState(String(packetChoices[0]))
+  const [packets, setPackets] = useState(String(kinds.ping.packets[0]))
   const [description, setDescription] = useState('')
   const [errors, setErrors] = useState<{ probe?: string, target?: string }>({})
   const [confirming, setConfirming] = useState(false)
@@ -235,26 +276,36 @@ function PingChallenge({ account }: { account: Account }) {
     setBusy(true)
     setError(null)
     try {
-      location.hash = `#/desafios/${await createPing(Number(probeId), target, Number(packets), description)}`
+      location.hash = `#/desafios/${await createChallenge(kind, Number(probeId), target, Number(packets), description)}`
     } catch (reason) {
       setError(reason instanceof ChallengeError ? reason : new ChallengeError((reason as Error).message))
       setBusy(false)
     }
   }
 
+  function choose(value: string) {
+    const next = value as Kind
+    setKind(next)
+    if (!kinds[next].packets.includes(Number(packets))) setPackets(String(kinds[next].packets[0]))
+  }
+
   if (!connected.length) return <Alert color="yellow" mt="md" maw={720} title="Nenhuma probe sua está conectada agora">
-    O ping sai de uma probe sua, então ela precisa estar conectada. Veja o que fazer em <Anchor href="#/minha-probe">Minha probe</Anchor>.
+    A medição sai de uma probe sua, então ela precisa estar conectada. Veja o que fazer em <Anchor href="#/minha-probe">Minha probe</Anchor>.
   </Alert>
 
   const errorText = error && (error.missing.length
     ? <Alert color="yellow" mt="sm" title="Falta uma permissão na chave">A chave não tem <Missing ids={error.missing} />. Acrescente no site do RIPE Atlas e tente de novo.</Alert>
-    : <SystemError title="Não foi possível criar o ping">{error.message}</SystemError>)
+    : <SystemError title={`Não foi possível criar ${kinds[kind].noun}`}>{error.message}</SystemError>)
 
-  return <section className="follow-box" aria-labelledby="ping-challenge">
-    <Title order={2} size="h4" id="ping-challenge">Desafio: um ping seu</Title>
-    <Text size="sm" mt={4} maw={680}>
-      Escolha uma das suas probes e um destino. A probe manda alguns pacotes e mede quanto tempo eles levam para ir e voltar, como na <Anchor href="#/aprender/ping">lição de ping</Anchor>, só que para o destino que você escolher.
-      Com um nome, a probe descobre o endereço pelo DNS da rede dela, como o seu computador faria. Com um endereço IPv4, a probe mede direto.
+  return <section className="follow-box" aria-labelledby="new-challenge">
+    <Title order={2} size="h4" id="new-challenge">Desafio: uma medição sua</Title>
+    <SegmentedControl mt="sm" value={kind} onChange={choose} aria-label="Tipo de medição"
+      data={[{ value: 'ping', label: 'Ping' }, { value: 'traceroute', label: 'Traceroute' }]} />
+    <Text size="sm" mt="sm" maw={680}>
+      {kind === 'ping'
+        ? <>Escolha uma das suas probes e um destino. A probe manda alguns pacotes e mede quanto tempo eles levam para ir e voltar, como na <Anchor href="#/aprender/ping">lição de ping</Anchor>, só que para o destino que você escolher.</>
+        : <>Escolha uma das suas probes e um destino. A probe descobre por quais roteadores os pacotes passam até chegar lá, como na <Anchor href="#/aprender/traceroute">lição de traceroute</Anchor>, só que para o destino que você escolher.</>}
+      {' '}Com um nome, a probe descobre o endereço pelo DNS da rede dela, como o seu computador faria. Com um endereço IPv4, a probe mede direto.
     </Text>
     <form onSubmit={review}>
       <Group align="flex-start" gap="md" mt="md">
@@ -273,13 +324,15 @@ function PingChallenge({ account }: { account: Account }) {
       </Group>
       <Group align="flex-start" gap="md" mt="md">
         <div>
-          <Text size="sm" fw={500} id="packets-label">Pacotes</Text>
+          <Text size="sm" fw={500} id="packets-label">{kind === 'ping' ? 'Pacotes' : 'Pacotes por salto'}</Text>
           <SegmentedControl mt={4} value={packets} onChange={setPackets} aria-labelledby="packets-label"
-            data={packetChoices.map(choice => ({ value: String(choice), label: String(choice) }))} />
-          <Text size="xs" c="dimmed" mt={4} maw={260}>Mais pacotes dão uma medida mais estável e custam mais.</Text>
+            data={kinds[kind].packets.map(choice => ({ value: String(choice), label: String(choice) }))} />
+          <Text size="xs" c="dimmed" mt={4} maw={260}>{kind === 'ping'
+            ? 'Mais pacotes dão uma medida mais estável e custam mais.'
+            : 'A probe manda esse número de pacotes em cada salto. Mais pacotes mostram melhor a variação do tempo e custam mais.'}</Text>
         </div>
         <TextInput label="Descrição (opcional)" description="Aparece na página da medição no RIPE Atlas" inputWrapperOrder={['label', 'input', 'description']}
-          placeholder={autoDescription(target)} maxLength={100} w={380} maw="100%" value={description} onChange={event => setDescription(event.currentTarget.value)} />
+          placeholder={autoDescription(kind, target)} maxLength={100} w={380} maw="100%" value={description} onChange={event => setDescription(event.currentTarget.value)} />
       </Group>
       <Button type="submit" mt="md">Ver o custo</Button>
     </form>
@@ -288,17 +341,17 @@ function PingChallenge({ account }: { account: Account }) {
     </Text>
     <Text size="sm" c="dimmed" mt={4}>As medições que você já criou ficam na <MineLink />, no RIPE Atlas.</Text>
     {!confirming && errorText}
-    <Modal opened={confirming} onClose={() => setConfirming(false)} closeOnClickOutside={false} centered title="Criar este ping?">
-      <Text size="sm">Da probe <strong>{probeId}</strong> até <strong>{target.trim().toLowerCase()}</strong>, com {packets} pacotes.</Text>
+    <Modal opened={confirming} onClose={() => setConfirming(false)} closeOnClickOutside={false} centered title={`Criar este ${kind}?`}>
+      <Text size="sm">Da probe <strong>{probeId}</strong> até <strong>{target.trim().toLowerCase()}</strong>, com {packets} pacotes{kind === 'traceroute' ? ' por salto' : ''}.</Text>
       <Text size="sm" mt="xs">
-        Custa cerca de <strong>{pingCost(Number(packets))} créditos</strong>, cobrados nas próximas 4 a 6 horas.{account.credits ? ` Seu saldo: ${count(account.credits.current_balance)}.` : ''}
+        Custa cerca de <strong>{kinds[kind].cost(Number(packets))} créditos</strong>, cobrados nas próximas 4 a 6 horas.{account.credits ? ` Seu saldo: ${count(account.credits.current_balance)}.` : ''}
       </Text>
       <Text size="sm" mt="xs">A medição fica pública no RIPE Atlas: qualquer pessoa pode ver o destino e o resultado.</Text>
       <Text size="sm" mt="xs">Ela leva a etiqueta <code>sondatlas</code>, para você encontrá-la entre as suas medições no RIPE Atlas.</Text>
       {errorText}
       <Group gap="sm" mt="lg" justify="flex-end">
         <Button variant="default" onClick={() => setConfirming(false)}>Cancelar</Button>
-        <Button loading={busy} onClick={create}>Criar o ping</Button>
+        <Button loading={busy} onClick={create}>Criar {kinds[kind].noun}</Button>
       </Group>
     </Modal>
   </section>
@@ -326,7 +379,7 @@ function ChallengeList({ account }: { account: Account }) {
     </Alert>}
     {error && !lacking.length && <SystemError title="Não foi possível consultar os seus desafios">{error.message}</SystemError>}
     {!list && !error && !missing && <Loading mt="sm">Consultando os seus desafios…</Loading>}
-    {list && !list.challenges.length && <Text size="sm" mt="xs">Você ainda não criou nenhum desafio. O primeiro ping que você criar acima aparece aqui.</Text>}
+    {list && !list.challenges.length && <Text size="sm" mt="xs">Você ainda não criou nenhum desafio. O primeiro que você criar acima aparece aqui.</Text>}
     {list && list.challenges.length > 0 && <>
       <Text size="sm" mt={4}>
         {list.count === 1 ? 'Você criou 1 desafio pela Sondatlas.' : `Você criou ${count(list.count)} desafios pela Sondatlas.`}
@@ -335,7 +388,7 @@ function ChallengeList({ account }: { account: Account }) {
       <ul className="challenge-list">
         {list.challenges.map(challenge => <li key={challenge.id}>
           <div>
-            <Anchor href={`#/desafios/${challenge.id}`} fw={600}>{challenge.type === 'ping' ? 'Ping' : challenge.type} até {challenge.target}</Anchor>
+            <Anchor href={`#/desafios/${challenge.id}`} fw={600}>{titles[challenge.type as Kind] ?? challenge.type} até {challenge.target}</Anchor>
             {challenge.probe_id && <Text size="xs" c="dimmed">Da probe {challenge.probe_id}</Text>}
           </div>
           <Text size="sm" c="dimmed" className="challenge-date">{formatLocal(challenge.created * 1000)}</Text>
@@ -385,7 +438,7 @@ export default function Challenges() {
         Para os desafios, falta na chave <Missing ids={missing} />. Edite a chave no site do RIPE Atlas e volte aqui.
         <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
       </Alert>}
-      {account?.connected && missing.length === 0 && <PingChallenge account={account} />}
+      {account?.connected && missing.length === 0 && <NewChallenge account={account} />}
       {account?.connected && <ChallengeList account={account} />}
     </>}
   </div>

@@ -119,7 +119,7 @@ function challengeGoal(id: string, title: string, mark: string, goal: number, ru
   }
 }
 
-export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credits?: Credits | null, histories: Histories = 'checking', challenges?: ChallengeHistory): Badge[] {
+export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credits?: Credits | null, histories: Histories = 'checking', challenges?: ChallengeHistory, traceroutes?: ChallengeHistory): Badge[] {
   const connected = probes
     .map(probe => ({ probe, first: seconds(probe.first_connected) }))
     .filter((item): item is { probe: AccountProbe, first: number } => item.first !== null)
@@ -164,6 +164,7 @@ export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credit
     creditGoal('credits-100k', '100 mil créditos', '100 mil', 100000, credits),
     creditGoal('credits-1m', '1 milhão de créditos', '1 milhão', 1000000, credits),
     challengeGoal('challenge-1', 'Primeira sondagem', 'target', 1, 'Criar o seu primeiro desafio na Sondatlas.', challenges),
+    challengeGoal('challenge-traceroute', 'Primeiro caminho', 'route', 1, 'Criar o seu primeiro traceroute na Sondatlas.', traceroutes),
     challengeGoal('challenge-10', 'Explorador', '10 desafios', 10, 'Criar 10 desafios na Sondatlas.', challenges),
     challengeGoal('challenge-25', 'Navegador', '25 desafios', 25, 'Criar 25 desafios na Sondatlas.', challenges),
     challengeGoal('challenge-50', 'Cartógrafo', '50 desafios', 50, 'Criar 50 desafios na Sondatlas.', challenges),
