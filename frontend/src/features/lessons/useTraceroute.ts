@@ -24,6 +24,8 @@ export type Root = typeof roots[number]
 
 export type HopNetwork =
   | { kind: 'private' }
+  // A private address after the route left home belongs to some provider that uses it inside its own network.
+  | { kind: 'internal' }
   | { kind: 'network', asn: number, holder: string | null }
   | { kind: 'exchange', name: string, city: string | null, country: string | null, member: string | null, memberAsn: number }
   | { kind: 'unknown' }
@@ -41,6 +43,8 @@ export type Source = 'RIPEstat' | 'PeeringDB'
 export interface Route {
   // Sources that did not answer: the route itself comes from RIPE Atlas, only names and places are missing.
   missing: Source[]
+  // With the name resolved on the probe, a DNS failure there sends nothing: no address, no hops, only the reason.
+  failure: string | null
   timestamp: number
   destination: string
   protocol: string
@@ -49,13 +53,13 @@ export interface Route {
   hops: Hop[]
 }
 
-interface RawRound {
+export interface RawRound {
   timestamp: number
-  dst_addr: string
+  dst_addr?: string
   proto: string
   size?: number
   destination_ip_responded?: boolean
-  result: { hop: number, result?: { from?: string, rtt?: number, x?: string }[] }[]
+  result: { hop?: number, error?: string, result?: { from?: string, rtt?: number, x?: string }[] }[]
 }
 
 async function readJson<T>(url: string, signal: AbortSignal) {
@@ -110,11 +114,11 @@ export function median(values: (number | null)[]) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
 
-async function fetchRoute(probeId: number, measurement: number, signal: AbortSignal): Promise<Route | null> {
-  const [round] = await readJson<RawRound[]>(`https://atlas.ripe.net/api/v2/measurements/${measurement}/latest/?probe_ids=${probeId}`, signal)
-  if (!round) return null
-  const hops = round.result.map(({ hop, result = [] }) => ({
-    hop,
+export async function describeRoute(round: RawRound, signal: AbortSignal): Promise<Route> {
+  const failure = round.dst_addr ? null : round.result.find(item => item.error)?.error ?? null
+  if (failure) return { missing: [], failure, timestamp: round.timestamp, destination: '', protocol: round.proto, size: round.size ?? null, reached: false, hops: [] }
+  const hops = round.result.filter(item => item.hop !== undefined).map(({ hop, result = [] }) => ({
+    hop: hop!,
     address: result.find(packet => packet.from)?.from ?? null,
     rtts: result.map(packet => typeof packet.rtt === 'number' ? packet.rtt : null),
   }))
@@ -128,9 +132,10 @@ async function fetchRoute(probeId: number, measurement: number, signal: AbortSig
   const holders = new Map(await Promise.all(holderAsns.map(async asn =>
     [asn, await fetchHolder(asn, signal).catch(() => { failed.add('RIPEstat'); return null })] as const)))
 
-  const network = (address: string | null): HopNetwork => {
+  const firstPublic = Math.min(...hops.filter(hop => hop.address && !isPrivate(hop.address)).map(hop => hop.hop))
+  const network = (address: string | null, hop: number): HopNetwork => {
     if (!address) return { kind: 'silent' }
-    if (isPrivate(address)) return { kind: 'private' }
+    if (isPrivate(address)) return hop > firstPublic ? { kind: 'internal' } : { kind: 'private' }
     const asn = asns.get(address)
     if (asn) return { kind: 'network', asn, holder: holders.get(asn) ?? null }
     const point = exchange.get(address)
@@ -140,13 +145,19 @@ async function fetchRoute(probeId: number, measurement: number, signal: AbortSig
   }
   return {
     missing: [...failed],
+    failure: null,
     timestamp: round.timestamp,
-    destination: round.dst_addr,
+    destination: round.dst_addr ?? '',
     protocol: round.proto,
     size: round.size ?? null,
     reached: round.destination_ip_responded ?? hops.some(hop => hop.address === round.dst_addr),
-    hops: hops.map(hop => ({ ...hop, network: network(hop.address) })),
+    hops: hops.map(hop => ({ ...hop, network: network(hop.address, hop.hop) })),
   }
+}
+
+async function fetchRoute(probeId: number, measurement: number, signal: AbortSignal) {
+  const [round] = await readJson<RawRound[]>(`https://atlas.ripe.net/api/v2/measurements/${measurement}/latest/?probe_ids=${probeId}`, signal)
+  return round ? describeRoute(round, signal) : null
 }
 
 export function useTraceroute(measurement: number) {
