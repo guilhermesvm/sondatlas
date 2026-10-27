@@ -18,7 +18,9 @@ it('links only the ready lessons and points to the free RIPE NCC Academy courses
   expect(basics.getByRole('link', { name: 'Ler a lição IP e endereços' })).toHaveAttribute('href', '#/aprender/ip')
   expect(basics.getByRole('link', { name: 'Ler a lição Traceroute' })).toHaveAttribute('href', '#/aprender/traceroute')
   expect(basics.queryByRole('link', { name: /DNS/ })).not.toBeInTheDocument()
-  expect(within(screen.getByRole('region', { name: 'RIPE Atlas' })).getAllByText('Em breve')).toHaveLength(2)
+  const atlas = within(screen.getByRole('region', { name: 'RIPE Atlas' }))
+  expect(atlas.getAllByText('Em breve')).toHaveLength(1)
+  expect(atlas.getByRole('link', { name: 'Ler a lição O que a sua probe mede sozinha' })).toHaveAttribute('href', '#/aprender/medicoes-automaticas')
   const academy = within(screen.getByRole('region', { name: 'Para ir mais fundo: RIPE NCC Academy' }))
   expect(academy.getByRole('link', { name: 'Internet Measurements' })).toHaveAttribute('href', 'https://academy.ripe.net/mod/page/view.php?id=937')
 })
@@ -182,4 +184,44 @@ it('warns when RIPEstat or PeeringDB do not answer and tries again on request', 
   expect(screen.getByText('Rede não identificada')).toBeInTheDocument()
   await userEvent.click(within(warning).getByRole('button', { name: 'Tentar de novo' }))
   await vi.waitFor(() => expect(route).toHaveBeenCalledTimes(2))
+})
+
+it('groups what the probe measures on its own and explains the DNS root servers', async () => {
+  const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)))
+  const current = [
+    { id: 30001001, type: 'ping', description: 'Ping (v4) measurement to google.com', target: 'google.com', interval: 240, tags: ['system-well-known-target'] },
+    { id: 30001002, type: 'traceroute', description: 'Traceroute measurement to google.com', target: 'google.com', interval: 900, tags: ['system-well-known-target'] },
+    { id: 22684516, type: 'ping', description: 'Anchoring Probes Measurement: Ping IPv4 for anchor br-sao-as36236.anchors.atlas.ripe.net', target: 'x', interval: 240, tags: ['anchoring'] },
+    { id: 22684517, type: 'http', description: 'Anchoring Probes Measurement: Http IPv4 for anchor br-bhz-as10417-client.anchors.atlas.ripe.net', target: 'x', interval: 1800, tags: ['anchoring'] },
+    { id: 40000001, type: 'dns', description: 'system-resolves-a-correctly: www.ripe.net', target: 'www.ripe.net', interval: 43200, tags: ['system-probe-tagging'] },
+    { id: 40000002, type: 'dns', description: 'Someone else', target: 'example.org', interval: 43200, tags: [] },
+    { id: 40000003, type: 'traceroute', description: 'Someone else', target: 'example.org', interval: 3600, tags: [] },
+  ]
+  const builtIn = [
+    { id: 1001, type: 'ping', target: 'k.root-servers.net', interval: 240 },
+    { id: 1009, type: 'ping', target: 'a.root-servers.net', interval: 240 },
+    { id: 5001, type: 'traceroute', target: 'k.root-servers.net', interval: 1800 },
+  ]
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url === '/api/probe') return json({ probe_id: 1017210 })
+    if (url === '/api/targets') return json(catalog)
+    if (url.includes('/probes/1017210/?fields=tags')) return json({ tags: [{ slug: 'system-ipv4-rfc1918' }] })
+    if (url.includes('current_probes=1017210')) return json({ next: null, results: current })
+    if (url.includes('id__lt=100000')) return json({ next: null, results: builtIn })
+    if (url.includes('/anchors/?search=br-sao-as36236')) return json({ results: [{ fqdn: 'br-sao-as36236.anchors.atlas.ripe.net', city: 'Sao Paulo', country: 'BR' }] })
+    if (url.includes('/anchors/?search=br-bhz-as10417')) return json({ results: [{ fqdn: 'br-bhz-as10417.anchors.atlas.ripe.net', city: 'Belo Horizonte', country: 'BR' }] })
+    return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
+  }))
+  window.location.hash = '#/aprender/medicoes-automaticas'
+  render(<App />)
+  expect(within(screen.getByRole('list', { name: 'Os 13 servidores raiz e quem mantém cada um' })).getAllByRole('listitem')).toHaveLength(13)
+  expect(await screen.findByText('10 medições')).toBeInTheDocument()
+  const data = within(screen.getByRole('region', { name: 'O seu dado' }))
+  expect(data.getByText('Para 2 anchors, todas no Brasil.')).toBeInTheDocument()
+  expect(data.getByText('As well-known, para 1 serviço popular.')).toBeInTheDocument()
+  await userEvent.click(data.getByRole('button', { name: 'Anchors: 2 anchors' }))
+  expect(data.getByText(/Belo Horizonte \(Brasil\)/)).toBeInTheDocument()
+  const reading = within(screen.getByRole('region', { name: 'Como ler' }))
+  expect(reading.getByText('1 do sistema de etiquetas')).toBeInTheDocument()
+  expect(reading.getByText('3 de outras pessoas')).toBeInTheDocument()
 })
