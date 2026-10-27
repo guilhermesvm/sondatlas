@@ -103,7 +103,7 @@ function Reading({ account }: { account: Account }) {
     </div> : null}
     <div>
       <dt>Cerca de {pingCost} créditos</dt>
-      <dd>É o custo de um ping criado por você. Perto do seu saldo, é quase nada.</dd>
+      <dd>É o custo de um ping criado por você, como o do <Anchor href="#/desafios">desafio do ping</Anchor>. Perto do seu saldo, é quase nada.</dd>
     </div>
   </dl>
 }

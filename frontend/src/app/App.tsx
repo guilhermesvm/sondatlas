@@ -7,8 +7,8 @@ import { lessonFromHash } from '../features/lessons/lessons'
 import { ProbeProvider, useProbe } from '../features/probe-status/ProbeProvider'
 import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
 import Achievements from '../pages/Achievements'
+import Challenges from '../pages/Challenges'
 import Home from '../pages/Home'
-import InConstruction from '../pages/InConstruction'
 import JourneyPage from '../pages/JourneyPage'
 import MyProbe from '../pages/MyProbe'
 import Settings from '../pages/Settings'
@@ -82,7 +82,7 @@ function Layout() {
         <div className="page">
           {route.id === 'inicio' && <Home />}
           {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} />}
-          {route.id === 'desafios' && <InConstruction route={route} />}
+          {route.id === 'desafios' && <Challenges />}
           {route.id === 'conquistas' && <Achievements />}
           {route.id === 'minha-probe' && <MyProbe />}
           {route.id === 'configuracoes' && <Settings />}
