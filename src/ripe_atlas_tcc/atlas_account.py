@@ -70,6 +70,26 @@ def fetch_credits(key):
     }
 
 
+def fetch_income(key):
+    """Daily estimate and yesterday's result reward of each hosted probe, or None without the credits permission."""
+    response = requests.get(
+        "https://atlas.ripe.net/api/v2/credits/income-items/",
+        headers={"Authorization": f"Key {key}"},
+        timeout=30,
+    )
+    if response.status_code in (401, 403):
+        return None
+    response.raise_for_status()
+    return [
+        {
+            "probe_id": item["probe_id"],
+            "estimated_daily_income": float(item["estimated_daily_income"]),
+            "yesterday_results_reward": item.get("yesterday_results_reward"),
+        }
+        for item in response.json()["groups"].get("hosted_probes", [])
+    ]
+
+
 def fetch_account(key):
     """RIPE answers a missing permission like an invalid key, so the key is
     refused only when no permission works; otherwise the missing ones are listed."""
@@ -84,6 +104,7 @@ def fetch_account(key):
         "connected": True,
         "probes": probes,
         "credits": credits,
+        "income": fetch_income(key) if credits is not None else None,
         "missing_permissions": [
             name for name, value in (("probes", probes), ("credits", credits)) if value is None
         ],

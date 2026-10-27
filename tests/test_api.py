@@ -339,6 +339,11 @@ def account_api(monkeypatch, tmp_path):
             raise requests.ConnectionError("offline")
         if key not in ("good-key", "probes-only-key", "credits-only-key"):
             return Response(403, {"detail": "refused"})
+        if url.endswith("/credits/income-items/"):
+            return Response(200, {"groups": {"hosted_probes": [{
+                "probe_id": 1017210, "probe": "https://atlas.ripe.net/api/v2/probes/1017210/", "description": "Casa",
+                "max_daily_connected_income": 21600, "estimated_daily_income": "35261", "yesterday_results_reward": 13661,
+            }], "sponsored_probes": []}, "total_estimated_daily_income": 35261})
         if url.endswith("/credits/"):
             if key == "probes-only-key":
                 return Response(403, {"detail": "no permission"})
@@ -370,12 +375,15 @@ def test_account_key_is_checked_saved_and_never_returned(account_api):
             "id": 1017210, "description": "Casa", "is_public": True,
             "status": {"id": 1, "name": "Connected", "since": "2026-10-26T13:39:08Z"},
             "first_connected": 1787709821, "total_uptime": 2815592, "asn_v4": 64500,
-        }], "credits": {"current_balance": 1206887, "estimated_daily_income": 21600}, "missing_permissions": []}
+        }], "credits": {"current_balance": 1206887, "estimated_daily_income": 21600},
+            "income": [{"probe_id": 1017210, "estimated_daily_income": 35261.0, "yesterday_results_reward": 13661}],
+            "missing_permissions": []}
         assert "good-key" not in response.text
         assert "203.0.113" not in response.text
     assert calls == [
         ("https://atlas.ripe.net/api/v2/credits/", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key"),
+        ("https://atlas.ripe.net/api/v2/credits/income-items/", "Key good-key"),
     ] * 2
     assert atlas_account.load_key(state_path) == "good-key"
 
@@ -425,4 +433,5 @@ def test_saved_key_without_the_credits_permission_still_lists_probes(account_api
     account = client.get("/account").json()
     assert [probe["id"] for probe in account["probes"]] == [1017210]
     assert account["credits"] is None
+    assert account["income"] is None
     assert account["missing_permissions"] == ["credits"]
