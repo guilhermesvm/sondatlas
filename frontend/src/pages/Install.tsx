@@ -37,7 +37,7 @@ function VirtualMachine({ system }: { system: 'windows' | 'linux' }) {
         <Command>vagrant --version</Command>
       </Step>
       <Step title="Abra um terminal na pasta lab do projeto">
-        <Text size="sm">É a pasta <code>lab/</code> dentro da mesma pasta em que você rodou o <code>docker compose</code>.</Text>
+        <Text size="sm">É a pasta <code>lab/</code> dentro da pasta principal do projeto, a mesma do <code>start-kit</code>.</Text>
       </Step>
       <Step title="Crie a máquina virtual">
         <Command>vagrant up</Command>
@@ -182,7 +182,9 @@ export default function Install() {
   const problems = virtualMachine ? vmProblems.filter(problem => system === 'windows' || !problem.windowsOnly) : []
   return <div className="install">
     <Title order={1} size="h2">Instalar a probe</Title>
-    <Text size="lg" mt="sm" maw={680}>Você vai instalar a software probe oficial do RIPE Atlas. Onde ela vai rodar?</Text>
+    <Text size="lg" mt="sm" maw={680}>
+      A Sondatlas já está rodando no seu computador, e é por isso que você vê esta página. Falta instalar a probe: a software probe oficial do RIPE Atlas. Onde ela vai rodar?
+    </Text>
     <SegmentedControl mt="lg" value={system} onChange={value => setSystem(value as System)} aria-label="Onde a probe vai rodar"
       data={[{ value: 'windows', label: 'Windows' }, { value: 'linux', label: 'Linux' }, { value: 'pi', label: 'Raspberry Pi' }]} />
     {system === 'linux' && <div className="install-choice">
