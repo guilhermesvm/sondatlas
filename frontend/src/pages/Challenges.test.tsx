@@ -19,7 +19,7 @@ const linked = {
 }
 
 const round = {
-  timestamp: 1793049887, dst_name: 'google.com', dst_addr: '142.250.0.1', from: '203.0.113.77', size: 48, ttl: 117,
+  timestamp: 1793049887, dst_name: '142.250.0.1', dst_addr: '142.250.0.1', from: '203.0.113.77', size: 48, ttl: 117,
   sent: 3, rcvd: 3, min: 14, avg: 15, max: 16, result: [{ rtt: 14 }, { rtt: 15 }, { rtt: 16 }],
 }
 
@@ -63,6 +63,7 @@ it('creates a ping from a connected probe after showing the cost, and explains t
   expect(post?.[1]?.body).toBe(JSON.stringify({ probe_id: 1017210, target: 'google.com', packets: 5, description: null }))
   expect(window.location.hash).toBe('#/desafios/123456789')
   expect(await screen.findByText(/3 enviados, 3 recebidos, 0% de perda/)).toBeInTheDocument()
+  expect(screen.getByText(/^ping google\.com \(142\.250\.0\.1\), pacotes de 48 bytes/)).toBeInTheDocument()
   expect(screen.getByText('15 ms')).toBeInTheDocument()
   expect(await screen.findByText(/O ping que a sua probe faz sozinha até o K-root leva cerca de 30 ms, então google.com está mais perto/)).toBeInTheDocument()
   expect(screen.getByText('3 de 3 pacotes')).toBeInTheDocument()
@@ -138,4 +139,18 @@ it('lists the challenges of the account, each opening its result, or says what t
   expect(within(alert).getByText('List your measurements').tagName).toBe('STRONG')
   expect(screen.getByRole('button', { name: 'Ver o custo' })).toBeInTheDocument()
   expect(mock.mock.calls.some(([url]) => url === '/api/challenges')).toBe(false)
+})
+
+it('explains a name the probe could not resolve instead of counting packets', async () => {
+  window.location.hash = '#/desafios/123456789'
+  stubBackend({ connected: false }, [{
+    timestamp: 1793113398, dst_name: 'google.com', sent: 0, rcvd: 0, min: -1, avg: -1, max: -1,
+    result: [{ error: 'dns resolution failed: non-recoverable failure in name resolution' }],
+  }])
+  renderChallenges()
+  expect(await screen.findByText(/ping: dns resolution failed: non-recoverable failure in name resolution/)).toBeInTheDocument()
+  expect(screen.getByText('Nenhum pacote enviado')).toBeInTheDocument()
+  expect(screen.getByText(/A probe não conseguiu descobrir o endereço de google.com pelo DNS da rede dela/)).toBeInTheDocument()
+  expect(screen.queryByText(/Todos voltaram/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/de perda/)).not.toBeInTheDocument()
 })

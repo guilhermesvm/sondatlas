@@ -513,7 +513,7 @@ def test_ping_challenge_creates_one_public_one_off_ping_from_the_account_probe(c
     assert response.json() == {"measurement_id": 123456789}
     assert "good-key" not in response.text
     assert created == [("https://atlas.ripe.net/api/v2/measurements/", "Key good-key", {
-        "definitions": [{"type": "ping", "af": 4, "target": "google.com", "packets": 3, "description": "Sondatlas: ping para google.com", "tags": ["sondatlas"]}],
+        "definitions": [{"type": "ping", "af": 4, "target": "google.com", "packets": 3, "description": "Sondatlas: ping para google.com", "tags": ["sondatlas"], "resolve_on_probe": True}],
         "probes": [{"type": "probes", "value": "1017210", "requested": 1}],
         "is_oneoff": True,
     })]

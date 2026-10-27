@@ -209,21 +209,34 @@ def ripe_message(response):
     return " ".join(str(detail) for detail in details if detail)[:300] or "RIPE Atlas refused the measurement"
 
 
+def is_address(target):
+    try:
+        ipaddress.ip_address(target)
+        return True
+    except ValueError:
+        return False
+
+
 def create_ping(key, probe_id, target, packets, description):
     """One-off IPv4 ping from one probe, public by RIPE Atlas default and tagged sondatlas,
-    so anyone can count the measurements made through Sondatlas. Returns the measurement ID."""
+    so anyone can count the measurements made through Sondatlas. Returns the measurement ID.
+    A name is resolved by the probe's own DNS, like a computer on that network would:
+    resolved centrally, a service with servers around the world may answer with one far from the probe."""
+    definition = {
+        "type": "ping",
+        "af": 4,
+        "target": target,
+        "packets": packets,
+        "description": description,
+        "tags": ["sondatlas"],
+    }
+    if not is_address(target):
+        definition["resolve_on_probe"] = True
     response = requests.post(
         "https://atlas.ripe.net/api/v2/measurements/",
         headers={"Authorization": f"Key {key}"},
         json={
-            "definitions": [{
-                "type": "ping",
-                "af": 4,
-                "target": target,
-                "packets": packets,
-                "description": description,
-                "tags": ["sondatlas"],
-            }],
+            "definitions": [definition],
             "probes": [{"type": "probes", "value": str(probe_id), "requested": 1}],
             "is_oneoff": True,
         },

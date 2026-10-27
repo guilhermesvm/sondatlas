@@ -200,7 +200,7 @@ def local_only(request: Request):
 @app.post(
     "/challenges/ping",
     summary="Create a one-off IPv4 ping from one of the account probes",
-    description="Spends the account credits (2 per packet for a one-off ping, 6 for the default 3 packets). packets goes from 1 to 16 like in RIPE Atlas; description is optional (up to 100 characters, a Sondatlas limit). The measurement is public, as RIPE Atlas makes it by default, and always tagged sondatlas. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned.",
+    description="Spends the account credits (2 per packet for a one-off ping, 6 for the default 3 packets). packets goes from 1 to 16 like in RIPE Atlas; description is optional (up to 100 characters, a Sondatlas limit). The measurement is public, as RIPE Atlas makes it by default, and always tagged sondatlas. A host name is resolved by the probe (resolve_on_probe), so the address is the one the probe's network would use. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned.",
     dependencies=[Depends(local_only)],
     responses={
         403: {"description": "Request not addressed to this computer, or RIPE Atlas refused the saved key"},

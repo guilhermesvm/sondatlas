@@ -11,7 +11,7 @@ export interface PingResult {
   min: number
   avg: number
   max: number
-  result: { rtt?: number }[]
+  result: { rtt?: number, error?: string }[]
 }
 
 // A periodic ping costs 1 credit per packet and a one-off result costs twice as much (credits docs): 6 for the default 3 packets.
@@ -129,6 +129,9 @@ export async function fetchChallenges(signal: AbortSignal) {
   }
   throw new ChallengeError(messages[response.status] ?? 'Não foi possível consultar os seus desafios. Tente de novo.')
 }
+
+// With the name resolved on the probe, a DNS failure there sends no packet: sent is 0 and the reason comes in result.
+export const dnsFailure = (round: PingResult) => round.sent === 0 ? round.result.find(packet => packet.error)?.error ?? null : null
 
 // The measurement is public, so its results come straight from RIPE Atlas. An empty list means it is still running.
 export async function fetchPingResult(measurementId: number, signal: AbortSignal) {

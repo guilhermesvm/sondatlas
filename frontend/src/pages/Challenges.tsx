@@ -2,7 +2,7 @@ import { Alert, Anchor, Autocomplete, Button, Group, Modal, SegmentedControl, Se
 import { Fragment, useEffect, useState, type MouseEvent, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
-import { ChallengeError, createPing, destinations, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Challenge, type Measurement, type PingResult } from '../features/challenges/challenge'
+import { ChallengeError, createPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Challenge, type Measurement, type PingResult } from '../features/challenges/challenge'
 import { formatMetric } from '../features/ping-history/chart'
 import '../features/lessons/lessons.css'
 import Loading from '../lib/Loading'
@@ -26,11 +26,12 @@ function Missing({ ids }: { ids: string[] }) {
   </Fragment>)}</>
 }
 
-function Terminal({ round }: { round: PingResult }) {
+function Terminal({ round, target }: { round: PingResult, target: string }) {
   const address = round.dst_addr ?? round.dst_name
   const lost = round.sent - round.rcvd
-  const lines = [
-    `ping ${round.dst_name}${round.dst_addr && round.dst_addr !== round.dst_name ? ` (${round.dst_addr})` : ''}${round.size ? `, pacotes de ${round.size} bytes` : ''}`,
+  const failure = dnsFailure(round)
+  const lines = failure ? [`ping ${target}`, `ping: ${failure}`] : [
+    `ping ${target}${round.dst_addr && round.dst_addr !== target ? ` (${round.dst_addr})` : ''}${round.size ? `, pacotes de ${round.size} bytes` : ''}`,
     ...round.result.map(packet => packet.rtt === undefined ? 'sem resposta (pacote perdido)' : `resposta de ${address}: tempo=${ms(packet.rtt)}`),
     '',
     `${round.sent} enviados, ${round.rcvd} recebidos, ${Math.round(lost / Math.max(round.sent, 1) * 100)}% de perda`,
@@ -49,6 +50,15 @@ function comparison(avg: number, kRoot: number) {
 }
 
 function Explained({ round, target, kRoot }: { round: PingResult, target: string, kRoot: number | null }) {
+  if (dnsFailure(round)) return <dl className="lesson-reading">
+    <div>
+      <dt>Nenhum pacote enviado</dt>
+      <dd>
+        A probe não conseguiu descobrir o endereço de {target} pelo DNS da rede dela, então não mediu nada.
+        Confira se o nome está escrito certo. Se estiver, o DNS da rede pode ter falhado nesse momento, e vale tentar de novo.
+      </dd>
+    </div>
+  </dl>
   return <dl className="lesson-reading">
     {round.rcvd > 0 && <div>
       <dt>{ms(round.avg)}</dt>
@@ -152,7 +162,7 @@ function Result({ id }: { id: number }) {
       O resultado ainda não chegou. A medição foi criada, e você pode ver o resultado mais tarde na {pageLink('página dela no RIPE Atlas')}.
     </Text>}
     {round && <>
-      <Terminal round={round} />
+      <Terminal round={round} target={measurement.target} />
       <Title order={3} size="h5" mt="lg" mb="xs">O que o resultado quer dizer</Title>
       <Explained round={round} target={measurement.target} kRoot={kRoot} />
       <Text size="sm" mt="md">
@@ -228,7 +238,7 @@ function PingChallenge({ account }: { account: Account }) {
     <Title order={2} size="h4" id="ping-challenge">Desafio: um ping seu</Title>
     <Text size="sm" mt={4} maw={680}>
       Escolha uma das suas probes e um destino. A probe manda alguns pacotes e mede quanto tempo eles levam para ir e voltar, como na <Anchor href="#/aprender/ping">lição de ping</Anchor>, só que para o destino que você escolher.
-      Com um nome, o RIPE Atlas descobre o endereço antes de medir. Com um endereço IPv4, a probe mede direto.
+      Com um nome, a probe descobre o endereço pelo DNS da rede dela, como o seu computador faria. Com um endereço IPv4, a probe mede direto.
     </Text>
     <form onSubmit={review}>
       <Group align="flex-start" gap="md" mt="md">
