@@ -1,11 +1,11 @@
-import { Anchor, Button, List, NativeSelect, Text } from '@mantine/core'
+import { Alert, Anchor, Button, List, NativeSelect, Text } from '@mantine/core'
 import { useState } from 'react'
 import Loading from '../../lib/Loading'
 import SystemError from '../../lib/SystemError'
 import { formatLocal } from '../../lib/time'
 import { formatMetric } from '../ping-history/chart'
 import LessonParts from './LessonParts'
-import { median, roots, useTraceroute, type Hop, type HopNetwork, type Root, type Route } from './useTraceroute'
+import { median, roots, useTraceroute, type Hop, type HopNetwork, type Root, type Route, type Source } from './useTraceroute'
 import './lessons.css'
 
 const ms = (value: number) => `${formatMetric(value)} ms`
@@ -87,6 +87,19 @@ function RootPicker({ root, onChange }: { root: Root, onChange: (root: Root) => 
   </div>
 }
 
+const sourceRoles: Record<Source, string> = {
+  RIPEstat: 'o RIPEstat diz a qual rede pertence cada endereço',
+  PeeringDB: 'o PeeringDB diz quais endereços são pontos de troca e onde eles ficam',
+}
+
+function MissingSources({ missing, onRetry }: { missing: Source[], onRetry: () => void }) {
+  return <Alert color="yellow" mt="md" maw={720} title={`Não foi possível consultar ${list(missing.map(source => `o ${source}`))} agora`}>
+    A rota e os tempos vieram do RIPE Atlas e estão certos. O que pode faltar são nomes e lugares: {list(missing.map(source => sourceRoles[source]))}.
+    Por isso alguns saltos podem aparecer como rede não identificada.
+    <div><Button variant="default" size="xs" mt="sm" onClick={onRetry}>Tentar de novo</Button></div>
+  </Alert>
+}
+
 function YourData({ data, root, onRoot }: { data: ReturnType<typeof useTraceroute>, root: Root, onRoot: (root: Root) => void }) {
   if (data.probeId === null) return <>
     <Text size="sm">Acompanhe uma probe para ver a rota dela aqui.</Text>
@@ -94,10 +107,14 @@ function YourData({ data, root, onRoot }: { data: ReturnType<typeof useTracerout
   </>
   return <>
     <RootPicker root={root} onChange={onRoot} />
-    {data.error && <SystemError title="Não foi possível ler a rota da sua probe">{data.error}</SystemError>}
+    {data.error && <SystemError title="Não foi possível ler a rota da sua probe">
+      {data.error}
+      <div><Button variant="default" size="xs" mt="sm" onClick={data.retry}>Tentar de novo</Button></div>
+    </SystemError>}
     {!data.error && !data.loaded && <Loading mt="md">Lendo a rota da sua probe…</Loading>}
     {data.loaded && !data.route && <Text size="sm" mt="md">O RIPE Atlas ainda não tem uma rota desta probe até o {root.name}. A medição roda a cada 30 minutos.</Text>}
     {data.route && <>
+      {data.route.missing.length > 0 && <MissingSources missing={data.route.missing} onRetry={data.retry} />}
       <Terminal route={data.route} root={root} />
       <HopTable route={data.route} root={root} />
     </>}

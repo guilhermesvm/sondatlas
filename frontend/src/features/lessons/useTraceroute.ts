@@ -36,7 +36,11 @@ export interface Hop {
   network: HopNetwork
 }
 
+export type Source = 'RIPEstat' | 'PeeringDB'
+
 export interface Route {
+  // Sources that did not answer: the route itself comes from RIPE Atlas, only names and places are missing.
+  missing: Source[]
   timestamp: number
   destination: string
   protocol: string
@@ -77,14 +81,15 @@ interface Exchange {
 }
 
 // Exchange points (IXPs) use addresses no network announces. PeeringDB says which exchange and member each one belongs to, and where the exchange is.
-async function exchanges(addresses: string[], signal: AbortSignal) {
+async function exchanges(addresses: string[], signal: AbortSignal, failed: Set<Source>) {
   if (!addresses.length) return new Map<string, Exchange>()
   const members = new URLSearchParams({ ipaddr4__in: addresses.join(','), fields: 'ipaddr4,name,asn,ix_id' })
   const { data } = await readJson<{ data: { ipaddr4: string, name: string, asn: number, ix_id: number }[] }>(`https://www.peeringdb.com/api/netixlan?${members}`, signal)
   const ids = [...new Set(data.map(row => row.ix_id))]
   const places = ids.length
     ? (await readJson<{ data: { id: number, name: string, city: string, country: string }[] }>(
-      `https://www.peeringdb.com/api/ix?${new URLSearchParams({ id__in: ids.join(','), fields: 'id,name,city,country' })}`, signal).catch(() => ({ data: [] }))).data
+      `https://www.peeringdb.com/api/ix?${new URLSearchParams({ id__in: ids.join(','), fields: 'id,name,city,country' })}`, signal)
+      .catch(() => { failed.add('PeeringDB'); return { data: [] } })).data
     : []
   const byId = new Map(places.map(place => [place.id, place]))
   return new Map(data.map(row => {
@@ -113,11 +118,15 @@ async function fetchRoute(probeId: number, measurement: number, signal: AbortSig
     address: result.find(packet => packet.from)?.from ?? null,
     rtts: result.map(packet => typeof packet.rtt === 'number' ? packet.rtt : null),
   }))
+  const failed = new Set<Source>()
   const publicAddresses = [...new Set(hops.map(hop => hop.address).filter((address): address is string => Boolean(address) && !isPrivate(address!)))]
-  const asns = new Map(await Promise.all(publicAddresses.map(async address => [address, await asnOf(address, signal).catch(() => null)] as const)))
-  const exchange = await exchanges(publicAddresses.filter(address => asns.get(address) === null), signal).catch(() => new Map<string, Exchange>())
-  const holderAsns = [...new Set([...asns.values(), ...[...exchange.values()].map(row => row.asn)].filter((asn): asn is number => asn !== null))]
-  const holders = new Map(await Promise.all(holderAsns.map(async asn => [asn, await fetchHolder(asn, signal).catch(() => null)] as const)))
+  const asns = new Map(await Promise.all(publicAddresses.map(async address =>
+    [address, await asnOf(address, signal).catch(() => { failed.add('RIPEstat'); return undefined })] as const)))
+  const exchange = await exchanges(publicAddresses.filter(address => asns.get(address) === null), signal, failed)
+    .catch(() => { failed.add('PeeringDB'); return new Map<string, Exchange>() })
+  const holderAsns = [...new Set([...asns.values(), ...[...exchange.values()].map(row => row.asn)].filter((asn): asn is number => typeof asn === 'number'))]
+  const holders = new Map(await Promise.all(holderAsns.map(async asn =>
+    [asn, await fetchHolder(asn, signal).catch(() => { failed.add('RIPEstat'); return null })] as const)))
 
   const network = (address: string | null): HopNetwork => {
     if (!address) return { kind: 'silent' }
@@ -130,6 +139,7 @@ async function fetchRoute(probeId: number, measurement: number, signal: AbortSig
       : { kind: 'unknown' }
   }
   return {
+    missing: [...failed],
     timestamp: round.timestamp,
     destination: round.dst_addr,
     protocol: round.proto,
@@ -144,6 +154,7 @@ export function useTraceroute(measurement: number) {
   const [route, setRoute] = useState<Route | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (!probeId) return
@@ -153,9 +164,14 @@ export function useTraceroute(measurement: number) {
     setError('')
     fetchRoute(probeId, measurement, controller.signal)
       .then(result => { setRoute(result); setLoaded(true) })
-      .catch(() => { if (!controller.signal.aborted) setError('O RIPE Atlas não respondeu agora. Tente de novo em instantes.') })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setError(navigator.onLine === false
+          ? 'O seu computador está sem Internet agora. Confira a conexão e tente de novo.'
+          : 'O RIPE Atlas não respondeu agora. Tente de novo em instantes.')
+      })
     return () => controller.abort()
-  }, [probeId, measurement])
+  }, [probeId, measurement, attempt])
 
-  return { probeId, route, loaded, error }
+  return { probeId, route, loaded, error, retry: () => setAttempt(value => value + 1) }
 }

@@ -160,3 +160,26 @@ it('keeps the traceroute lesson readable without a followed probe', async () => 
   expect(await screen.findByText('Acompanhe uma probe para ver a rota dela aqui.')).toBeInTheDocument()
   expect(screen.getByText(/aqui aparece a rota dela contada em etapas/)).toBeInTheDocument()
 })
+
+it('warns when RIPEstat or PeeringDB do not answer and tries again on request', async () => {
+  const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
+  const route = vi.fn(() => json([{
+    timestamp: 1793049887, dst_addr: '193.0.14.129', proto: 'UDP', size: 40,
+    result: [{ hop: 1, result: [{ from: '187.16.221.197', rtt: 23 }] }, { hop: 2, result: [{ from: '193.0.14.129', rtt: 134 }] }],
+  }]))
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url === '/api/probe') return json({ probe_id: 1017210 })
+    if (url === '/api/targets') return json(catalog)
+    if (url.includes('/measurements/5001/latest/')) return route()
+    if (url.includes('network-info')) return json({ data: { asns: url.includes('187.16.221.197') ? [] : ['25152'] } })
+    if (url.includes('as-overview') || url.includes('peeringdb.com')) return json({ detail: 'unavailable' }, 503)
+    return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
+  }))
+  window.location.hash = '#/aprender/traceroute'
+  render(<App />)
+  const warning = await screen.findByRole('alert', { name: 'Não foi possível consultar o PeeringDB e o RIPEstat agora' })
+  expect(warning).toHaveTextContent('A rota e os tempos vieram do RIPE Atlas e estão certos.')
+  expect(screen.getByText('Rede não identificada')).toBeInTheDocument()
+  await userEvent.click(within(warning).getByRole('button', { name: 'Tentar de novo' }))
+  await vi.waitFor(() => expect(route).toHaveBeenCalledTimes(2))
+})
