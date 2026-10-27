@@ -81,6 +81,71 @@ function Native({ system }: { system: 'linux' | 'pi' }) {
   </>
 }
 
+const powershell = (script: string, noVm: boolean) => `powershell -ExecutionPolicy Bypass -File .\\${script}.ps1${noVm ? ' -NoVM' : ''}`
+const bash = (script: string, noVm: boolean) => `bash ${script}.sh${noVm ? ' --no-vm' : ''}`
+
+function Commands({ shell, noVm }: { shell: typeof powershell, noVm: boolean }) {
+  return <>
+    <Text size="sm">Para ligar:</Text>
+    <Command>{shell('start-kit', noVm)}</Command>
+    <Text size="sm">Para desligar:</Text>
+    <Command>{shell('stop-kit', noVm)}</Command>
+  </>
+}
+
+// The root start-kit and stop-kit scripts check the requirements, start the probe VM and the application and open the dashboard (README of the project).
+function StartAndStop({ system, vm }: { system: System, vm: boolean }) {
+  const noVm = !vm
+  return <section className="install-path" aria-labelledby="start-and-stop">
+    <Title order={2} id="start-and-stop" mb="xs">Ligar e desligar tudo</Title>
+    <Text maw={760}>
+      {vm
+        ? 'Depois da instalação, um comando liga a máquina virtual da probe e a Sondatlas juntas e abre o dashboard. Use sempre que ligar o computador de novo.'
+        : 'A probe liga sozinha junto com o sistema. Para a Sondatlas, um comando liga a aplicação e abre o dashboard. Use sempre que ligar o computador de novo.'}
+      {' '}Rodar de novo é seguro, e desligar não apaga os dados.
+    </Text>
+    <div className="install-choice">
+      {system === 'windows' && <>
+        <Text size="sm" fw={600}>No PowerShell, na pasta principal do projeto</Text>
+        <Commands shell={powershell} noVm={noVm} />
+        <Text size="sm" c="dimmed">No PowerShell, use o arquivo <code>.ps1</code>. O <code>bash start-kit.sh</code> não funciona ali.</Text>
+      </>}
+      {system === 'linux' && <>
+        <Text size="sm" fw={600}>Num terminal, na pasta principal do projeto</Text>
+        <Commands shell={bash} noVm={noVm} />
+      </>}
+      {system === 'pi' && <>
+        <Text size="sm">Rode no computador onde a Sondatlas fica, na pasta principal do projeto, não no Raspberry Pi.</Text>
+        <Text size="sm" fw={600} mt="sm">Windows, no PowerShell</Text>
+        <Commands shell={powershell} noVm />
+        <Text size="sm" fw={600} mt="sm">Linux</Text>
+        <Commands shell={bash} noVm />
+      </>}
+      {noVm && <Text size="sm" c="dimmed">O <code>{system === 'linux' ? '--no-vm' : '-NoVM ou --no-vm'}</code> no fim diz ao script que a sua probe não usa a máquina virtual do kit.</Text>}
+    </div>
+    <Accordion variant="separated" maw={820} mt="md">
+      {system === 'windows' && <Accordion.Item value="git-bash">
+        <Accordion.Control>Uso o Git Bash no Windows</Accordion.Control>
+        <Accordion.Panel><Commands shell={bash} noVm={false} /></Accordion.Panel>
+      </Accordion.Item>}
+      <Accordion.Item value="separate">
+        <Accordion.Control>Prefiro os comandos separados</Accordion.Control>
+        <Accordion.Panel>
+          {vm && <>
+            <Text size="sm">A probe, na pasta lab do projeto:</Text>
+            <Command>vagrant up</Command>
+          </>}
+          <Text size="sm">A Sondatlas, na pasta principal do projeto:</Text>
+          <Command>docker compose up -d --build</Command>
+          <Text size="sm">Para desligar, os mesmos lugares:</Text>
+          {vm && <Command>vagrant halt</Command>}
+          <Command>docker compose stop</Command>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
+  </section>
+}
+
 const vmProblems = [
   { title: 'O VirtualBox diz que a virtualização está desligada', body: <>
     <Text size="sm">Ative a virtualização (Intel VT-x ou AMD-V) na BIOS/UEFI do computador e crie a máquina virtual de novo:</Text>
@@ -97,11 +162,11 @@ const vmProblems = [
   { title: 'Está muito lento no Windows', windowsOnly: true, body:
     <Text size="sm">O Docker Desktop, que roda a Sondatlas, e o WSL2 ativam o Hyper-V no Windows. Com ele, o VirtualBox funciona num modo mais lento. Funciona, só demora mais.</Text> },
   { title: 'Desliguei o computador. E agora?', body: <>
-    <Text size="sm">Depois de ligar o computador, rode o comando abaixo na pasta lab.  A probe volta sozinha:</Text>
-    <Command>vagrant up</Command>
-    <Text size="sm">Para desligar a máquina virtual, use o comando abaixo. Não feche o VirtualBox com "Salvar o estado": a probe fica desconectada.</Text>
-    <Command>vagrant halt</Command>
-    <Text size="sm">Se isso já aconteceu, reinicie a máquina virtual:</Text>
+    <Text size="sm">
+      Depois de ligar o computador, use o comando de ligar de "Ligar e desligar tudo", logo acima. A probe volta sozinha.
+      Para desligar, use o comando de desligar de lá. Não feche o VirtualBox com "Salvar o estado": a probe fica desconectada.
+    </Text>
+    <Text size="sm">Se isso já aconteceu, reinicie a máquina virtual na pasta lab:</Text>
     <Command>vagrant reload</Command>
   </> },
   { title: 'Recriei a máquina virtual', body:
@@ -138,6 +203,7 @@ export default function Install() {
       {system === 'linux' && linuxPath === 'native' && <Native system="linux" />}
       {system === 'pi' && <Native system="pi" />}
     </div>
+    {(system !== 'linux' || linuxPath) && <StartAndStop system={system} vm={virtualMachine} />}
 
     {problems.length > 0 && <>
       <Title order={2} mt={40} mb="sm">Deu erro?</Title>

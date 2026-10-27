@@ -26,13 +26,15 @@ async function commandsOnEachPath() {
   return { windows, unanswered, linuxVm, debian, debianVm, pi }
 }
 
-it('shows only commands that the kit README also documents, on every path', async () => {
-  const readme = readFileSync(resolve('../lab/README.md'), 'utf-8').replaceAll('\\|', '|')
+it('shows only commands that the kit READMEs also document, on every path', async () => {
+  // The start-kit and stop-kit scripts are documented in the project README, with -NoVM and --no-vm as options at the end.
+  const readme = ['../lab/README.md', '../README.md'].map(file => readFileSync(resolve(file), 'utf-8')).join('\n').replaceAll('\\|', '|')
   const paths = await commandsOnEachPath()
   const commands = new Set(Object.values(paths).flat())
   expect(commands).toContain('vagrant reload')
   for (const command of commands) {
     const documented = command
+      .replace(/ (-NoVM|--no-vm)$/, '')
       .replace('https://github.com/guilhermesvm/network-measurement-platform.git', '<URL deste repositório>')
       .replace('network-measurement-platform/', '<pasta do repositório>/')
     expect(readme, command).toContain(documented)
@@ -44,11 +46,17 @@ it('keeps each system to its own commands', async () => {
   expect(unanswered).toEqual([])
   expect(debianVm).toEqual(linuxVm)
   expect(windows).toContain('winget install --id Oracle.VirtualBox --exact')
+  expect(windows).toContain('powershell -ExecutionPolicy Bypass -File .\\start-kit.ps1')
+  expect(windows).toContain('bash stop-kit.sh')
+  expect(linuxVm).toContain('bash start-kit.sh')
+  expect(linuxVm.some(command => command.startsWith('powershell'))).toBe(false)
+  expect(debian).toContain('bash start-kit.sh --no-vm')
+  expect(pi).toEqual(expect.arrayContaining(['powershell -ExecutionPolicy Bypass -File .\\start-kit.ps1 -NoVM', 'bash stop-kit.sh --no-vm']))
   expect(windows.some(command => command.startsWith('grep'))).toBe(false)
   expect(linuxVm).toContain("grep -Ec '(vmx|svm)' /proc/cpuinfo")
   expect(linuxVm.some(command => command.startsWith('winget') || command === 'systeminfo')).toBe(false)
   for (const native of [debian, pi]) {
     expect(native).toContain('sudo bash network-measurement-platform/lab/install-probe.sh')
-    expect(native.some(command => command.startsWith('vagrant') || command.startsWith('winget'))).toBe(false)
+    expect(native.some(command => command.startsWith('vagrant') || command.startsWith('winget') || command === 'bash start-kit.sh')).toBe(false)
   }
 })
