@@ -31,3 +31,9 @@ export const probeStatus = {
   id: 1017210, is_public: true,
   status: { id: 1, name: 'Connected', since: '2026-10-23T22:30:24Z' },
 }
+
+export const latestPing = [{
+  msm_id: 1001, prb_id: 1017210, timestamp: 1792969004, type: 'ping', af: 4, proto: 'ICMP',
+  dst_name: 'k.root-servers.net', dst_addr: '193.0.14.129', src_addr: '10.0.5.6', from: '203.0.113.77',
+  size: 32, ttl: 51, sent: 3, rcvd: 3, min: 22.4, avg: 26.4, max: 33, result: [{ rtt: 33 }, { rtt: 23.7 }, { rtt: 22.4 }],
+}]

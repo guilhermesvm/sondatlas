@@ -1,4 +1,5 @@
 import { Anchor, Button, Text } from '@mantine/core'
+import Loading from '../../lib/Loading'
 import SystemError from '../../lib/SystemError'
 import { formatLocal } from '../../lib/time'
 import { useProbe } from './ProbeProvider'
@@ -59,7 +60,7 @@ export function StatusCard({ probeId, probe, error, checking, onCheck, next }: {
       <Guidance probe={probe} next={next} />
       <History probe={probe} />
     </>}
-    {!probe && <Text size="sm">Consultando o RIPE Atlas…</Text>}
+    {!probe && <Loading>Consultando o RIPE Atlas…</Loading>}
     {probe && error && <Text size="sm" c="dimmed" mt="xs">Não foi possível atualizar agora. Este é o último status consultado.</Text>}
     {actions}
   </div>

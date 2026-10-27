@@ -38,10 +38,10 @@ export interface PingHistory {
   results: PingRecord[]
 }
 
-const localApiDown = 'A aplicação no seu computador não respondeu. Confira se ela está rodando e tente de novo.'
-const oldApi = 'A aplicação em execução ainda não tem essa função. Atualize com docker compose up -d --build.'
+export const localApiDown = 'A aplicação no seu computador não respondeu. Confira se ela está rodando e tente de novo.'
+export const oldApi = 'A aplicação em execução ainda não tem essa função. Atualize com docker compose up -d --build.'
 // The dev server and the web container answer 502 when they cannot reach the API.
-const proxyDown = 502
+export const proxyDown = 502
 
 async function readJson<T>(path: string, signal: AbortSignal): Promise<T> {
   let response: Response

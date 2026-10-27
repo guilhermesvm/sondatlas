@@ -46,6 +46,10 @@ Escolheu a placa errada? Rode `vagrant halt`. No VirtualBox, abra
 
 No fim, aparecem a **chave pública** e o link de cadastro.
 
+Para ligar a VM e a aplicação (dashboard) juntas, use o `start-kit` da pasta
+principal do projeto; para desligar as duas, o `stop-kit`. Os comandos estão no
+`README.md` principal, em *Quick start*.
+
 ## Ativar a probe
 
 1. Cadastre a chave em <https://atlas.ripe.net/register/swprobe> (requer conta RIPE).

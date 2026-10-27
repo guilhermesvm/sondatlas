@@ -3,6 +3,8 @@ export interface Connection {
   asn: number
   family: 4 | 6
   probes: number
+  // Which of the probes Sondatlas knows (the account's and the followed one) are among those connected probes.
+  known: number[]
 }
 
 function stat(call: string, resource?: string) {
@@ -16,15 +18,26 @@ async function readJson<T>(url: string, signal: AbortSignal): Promise<T> {
   return await response.json() as T
 }
 
-export async function checkConnection(signal: AbortSignal): Promise<Connection> {
+export async function fetchHolder(asn: number, signal: AbortSignal) {
+  const { data } = await readJson<{ data: { holder: string } }>(stat('as-overview', `AS${asn}`), signal)
+  // RIPEstat writes "HANDLE - Name", like "AS263077 - RazaoInfo Internet Ltda" or "HURRICANE - Hurricane Electric LLC".
+  return data.holder.replace(/^\S+\s+-\s+/, '')
+}
+
+// known can still be loading: it runs alongside the RIPEstat lookups.
+export async function checkConnection(signal: AbortSignal, known: Promise<number[]> | number[] = []): Promise<Connection> {
   const { data: { ip } } = await readJson<{ data: { ip: string } }>(stat('whats-my-ip'), signal)
   const { data: { asns } } = await readJson<{ data: { asns: string[] } }>(stat('network-info', ip), signal)
   if (!asns.length) throw new Error('No ASN for this address')
   const asn = Number(asns[0])
   const family = ip.includes(':') ? 6 : 4
-  const [overview, probes] = await Promise.all([
-    readJson<{ data: { holder: string } }>(stat('as-overview', `AS${asn}`), signal),
-    readJson<{ count: number }>(`https://atlas.ripe.net/api/v2/probes/?asn_v${family}=${asn}&status=1&page_size=1&fields=id`, signal),
+  const connected = `https://atlas.ripe.net/api/v2/probes/?asn_v${family}=${asn}&status=1`
+  const [holder, probes, found] = await Promise.all([
+    fetchHolder(asn, signal),
+    readJson<{ count: number }>(`${connected}&page_size=1&fields=id`, signal),
+    Promise.resolve(known).then(ids => ids.length
+      ? readJson<{ results: { id: number }[] }>(`${connected}&id__in=${ids.join(',')}&page_size=100&fields=id`, signal)
+      : { results: [] }),
   ])
-  return { holder: overview.data.holder.replace(/^AS\d+\s*-\s*/, ''), asn, family, probes: probes.count }
+  return { holder, asn, family, probes: probes.count, known: found.results.map(probe => probe.id) }
 }

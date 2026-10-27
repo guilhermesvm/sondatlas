@@ -31,6 +31,21 @@ Requirements: Docker Desktop, or Docker Engine with the Compose plugin
 the optional `.env`). No Python and no `.env` are needed. Your probe runs
 separately (see `lab/README.md`).
 
+To start the probe VM and the application with one command, checking the
+requirements first and opening the dashboard at the end:
+
+| Terminal | Start | Stop |
+|---|---|---|
+| PowerShell (Windows) | `powershell -ExecutionPolicy Bypass -File .\start-kit.ps1` | `powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1` |
+| Git Bash (Windows) or Linux | `bash start-kit.sh` | `bash stop-kit.sh` |
+
+Add `-NoVM` (PowerShell) or `--no-vm` (bash) at the end when your probe does
+not use the kit VM. `-ExecutionPolicy Bypass` applies only to that run:
+Windows client computers block scripts by default (**Restricted**). Running
+either script again is safe; `stop-kit` keeps all data. The commands below still
+work on their own, to start only the application (or only the probe, with
+`vagrant up` in `lab/`).
+
 ```bash
 docker compose up -d --build
 docker compose exec pipeline python fetch_results.py --probe-id <your probe ID>
@@ -150,7 +165,8 @@ src/ripe_atlas_tcc/
 ```
 
 The root `fetch_results.py` file is a compatibility entry point that delegates
-execution to the package.
+execution to the package. The root `start-kit` and `stop-kit` scripts (`.ps1` and
+`.sh`) start and stop the probe VM and the application together.
 
 ## Prerequisites
 

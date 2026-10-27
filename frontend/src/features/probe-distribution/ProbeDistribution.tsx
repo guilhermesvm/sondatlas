@@ -1,4 +1,5 @@
 import { Button, Loader, Paper, Title } from '@mantine/core'
+import Loading from '../../lib/Loading'
 import SystemError from '../../lib/SystemError'
 import { useEffect, useRef, useState } from 'react'
 import { fetchDistribution, type ProbeDistribution as Distribution } from '../../lib/api'
@@ -66,7 +67,7 @@ export default function ProbeDistribution({ active }: { active: boolean }) {
         {refreshing ? 'Atualizando…' : 'Atualizar distribuição'}
       </Button>
     </div>
-    {reading && <p role="status">Lendo a última coleta salva…</p>}
+    {reading && <Loading mt="md">Lendo a última coleta salva…</Loading>}
     {refreshing && <p role="status">Coletando todas as páginas e salvando o resumo. Isso pode levar alguns minutos; a coleta anterior permanece visível.</p>}
     {notice && <p role="status">{notice}</p>}
     {error && <SystemError title="Não foi possível carregar a distribuição global" mt="md">{error}

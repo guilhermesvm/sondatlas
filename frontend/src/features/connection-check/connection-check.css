@@ -1,5 +1,6 @@
 .connection-holder { font-size: 20px; font-weight: 700; line-height: 1.25; color: var(--brand-text); }
 .probe-dots { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
 .probe-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--mantine-primary-color-filled); }
+.probe-dot.mine { background: var(--brand-text); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand-text); margin: 0 3px; }
 .probe-dot.yours { background: transparent; border: 2px dashed var(--brand-text); width: 14px; height: 14px; }
 .probe-dots-more { font-size: 13px; color: var(--muted); }

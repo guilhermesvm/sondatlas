@@ -1,0 +1,16 @@
+.badge-group { margin-top: 32px; max-width: 980px; }
+.badge-grid { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 24px 20px; }
+.badge-mark { width: 84px; height: 84px; display: grid; place-items: center; border-radius: var(--mantine-radius-md); border: 1px dashed var(--line); background: var(--surface); color: var(--muted); }
+.badge[data-earned='true'] .badge-mark { border: 2px solid var(--badge-line); background: var(--badge-bg); color: var(--badge-text); }
+.badge-number { display: flex; flex-direction: column; align-items: center; font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.badge-number small { margin-top: 4px; font-size: 13px; font-weight: 600; }
+.badge-title { margin: 10px 0 2px; font-size: 15px; font-weight: 600; }
+.badge-rule { margin: 0; font-size: 14px; }
+.badge-status { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.badge[data-earned='true'] .badge-status { color: var(--badge-text); font-weight: 600; }
+.badge-loader { display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.badge-progress { margin-top: 8px; max-width: 160px; }
+@media (max-width: 600px) {
+  .badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
+  .badge-mark { width: 72px; height: 72px; }
+}

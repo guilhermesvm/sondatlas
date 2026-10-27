@@ -1,5 +1,5 @@
 import { Alert, Anchor, Box, Button, Group, List, SegmentedControl, Text, TextInput, Title } from '@mantine/core'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { StatusCard } from '../features/probe-status/ProbeStatusCard'
 import { fetchProbeStatus, parseProbeId, ProbeNotFoundError, type ProbeStatus } from '../features/probe-status/status'
 import Command from './Command'
@@ -39,7 +39,7 @@ export default function Activate() {
     }
   }
 
-  function submit(event: FormEvent) {
+  function submit(event: SubmitEvent) {
     event.preventDefault()
     setError('')
     setProbe(null)
