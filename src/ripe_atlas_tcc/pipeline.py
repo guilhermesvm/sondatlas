@@ -373,7 +373,8 @@ def positive_int(value):
 
 def main(arguments=None):
     parser = argparse.ArgumentParser(
-        description="Collect RIPE Atlas measurement results."
+        prog="python -m ripe_atlas_tcc",
+        description="Collect RIPE Atlas measurement results.",
     )
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument(

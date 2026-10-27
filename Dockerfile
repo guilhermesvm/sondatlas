@@ -6,7 +6,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
-COPY fetch_results.py ./
 RUN pip install --no-cache-dir -e . \
     && useradd --uid 1000 --no-create-home app
 USER app

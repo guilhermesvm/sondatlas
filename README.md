@@ -48,7 +48,7 @@ work on their own, to start only the application (or only the probe, with
 
 ```bash
 docker compose up -d --build
-docker compose exec pipeline python fetch_results.py --probe-id <your probe ID>
+docker compose exec pipeline python -m ripe_atlas_tcc --probe-id <your probe ID>
 ```
 
 1. On every `up`, the short-lived `init` service checks the InfluxDB password
@@ -104,7 +104,7 @@ acceptable only because everything runs locally; do not expose these ports to
 a network. An `INFLUXDB_TOKEN` in `.env` takes precedence over the generated
 one, which keeps older installations configured by hand working.
 
-At this point, `fetch_results.py`:
+At this point, the pipeline (`python -m ripe_atlas_tcc`):
 
 - queries the RIPE Atlas REST API v2;
 - retrieves a 15-minute initial history and later resumes from its checkpoint;
@@ -164,8 +164,8 @@ src/ripe_atlas_tcc/
     init_secrets.py         creates the InfluxDB password and token for Compose
 ```
 
-The root `fetch_results.py` file is a compatibility entry point that delegates
-execution to the package. The root `start-kit` and `stop-kit` scripts (`.ps1` and
+The pipeline runs with `python -m ripe_atlas_tcc` (the package's
+`__main__.py`). The root `start-kit` and `stop-kit` scripts (`.ps1` and
 `.sh`) start and stop the probe VM and the application together.
 
 ## Prerequisites
@@ -289,7 +289,7 @@ https://atlas.ripe.net/probes/mine). The ID is public, so it is not kept in
 `.env`:
 
 ```bash
-python fetch_results.py --probe-id 1017210
+python -m ripe_atlas_tcc --probe-id 1017210
 ```
 
 The pipeline checks that the probe exists in RIPE Atlas and saves the ID in
@@ -303,7 +303,7 @@ a message asking for `--probe-id`.
 With the virtual environment active, run one collection cycle:
 
 ```bash
-python fetch_results.py
+python -m ripe_atlas_tcc
 ```
 
 The package entry point provides an equivalent command:
@@ -315,7 +315,7 @@ python -m ripe_atlas_tcc
 Add `--poll` to either command to keep the pipeline running continuously:
 
 ```bash
-python fetch_results.py --poll
+python -m ripe_atlas_tcc --poll
 python -m ripe_atlas_tcc --poll
 ```
 
@@ -335,21 +335,21 @@ The pipeline can run in a container, without Python on the host:
 
 ```bash
 docker compose up -d --build pipeline
-docker compose exec pipeline python fetch_results.py --probe-id 1017210
+docker compose exec pipeline python -m ripe_atlas_tcc --probe-id 1017210
 docker compose logs -f pipeline
 ```
 
-The `pipeline` service runs `fetch_results.py --poll` and shares the project's
+The `pipeline` service runs `python -m ripe_atlas_tcc --poll` and shares the project's
 `data/` folder, so raw and normalized JSON files and the state stay in the same
 places. Run other commands inside the running container with
-`docker compose exec pipeline python fetch_results.py ...` (for example
+`docker compose exec pipeline python -m ripe_atlas_tcc ...` (for example
 `--all-time`); `docker compose run` would start a separate container that the
 execution lock cannot see. `docker compose stop pipeline` stops polling like
 `Ctrl+C` and `docker compose start pipeline` resumes it; InfluxDB keeps running.
 
 Do not run the host pipeline and the container pipeline at the same time:
 they share `data/state/`, but neither can check the other's process. Stop the
-container before running `python fetch_results.py` on the host.
+container before running `python -m ripe_atlas_tcc` on the host.
 
 ## Initializing all available history
 
@@ -359,7 +359,7 @@ selected probe since it first connected. It never runs
 automatically; normal collection starts from the moment the probe is selected:
 
 ```bash
-python fetch_results.py --all-time
+python -m ripe_atlas_tcc --all-time
 ```
 
 The equivalent package command is:

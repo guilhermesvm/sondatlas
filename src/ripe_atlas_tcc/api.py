@@ -77,7 +77,7 @@ def get_probe():
 @app.put(
     "/probe",
     summary="Check the probe in RIPE Atlas and save it as the selected probe",
-    description="Same check and file as fetch_results.py --probe-id. A running --poll picks the new probe up on its next cycle. On any failure the previous selection is kept. is_public tells whether anonymous readers (this project) can see the probe's results.",
+    description="Same check and file as python -m ripe_atlas_tcc --probe-id. A running --poll picks the new probe up on its next cycle. On any failure the previous selection is kept. is_public tells whether anonymous readers (this project) can see the probe's results.",
     responses={
         404: {"description": "Probe does not exist in RIPE Atlas"},
         503: {"description": "RIPE Atlas unavailable or selection not saved; previous selection is kept"},

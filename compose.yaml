@@ -34,7 +34,7 @@ services:
   pipeline:
     build: .
     image: ripe-atlas-tcc-app
-    command: ["python", "fetch_results.py", "--poll"]
+    command: ["python", "-m", "ripe_atlas_tcc", "--poll"]
     restart: unless-stopped
     stop_signal: SIGINT
     env_file:

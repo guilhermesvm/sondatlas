@@ -351,6 +351,13 @@ def test_main_rejects_poll_with_all_time():
         pipeline.main(["--poll", "--all-time"])
 
 
+def test_main_help_shows_the_module_command(capsys):
+    with pytest.raises(SystemExit):
+        pipeline.main(["--help"])
+
+    assert capsys.readouterr().out.startswith("usage: python -m ripe_atlas_tcc ")
+
+
 def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):
     events = []
     sleep_count = 0
