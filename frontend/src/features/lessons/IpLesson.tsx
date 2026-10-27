@@ -122,7 +122,12 @@ export default function IpLesson() {
       </>,
     },
     { title: 'O seu dado', content: <YourData {...data} /> },
-    { title: 'Como ler', content: <Reading addresses={data.addresses} /> },
+    {
+      title: 'Como ler',
+      content: data.probeId !== null && !data.addresses && !data.error
+        ? <Loading>Esperando os dados da sua probe…</Loading>
+        : <Reading addresses={data.addresses} />,
+    },
     {
       title: 'O que não mostra',
       content: <ul className="lesson-limits">

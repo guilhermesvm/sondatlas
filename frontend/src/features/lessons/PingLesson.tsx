@@ -120,7 +120,12 @@ export default function PingLesson() {
       </>,
     },
     { title: 'O seu dado', content: <YourData {...data} /> },
-    { title: 'Como ler', content: <Reading days={data.days} latest={data.latest} /> },
+    {
+      title: 'Como ler',
+      content: data.probeId !== null && !data.days && !data.error
+        ? <Loading>Esperando os dados da sua probe…</Loading>
+        : <Reading days={data.days} latest={data.latest} />,
+    },
     {
       title: 'O que não mostra',
       content: <ul className="lesson-limits">
