@@ -1,6 +1,7 @@
 import ipaddress
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import requests
@@ -162,12 +163,17 @@ def fetch_challenges(key):
 
 def fetch_account(key):
     """RIPE answers a missing permission like an invalid key, so the key is
-    refused only when no permission works; otherwise the missing ones are listed."""
-    credits = fetch_credits(key)
-    scheduling = can_schedule(key)
-    listing = can_list(key)
+    refused only when no permission works; otherwise the missing ones are listed.
+    The five requests do not depend on each other, so they run at the same time."""
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        credits = pool.submit(fetch_credits, key)
+        scheduling = pool.submit(can_schedule, key)
+        listing = pool.submit(can_list, key)
+        probes = pool.submit(fetch_my_probes, key)
+        income = pool.submit(fetch_income, key)
+    credits, scheduling, listing, income = credits.result(), scheduling.result(), listing.result(), income.result()
     try:
-        probes = fetch_my_probes(key)
+        probes = probes.result()
     except KeyRefusedError:
         if credits is None and not scheduling and not listing:
             raise
@@ -176,7 +182,7 @@ def fetch_account(key):
         "connected": True,
         "probes": probes,
         "credits": credits,
-        "income": fetch_income(key) if credits is not None else None,
+        "income": income if credits is not None else None,
         "missing_permissions": [
             name for name, missing in (("probes", probes is None), ("credits", credits is None), ("measurements", not scheduling), ("my_measurements", not listing)) if missing
         ],

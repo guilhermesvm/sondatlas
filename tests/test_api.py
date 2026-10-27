@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import threading
 
 from fastapi.testclient import TestClient
 import pytest
@@ -396,13 +397,13 @@ def test_account_key_is_checked_saved_and_never_returned(account_api):
             "missing_permissions": []}
         assert "good-key" not in response.text
         assert "203.0.113" not in response.text
-    assert calls == [
+    assert sorted(calls) == sorted([
         ("https://atlas.ripe.net/api/v2/credits/", "Key good-key"),
         ("POST https://atlas.ripe.net/api/v2/measurements/", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/measurements/my/?page_size=1&fields=id", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/credits/income-items/", "Key good-key"),
-    ] * 2
+    ] * 2)
     assert atlas_account.load_key(state_path) == "good-key"
 
 
@@ -453,6 +454,23 @@ def test_saved_key_without_the_credits_permission_still_lists_probes(account_api
     assert account["credits"] is None
     assert account["income"] is None
     assert account["missing_permissions"] == ["credits"]
+
+
+def test_account_checks_run_at_the_same_time(monkeypatch):
+    together = threading.Barrier(5, timeout=5)
+
+    def waits_for_the_others(answer):
+        def check(key):
+            together.wait()
+            return answer
+        return check
+
+    monkeypatch.setattr(atlas_account, "fetch_credits", waits_for_the_others({"current_balance": 1, "estimated_daily_income": None}))
+    monkeypatch.setattr(atlas_account, "can_schedule", waits_for_the_others(True))
+    monkeypatch.setattr(atlas_account, "can_list", waits_for_the_others(True))
+    monkeypatch.setattr(atlas_account, "fetch_my_probes", waits_for_the_others([]))
+    monkeypatch.setattr(atlas_account, "fetch_income", waits_for_the_others([]))
+    assert atlas_account.fetch_account("good-key")["missing_permissions"] == []
 
 
 @pytest.fixture
