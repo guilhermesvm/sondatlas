@@ -111,10 +111,10 @@ export interface Challenge {
   probe_id: number | null
 }
 
-export async function fetchChallenges(signal: AbortSignal) {
+export async function fetchChallenges(signal: AbortSignal, oldest = false) {
   let response: Response
   try {
-    response = await fetch('/api/challenges', { signal })
+    response = await fetch(oldest ? '/api/challenges?oldest=true' : '/api/challenges', { signal })
   } catch (error) {
     if (signal.aborted) throw error
     throw new ChallengeError(localApiDown)

@@ -244,14 +244,14 @@ def post_ping_challenge(
 @app.get(
     "/challenges",
     summary="List the measurements the account created through Sondatlas",
-    description="Reads GET /api/v2/measurements/my/ with the saved key, only the ones tagged sondatlas, newest first: the 50 latest and the total count. Needs the List your measurements permission. The key is never returned.",
+    description="Reads GET /api/v2/measurements/my/ with the saved key, only the ones tagged sondatlas, newest first (oldest first with oldest=true, for the achievements): 50 of them and the total count. Needs the List your measurements permission. The key is never returned.",
     responses={
         409: {"description": "No RIPE Atlas account linked"},
         422: {"description": "The key lacks List your measurements (detail.missing_permissions)"},
         503: {"description": "RIPE Atlas unavailable or the saved key cannot be read"},
     },
 )
-def get_challenges():
+def get_challenges(oldest: Annotated[bool, Query(description="Oldest first, to date the first, 10th, 25th and 50th challenge")] = False):
     try:
         key = load_key(ACCOUNT_STATE_PATH)
     except (OSError, ValueError, KeyError) as error:
@@ -260,7 +260,7 @@ def get_challenges():
     if key is None:
         raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
     try:
-        return fetch_challenges(key)
+        return fetch_challenges(key, oldest)
     except MissingPermissionError:
         raise HTTPException(status_code=422, detail={"missing_permissions": ["my_measurements"]}) from None
     except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as error:

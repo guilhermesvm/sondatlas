@@ -584,6 +584,8 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
     assert asked == [("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=-id&page_size=50"
                       "&fields=id,type,target,creation_time,probes&optional_fields=probes", "Key good-key")]
     assert created == []
+    client.get("/challenges", params={"oldest": True})
+    assert asked[1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50")
 
 
 @pytest.mark.parametrize("status, expected, detail", [

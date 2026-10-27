@@ -1,12 +1,15 @@
 import type { AccountProbe, Credits } from '../atlas-account/account'
+import type { Challenge } from '../challenges/challenge'
 import { marathon, type Histories } from './connections'
 
 const hour = 3600
 const day = 24 * hour
 export const uptimeGoals = [day, 7 * day, 30 * day, 90 * day]
 
-export type Group = 'first' | 'uptime' | 'history' | 'credits'
+export type Group = 'first' | 'uptime' | 'history' | 'credits' | 'challenges'
 export type Pioneers = 'checking' | 'failed' | number[]
+// The oldest challenges first, so the n-th one dates the goal of n. Undefined without a linked account.
+export type ChallengeHistory = 'checking' | 'failed' | 'missing' | { count: number, oldest: Challenge[] }
 
 export interface Badge {
   id: string
@@ -100,7 +103,23 @@ function creditGoal(id: string, title: string, mark: string, goal: number, credi
   }
 }
 
-export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credits?: Credits | null, histories: Histories = 'checking'): Badge[] {
+function challengeGoal(id: string, title: string, mark: string, goal: number, rule: string, history?: ChallengeHistory): Badge {
+  const base = { id, group: 'challenges' as const, title, rule, mark }
+  if (typeof history !== 'object') {
+    const status = history === 'checking' ? checking : history === 'missing' ? 'Falta a permissão para listar as suas medições'
+      : history === 'failed' ? 'Não foi possível conferir agora' : 'Ainda não'
+    return { ...base, earned: false, status }
+  }
+  const { count, oldest } = history
+  if (count >= goal) return { ...base, earned: true, by: oldest[goal - 1]?.probe_id ?? undefined, on: oldest[goal - 1]?.created, status: '' }
+  const missing = goal - count
+  return {
+    ...base, earned: false, progress: goal > 1 && count ? count / goal : undefined,
+    status: !count ? 'Ainda não' : missing === 1 ? 'Falta 1 desafio' : `Faltam ${missing} desafios`,
+  }
+}
+
+export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credits?: Credits | null, histories: Histories = 'checking', challenges?: ChallengeHistory): Badge[] {
   const connected = probes
     .map(probe => ({ probe, first: seconds(probe.first_connected) }))
     .filter((item): item is { probe: AccountProbe, first: number } => item.first !== null)
@@ -144,6 +163,10 @@ export function computeBadges(probes: AccountProbe[], pioneers: Pioneers, credit
     ...historyBadges(probes, histories),
     creditGoal('credits-100k', '100 mil créditos', '100 mil', 100000, credits),
     creditGoal('credits-1m', '1 milhão de créditos', '1 milhão', 1000000, credits),
+    challengeGoal('challenge-1', 'Primeira sondagem', 'target', 1, 'Criar o seu primeiro desafio na Sondatlas.', challenges),
+    challengeGoal('challenge-10', 'Explorador', '10 desafios', 10, 'Criar 10 desafios na Sondatlas.', challenges),
+    challengeGoal('challenge-25', 'Navegador', '25 desafios', 25, 'Criar 25 desafios na Sondatlas.', challenges),
+    challengeGoal('challenge-50', 'Cartógrafo', '50 desafios', 50, 'Criar 50 desafios na Sondatlas.', challenges),
   ]
 }
 

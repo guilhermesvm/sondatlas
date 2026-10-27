@@ -27,3 +27,17 @@ it('reads the credit badges from the account balance', () => {
   expect(credits(null)).toMatchObject({ earned: false, status: 'Falta a permissão de créditos na chave' })
   expect(credits(undefined)).toMatchObject({ earned: false, status: 'Ainda não' })
 })
+
+it('dates each challenge goal by the challenge that reached it and says what is missing', () => {
+  const challenge = (index: number) => ({ id: index, type: 'ping', target: 'google.com', created: 1793000000 + index, probe_id: 1017210 + (index % 2) })
+  const goals = (history: Parameters<typeof computeBadges>[4]) => Object.fromEntries(computeBadges([], 'checking', undefined, 'checking', history)
+    .filter(badge => badge.group === 'challenges').map(badge => [badge.id, badge]))
+  const ten = goals({ count: 10, oldest: Array.from({ length: 10 }, (_, index) => challenge(index)) })
+  expect(ten['challenge-1']).toMatchObject({ earned: true, by: 1017210, on: 1793000000 })
+  expect(ten['challenge-10']).toMatchObject({ earned: true, by: 1017211, on: 1793000009 })
+  expect(ten['challenge-25']).toMatchObject({ earned: false, status: 'Faltam 15 desafios', progress: 0.4 })
+  expect(goals({ count: 49, oldest: [] })['challenge-50'].status).toBe('Falta 1 desafio')
+  expect(goals({ count: 0, oldest: [] })['challenge-1']).toMatchObject({ earned: false, status: 'Ainda não', progress: undefined })
+  expect(goals('missing')['challenge-10'].status).toBe('Falta a permissão para listar as suas medições')
+  expect(goals('failed')['challenge-10'].status).toBe('Não foi possível conferir agora')
+})

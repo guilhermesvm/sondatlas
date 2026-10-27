@@ -6,6 +6,7 @@ const icons: Record<string, ReactNode> = {
   flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
   reconnect: <><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16" /><path d="M20 20v-4h-4" /></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /><path d="m8.5 15 2.5 2.5 4.5-4.5" /></>,
+  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /><path d="M12 1v4M12 19v4M1 12h4M19 12h4" /></>,
   probes: <><rect x="3" y="9" width="11" height="11" rx="2" /><path d="M10 9V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-5" /></>,
 }
 

@@ -134,10 +134,10 @@ def can_list(key):
     return True
 
 
-def fetch_challenges(key):
-    """The newest measurements the key owner created through Sondatlas (tag sondatlas), with the total."""
+def fetch_challenges(key, oldest=False):
+    """The 50 newest (or oldest) measurements the key owner created through Sondatlas (tag sondatlas), with the total."""
     response = requests.get(
-        f"{MY_MEASUREMENTS_URL}?tags=sondatlas&sort=-id&page_size=50"
+        f"{MY_MEASUREMENTS_URL}?tags=sondatlas&sort={'id' if oldest else '-id'}&page_size=50"
         "&fields=id,type,target,creation_time,probes&optional_fields=probes",
         headers={"Authorization": f"Key {key}"},
         timeout=30,
