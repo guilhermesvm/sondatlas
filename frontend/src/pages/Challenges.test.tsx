@@ -23,16 +23,16 @@ const round = {
   sent: 3, rcvd: 3, min: 14, avg: 15, max: 16, result: [{ rtt: 14 }, { rtt: 15 }, { rtt: 16 }],
 }
 
-const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }] }
+const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }], resolve_on_probe: true }
 
 const noChallenges = { count: 0, challenges: [] }
 
-function stubBackend(account: unknown, results: unknown[] = [round], challenges: [unknown, number?] = [noChallenges]) {
+function stubBackend(account: unknown, results: unknown[] = [round], challenges: [unknown, number?] = [noChallenges], measurement: unknown = detail) {
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/account') return json(account)
     if (url === '/api/challenges') return json(...challenges)
     if (url === '/api/challenges/ping') return json({ measurement_id: 123456789 })
-    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(detail)
+    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(measurement)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/results/')) return json(results)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/1001/latest/?probe_ids=1017210')) return json([{ avg: 30, rcvd: 3 }])
     if (url === '/api/probe') return json({ probe_id: null })
@@ -67,6 +67,8 @@ it('creates a ping from a connected probe after showing the cost, and explains t
   expect(screen.getByText('15 ms')).toBeInTheDocument()
   expect(await screen.findByText(/O ping que a sua probe faz sozinha até o K-root leva cerca de 30 ms, então google.com está mais perto/)).toBeInTheDocument()
   expect(screen.getByText('3 de 3 pacotes')).toBeInTheDocument()
+  expect(screen.getByText(/É o endereço de google.com que a probe recebeu ao perguntar ao DNS da rede dela, antes de medir. Serviços grandes costumam ter servidores/)).toBeInTheDocument()
+  expect(screen.queryByText(/pode não ser o mais perto da sua probe/)).not.toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'página dela' })).toHaveAttribute('href', 'https://atlas.ripe.net/measurements/123456789/')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
 })
@@ -153,4 +155,18 @@ it('explains a name the probe could not resolve instead of counting packets', as
   expect(screen.getByText(/A probe não conseguiu descobrir o endereço de google.com pelo DNS da rede dela/)).toBeInTheDocument()
   expect(screen.queryByText(/Todos voltaram/)).not.toBeInTheDocument()
   expect(screen.queryByText(/de perda/)).not.toBeInTheDocument()
+})
+
+it('says when the name was resolved by RIPE Atlas, in a challenge made before the probe resolved it, and skips addresses', async () => {
+  window.location.hash = '#/desafios/123456789'
+  stubBackend({ connected: false }, [round], [noChallenges], { ...detail, resolve_on_probe: false })
+  const { unmount } = renderChallenges()
+  expect(await screen.findByText(/É o endereço de google.com que o RIPE Atlas encontrou nos servidores dele e mandou para a probe/)).toBeInTheDocument()
+  expect(screen.getByText(/este endereço pode não ser o mais perto da sua probe/)).toBeInTheDocument()
+  unmount()
+
+  stubBackend({ connected: false }, [round], [noChallenges], { ...detail, target: '8.8.8.8' })
+  renderChallenges()
+  expect(await screen.findByText('3 de 3 pacotes')).toBeInTheDocument()
+  expect(screen.queryByText(/Serviços grandes costumam ter servidores/)).not.toBeInTheDocument()
 })

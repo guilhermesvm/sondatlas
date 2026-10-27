@@ -49,7 +49,22 @@ function comparison(avg: number, kRoot: number) {
   return 'a uma distância parecida'
 }
 
-function Explained({ round, target, kRoot }: { round: PingResult, target: string, kRoot: number | null }) {
+const isAddress = (target: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(target)
+
+function Address({ round, target, resolvedOnProbe }: { round: PingResult, target: string, resolvedOnProbe: boolean }) {
+  return <div>
+    <dt>{round.dst_addr}</dt>
+    <dd>
+      {resolvedOnProbe
+        ? `É o endereço de ${target} que a probe recebeu ao perguntar ao DNS da rede dela, antes de medir.`
+        : `É o endereço de ${target} que o RIPE Atlas encontrou nos servidores dele e mandou para a probe.`}
+      {' '}Serviços grandes costumam ter servidores em vários lugares do mundo e responder com um perto de quem pergunta, para diminuir o tempo de resposta. Por isso o mesmo nome pode ter outro endereço em outro país.
+      {resolvedOnProbe ? '' : ' Como quem perguntou foi o RIPE Atlas, este endereço pode não ser o mais perto da sua probe. Os desafios novos deixam a própria probe perguntar.'}
+    </dd>
+  </div>
+}
+
+function Explained({ round, target, kRoot, resolvedOnProbe }: { round: PingResult, target: string, kRoot: number | null, resolvedOnProbe: boolean }) {
   if (dnsFailure(round)) return <dl className="lesson-reading">
     <div>
       <dt>Nenhum pacote enviado</dt>
@@ -67,6 +82,7 @@ function Explained({ round, target, kRoot }: { round: PingResult, target: string
         {kRoot ? <> O ping que a sua probe faz sozinha até o K-root leva cerca de {ms(kRoot)}, então {target} está {comparison(round.avg, kRoot)} da sua probe, pela rede.</> : ''}
       </dd>
     </div>}
+    {!isAddress(target) && round.dst_addr && <Address round={round} target={target} resolvedOnProbe={resolvedOnProbe} />}
     <div>
       <dt>{round.rcvd} de {round.sent} pacotes</dt>
       <dd>{round.rcvd === round.sent
@@ -164,7 +180,7 @@ function Result({ id }: { id: number }) {
     {round && <>
       <Terminal round={round} target={measurement.target} />
       <Title order={3} size="h5" mt="lg" mb="xs">O que o resultado quer dizer</Title>
-      <Explained round={round} target={measurement.target} kRoot={kRoot} />
+      <Explained round={round} target={measurement.target} kRoot={kRoot} resolvedOnProbe={measurement.resolvedOnProbe} />
       <Text size="sm" mt="md">
         Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a {pageLink('página dela')} quando quiser.
       </Text>

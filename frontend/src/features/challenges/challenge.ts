@@ -91,15 +91,16 @@ export interface Measurement {
   target: string
   type: string
   probeId: number | null
+  resolvedOnProbe: boolean
 }
 
 // Public details of any measurement, so a result opened from its own address does not need the account. Null when it does not exist.
 export async function fetchMeasurement(measurementId: number, signal: AbortSignal): Promise<Measurement | null> {
-  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes&optional_fields=probes`, { signal })
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes,resolve_on_probe&optional_fields=probes`, { signal })
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  const { target, type, probes } = await response.json() as { target: string, type: string, probes?: { id: number }[] }
-  return { target, type, probeId: probes?.[0]?.id ?? null }
+  const { target, type, probes, resolve_on_probe } = await response.json() as { target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean }
+  return { target, type, probeId: probes?.[0]?.id ?? null, resolvedOnProbe: Boolean(resolve_on_probe) }
 }
 
 export interface Challenge {
