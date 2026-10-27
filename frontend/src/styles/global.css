@@ -84,3 +84,5 @@ h3 { font-size: 18px; font-weight: 600; }
 .mantine-InputWrapper-error { font-size: var(--mantine-font-size-sm); }
 .system-error .mantine-Alert-title, .system-error .mantine-Alert-icon { color: var(--error-text); }
 .system-error .mantine-Alert-message { color: var(--mantine-color-text); }
+/* Collapsible items look like the other cards: Mantine's light gray fill matched the page background. */
+.mantine-Accordion-root .mantine-Accordion-item { background-color: var(--surface); border: 1px solid var(--line); }
