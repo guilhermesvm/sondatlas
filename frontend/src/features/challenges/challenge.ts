@@ -82,6 +82,26 @@ export async function createPing(probeId: number, target: string, packets: numbe
   throw new ChallengeError(messages[response.status] ?? 'Não foi possível criar o ping. Tente de novo.')
 }
 
+export function measurementFromHash(hash: string) {
+  const match = /^#\/desafios\/(\d+)$/.exec(hash)
+  return match ? Number(match[1]) : null
+}
+
+export interface Measurement {
+  target: string
+  type: string
+  probeId: number | null
+}
+
+// Public details of any measurement, so a result opened from its own address does not need the account. Null when it does not exist.
+export async function fetchMeasurement(measurementId: number, signal: AbortSignal): Promise<Measurement | null> {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes&optional_fields=probes`, { signal })
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const { target, type, probes } = await response.json() as { target: string, type: string, probes?: { id: number }[] }
+  return { target, type, probeId: probes?.[0]?.id ?? null }
+}
+
 // The measurement is public, so its results come straight from RIPE Atlas. An empty list means it is still running.
 export async function fetchPingResult(measurementId: number, signal: AbortSignal) {
   const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/results/`, { signal })

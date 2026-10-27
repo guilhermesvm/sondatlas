@@ -2,7 +2,7 @@ import { Alert, Anchor, Autocomplete, Button, Group, Modal, SegmentedControl, Se
 import { Fragment, useEffect, useState, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
-import { ChallengeError, createPing, destinations, fetchKRootAverage, fetchPingResult, packetChoices, pingCost, validTarget, type PingResult } from '../features/challenges/challenge'
+import { ChallengeError, createPing, destinations, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Measurement, type PingResult } from '../features/challenges/challenge'
 import { formatMetric } from '../features/ping-history/chart'
 import '../features/lessons/lessons.css'
 import Loading from '../lib/Loading'
@@ -17,11 +17,7 @@ const autoDescription = (target: string) => `Sondatlas: ping para ${target.trim(
 const pollEvery = 3000
 const pollTimes = 40
 
-interface Created {
-  id: number
-  probeId: number
-  target: string
-}
+const MineLink = () => <Anchor href="https://atlas.ripe.net/measurements/mine" target="_blank" rel="noreferrer">lista das suas medições</Anchor>
 
 function Missing({ ids }: { ids: string[] }) {
   const names = missingPermissions(ids)
@@ -78,22 +74,37 @@ function Explained({ round, target, kRoot }: { round: PingResult, target: string
   </dl>
 }
 
-function Result({ created, onAgain }: { created: Created, onAgain: () => void }) {
+const backToForm = () => { location.hash = '#/desafios' }
+
+function Result({ id }: { id: number }) {
+  const [measurement, setMeasurement] = useState<Measurement | null>()
+  const [lookupError, setLookupError] = useState(false)
   const [round, setRound] = useState<PingResult | null>(null)
   const [gaveUp, setGaveUp] = useState(false)
   const [kRoot, setKRoot] = useState<number | null>(null)
+  const [leaving, setLeaving] = useState(false)
+  const ping = measurement?.type === 'ping'
+  const probeId = measurement?.probeId
 
   useEffect(() => {
     const controller = new AbortController()
-    fetchKRootAverage(created.probeId, controller.signal).then(setKRoot, () => setKRoot(null))
+    fetchMeasurement(id, controller.signal).then(setMeasurement, () => { if (!controller.signal.aborted) setLookupError(true) })
     return () => controller.abort()
-  }, [created.probeId])
+  }, [id])
 
   useEffect(() => {
+    if (!probeId) return
+    const controller = new AbortController()
+    fetchKRootAverage(probeId, controller.signal).then(setKRoot, () => setKRoot(null))
+    return () => controller.abort()
+  }, [probeId])
+
+  useEffect(() => {
+    if (!ping) return
     const controller = new AbortController()
     let tries = 0
     let timer: ReturnType<typeof setTimeout>
-    const poll = () => fetchPingResult(created.id, controller.signal)
+    const poll = () => fetchPingResult(id, controller.signal)
       .then(result => {
         if (result) setRound(result)
         else if (++tries >= pollTimes) setGaveUp(true)
@@ -106,24 +117,51 @@ function Result({ created, onAgain }: { created: Created, onAgain: () => void })
       })
     poll()
     return () => { controller.abort(); clearTimeout(timer) }
-  }, [created.id])
+  }, [id, ping])
 
-  const page = `https://atlas.ripe.net/measurements/${created.id}/`
+  const page = `https://atlas.ripe.net/measurements/${id}/`
+  const pageLink = (text: string) => <Anchor href={page} target="_blank" rel="noreferrer">{text}</Anchor>
+  const measuring = ping && !round && !gaveUp
+  const again = <Button variant="default" mt="md" onClick={() => measuring ? setLeaving(true) : backToForm()}>Fazer outro ping</Button>
+
+  if (lookupError) return <>
+    <SystemError title="Não foi possível consultar a medição">O RIPE Atlas não respondeu agora. Recarregue a página em instantes.</SystemError>
+    {again}
+  </>
+  if (measurement === undefined) return <Loading mt="lg">Consultando a medição {id}…</Loading>
+  if (measurement === null) return <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
+    Confira o número no endereço da página.
+    <div>{again}</div>
+  </Alert>
+  if (!ping) return <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não é um ping`}>
+    Esta página explica só resultados de ping. Veja esta medição na {pageLink('página dela no RIPE Atlas')}.
+    <div>{again}</div>
+  </Alert>
+
   return <section className="follow-box" aria-labelledby="challenge-result">
-    <Text fw={600} id="challenge-result">Ping da probe {created.probeId} até {created.target}</Text>
-    {!round && !gaveUp && <Loading mt="sm">A probe está medindo. O resultado costuma chegar em alguns segundos…</Loading>}
+    <Text fw={600} id="challenge-result">Ping {probeId ? `da probe ${probeId} ` : ''}até {measurement.target}</Text>
+    {measuring && <Loading mt="sm">A probe está medindo. O resultado costuma chegar em alguns segundos…</Loading>}
     {gaveUp && <Text size="sm" mt="sm">
-      O resultado ainda não chegou. A medição foi criada, e você pode ver o resultado mais tarde na <Anchor href={page} target="_blank" rel="noreferrer">página dela no RIPE Atlas</Anchor>.
+      O resultado ainda não chegou. A medição foi criada, e você pode ver o resultado mais tarde na {pageLink('página dela no RIPE Atlas')}.
     </Text>}
     {round && <>
       <Terminal round={round} />
       <Title order={3} size="h5" mt="lg" mb="xs">O que o resultado quer dizer</Title>
-      <Explained round={round} target={created.target} kRoot={kRoot} />
+      <Explained round={round} target={measurement.target} kRoot={kRoot} />
       <Text size="sm" mt="md">
-        Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a <Anchor href={page} target="_blank" rel="noreferrer">página dela</Anchor> quando quiser.
+        Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a {pageLink('página dela')} quando quiser.
       </Text>
     </>}
-    <Button variant="default" mt="md" onClick={onAgain}>Fazer outro ping</Button>
+    {again}
+    <Modal opened={leaving} onClose={() => setLeaving(false)} centered title="Sair antes do resultado?">
+      <Text size="sm">
+        A probe continua medindo, e o resultado fica guardado no RIPE Atlas. Você pode vê-lo depois na {pageLink('página da medição')} ou na <MineLink />.
+      </Text>
+      <Group gap="sm" mt="lg" justify="flex-end">
+        <Button variant="default" onClick={() => setLeaving(false)}>Esperar o resultado</Button>
+        <Button onClick={backToForm}>Fazer outro ping</Button>
+      </Group>
+    </Modal>
   </section>
 }
 
@@ -138,7 +176,6 @@ function PingChallenge({ account }: { account: Account }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ChallengeError | null>(null)
-  const [created, setCreated] = useState<Created | null>(null)
   const [suggesting, setSuggesting] = useState(false)
 
   function review(event: SubmitEvent) {
@@ -157,17 +194,13 @@ function PingChallenge({ account }: { account: Account }) {
     setBusy(true)
     setError(null)
     try {
-      const id = await createPing(Number(probeId), target, Number(packets), description)
-      setCreated({ id, probeId: Number(probeId), target: target.trim().toLowerCase() })
-      setConfirming(false)
+      location.hash = `#/desafios/${await createPing(Number(probeId), target, Number(packets), description)}`
     } catch (reason) {
       setError(reason instanceof ChallengeError ? reason : new ChallengeError((reason as Error).message))
-    } finally {
       setBusy(false)
     }
   }
 
-  if (created) return <Result created={created} onAgain={() => { setCreated(null); setTarget(''); setDescription('') }} />
   if (!connected.length) return <Alert color="yellow" mt="md" maw={720} title="Nenhuma probe sua está conectada agora">
     O ping sai de uma probe sua, então ela precisa estar conectada. Veja o que fazer em <Anchor href="#/minha-probe">Minha probe</Anchor>.
   </Alert>
@@ -210,8 +243,9 @@ function PingChallenge({ account }: { account: Account }) {
       <Button type="submit" mt="md">Ver o custo</Button>
     </form>
     <Text size="sm" c="dimmed" mt="md">
-      Para mais opções, como várias probes, IPv6 ou outros tipos de medição, crie a medição no <Anchor href="https://atlas.ripe.net/measurements/form/" target="_blank" rel="noreferrer">site do RIPE Atlas</Anchor>.
+      Para mais opções, como várias probes, IPv6 ou outros tipos de medição, use o <Anchor href="https://atlas.ripe.net/measurements/form/" target="_blank" rel="noreferrer">formulário de criação de medições</Anchor> do RIPE Atlas.
     </Text>
+    <Text size="sm" c="dimmed" mt={4}>As medições que você já criou ficam na <MineLink />, no RIPE Atlas.</Text>
     {!confirming && errorText}
     <Modal opened={confirming} onClose={() => setConfirming(false)} closeOnClickOutside={false} centered title="Criar este ping?">
       <Text size="sm">Da probe <strong>{probeId}</strong> até <strong>{target.trim().toLowerCase()}</strong>, com {packets} pacotes.</Text>
@@ -232,6 +266,14 @@ function PingChallenge({ account }: { account: Account }) {
 export default function Challenges() {
   const [account, setAccount] = useState<Account | null>(null)
   const [error, setError] = useState('')
+  const [hash, setHash] = useState(location.hash)
+  const resultId = measurementFromHash(hash)
+
+  useEffect(() => {
+    const update = () => setHash(location.hash)
+    window.addEventListener('hashchange', update)
+    return () => window.removeEventListener('hashchange', update)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -250,16 +292,18 @@ export default function Challenges() {
     <Text size="lg" mt="sm" maw={900}>
       Medições criadas por você, com os seus créditos. Antes de criar, a Sondatlas mostra quanto custa. Para entender de onde vêm os créditos, veja a <Anchor href="#/aprender/creditos">lição de créditos</Anchor>.
     </Text>
-    {error && <SystemError title="Não foi possível consultar a sua conta">{error}</SystemError>}
-    {!account && !error && <Loading mt="lg">Consultando a sua conta…</Loading>}
-    {account && !account.connected && <Alert variant="light" mt="lg" maw={720} title="Vincule a sua conta do RIPE Atlas">
-      Os desafios usam a sua chave para criar medições com os seus créditos.
-      <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
-    </Alert>}
-    {account?.connected && missing.length > 0 && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
-      Para os desafios, a chave precisa de <Missing ids={missing} />. Edite a chave no site do RIPE Atlas e volte aqui.
-      <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
-    </Alert>}
-    {account?.connected && missing.length === 0 && <PingChallenge account={account} />}
+    {resultId ? <Result key={resultId} id={resultId} /> : <>
+      {error && <SystemError title="Não foi possível consultar a sua conta">{error}</SystemError>}
+      {!account && !error && <Loading mt="lg">Consultando a sua conta…</Loading>}
+      {account && !account.connected && <Alert variant="light" mt="lg" maw={720} title="Vincule a sua conta do RIPE Atlas">
+        Os desafios usam a sua chave para criar medições com os seus créditos.
+        <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
+      </Alert>}
+      {account?.connected && missing.length > 0 && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
+        Para os desafios, a chave precisa de <Missing ids={missing} />. Edite a chave no site do RIPE Atlas e volte aqui.
+        <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
+      </Alert>}
+      {account?.connected && missing.length === 0 && <PingChallenge account={account} />}
+    </>}
   </div>
 }

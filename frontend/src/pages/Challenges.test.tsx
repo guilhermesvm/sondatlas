@@ -5,7 +5,7 @@ import { ProbeProvider } from '../features/probe-status/ProbeProvider'
 import { render } from '../test/render'
 import Challenges from './Challenges'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); window.location.hash = '' })
 
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
 
@@ -23,11 +23,14 @@ const round = {
   sent: 3, rcvd: 3, min: 14, avg: 15, max: 16, result: [{ rtt: 14 }, { rtt: 15 }, { rtt: 16 }],
 }
 
-function stubBackend(account: unknown) {
+const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }] }
+
+function stubBackend(account: unknown, results: unknown[] = [round]) {
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/account') return json(account)
     if (url === '/api/challenges/ping') return json({ measurement_id: 123456789 })
-    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/results/')) return json([round])
+    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(detail)
+    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/results/')) return json(results)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/1001/latest/?probe_ids=1017210')) return json([{ avg: 30, rcvd: 3 }])
     if (url === '/api/probe') return json({ probe_id: null })
     return json({}, init ? 500 : 200)
@@ -55,6 +58,7 @@ it('creates a ping from a connected probe after showing the cost, and explains t
   await userEvent.click(within(dialog).getByRole('button', { name: 'Criar o ping' }))
   const post = mock.mock.calls.find(([url]) => url === '/api/challenges/ping')
   expect(post?.[1]?.body).toBe(JSON.stringify({ probe_id: 1017210, target: 'google.com', packets: 5, description: null }))
+  expect(window.location.hash).toBe('#/desafios/123456789')
   expect(await screen.findByText(/3 enviados, 3 recebidos, 0% de perda/)).toBeInTheDocument()
   expect(screen.getByText('15 ms')).toBeInTheDocument()
   expect(await screen.findByText(/O ping que a sua probe faz sozinha até o K-root leva cerca de 30 ms, então google.com está mais perto/)).toBeInTheDocument()
@@ -84,5 +88,24 @@ it('asks for the measurement permission or a linked account before any challenge
   unmount()
   stubBackend({ connected: false })
   renderChallenges()
+  expect(await screen.findByText('Vincule a sua conta do RIPE Atlas')).toBeInTheDocument()
+})
+
+it('opens a result from its own address and confirms before leaving while the probe still measures', async () => {
+  window.location.hash = '#/desafios/123456789'
+  const mock = stubBackend({ connected: false }, [])
+  renderChallenges()
+  expect(await screen.findByText('Ping da probe 1017210 até google.com')).toBeInTheDocument()
+  expect(screen.getByText(/A probe está medindo/)).toBeInTheDocument()
+  expect(screen.queryByText('Vincule a sua conta do RIPE Atlas')).not.toBeInTheDocument()
+  expect(mock.mock.calls.some(([url]) => url === '/api/challenges/ping')).toBe(false)
+  await userEvent.click(screen.getByRole('button', { name: 'Fazer outro ping' }))
+  const dialog = screen.getByRole('dialog', { name: 'Sair antes do resultado?' })
+  expect(dialog).toHaveTextContent('A probe continua medindo, e o resultado fica guardado no RIPE Atlas.')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Esperar o resultado' }))
+  expect(window.location.hash).toBe('#/desafios/123456789')
+  await userEvent.click(screen.getByRole('button', { name: 'Fazer outro ping' }))
+  await userEvent.click(within(screen.getByRole('dialog', { name: 'Sair antes do resultado?' })).getByRole('button', { name: 'Fazer outro ping' }))
+  expect(window.location.hash).toBe('#/desafios')
   expect(await screen.findByText('Vincule a sua conta do RIPE Atlas')).toBeInTheDocument()
 })
