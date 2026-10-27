@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from '../app/App'
 import { catalog, history, ping } from '../test/fixtures'
@@ -106,6 +107,10 @@ it('reads the latest route hop by hop with each network, the silent hops and the
   vi.stubGlobal('fetch', vi.fn((url: string) => {
     if (url === '/api/probe') return json({ probe_id: 1017210 })
     if (url === '/api/targets') return json(catalog)
+    if (url.includes('/measurements/5009/latest/')) return json([{
+      timestamp: 1793049887, dst_addr: '198.41.0.4', proto: 'UDP', size: 40, destination_ip_responded: false,
+      result: [{ hop: 1, result: packets('192.168.1.1', 4) }, { hop: 2, result: packets('186.208.80.22', 5) }, { hop: 3, result: [{ x: '*' }] }, { hop: 4, result: [{ x: '*' }] }],
+    }])
     if (url.includes('/measurements/5001/latest/')) return json([{
       timestamp: 1793049887, dst_addr: '193.0.14.129', proto: 'UDP', size: 40, from: '203.0.113.77', destination_ip_responded: true,
       result: [
@@ -117,8 +122,9 @@ it('reads the latest route hop by hop with each network, the silent hops and the
       ],
     }])
     if (url.includes('network-info')) return json({ data: { asns: url.includes('187.16.221.197') ? [] : url.includes('193.0.14.129') ? ['25152'] : ['263077'] } })
-    if (url.includes('as-overview')) return json({ data: { holder: url.includes('AS6939') ? 'HURRICANE - Hurricane Electric LLC' : url.includes('AS25152') ? 'K-ROOT-SERVER RIPE NCC' : 'AS263077 - Provedor Exemplo' } })
-    if (url.includes('peeringdb.com/api/netixlan')) return json({ data: [{ ipaddr4: '187.16.221.197', name: 'IX.br (PTT.br) São Paulo: ATM/MPLA', asn: 6939 }] })
+    if (url.includes('as-overview')) return json({ data: { holder: url.includes('AS25152') ? 'K-ROOT-SERVER Reseaux IP Europeens Network Coordination Centre (RIPE NCC)' : 'AS263077 - Provedor Exemplo' } })
+    if (url.includes('peeringdb.com/api/netixlan')) return json({ data: [{ ipaddr4: '187.16.221.197', name: 'IX.br (PTT.br) São Paulo: ATM/MPLA', asn: 25152, ix_id: 171 }] })
+    if (url.includes('peeringdb.com/api/ix?')) return json({ data: [{ id: 171, name: 'IX.br (PTT.br) São Paulo', city: 'São Paulo/SP', country: 'BR' }] })
     return json({ id: 1017210, is_public: true, status: { id: 1, name: 'Connected', since: null } })
   }))
   window.location.hash = '#/aprender/traceroute'
@@ -131,12 +137,19 @@ it('reads the latest route hop by hop with each network, the silent hops and the
   expect(rows[1]).toHaveTextContent('Provedor Exemplo AS263077')
   expect(rows[2]).toHaveTextContent('não respondeu')
   expect(rows[3]).toHaveTextContent('IX.br (PTT.br) São Paulo')
-  expect(rows[3]).toHaveTextContent('entrada da Hurricane Electric LLC')
+  expect(rows[3]).toHaveTextContent('ponto de troca em São Paulo (Brasil), entrada da rede RIPE NCC')
   expect(rows[4]).toHaveTextContent('K-root, o destino')
-  const notes = within(screen.getByRole('region', { name: 'Como ler' }))
-  expect(notes.getByText(/no salto 3 quer dizer que esse roteador não respondeu\. Não é perda/)).toBeInTheDocument()
-  expect(notes.getByText(/um projeto do Comitê Gestor da Internet no Brasil/)).toBeInTheDocument()
-  expect(notes.getByText(/entre os saltos 4 e 5\. É o maior aumento de tempo/)).toHaveTextContent('De 24 ms para 135 ms')
+  const stages = within(screen.getByRole('list', { name: 'A rota até o K-root, em etapas' })).getAllByRole('listitem')
+  expect(stages.map(stage => stage.querySelector('strong')?.textContent)).toEqual(['Na sua casa', 'No seu provedor', 'Ponto de troca', 'No destino'])
+  expect(stages[2]).toHaveTextContent('saltos 3 a 4')
+  expect(stages[2]).toHaveTextContent('IX.br (PTT.br) São Paulo, em São Paulo (Brasil)')
+  expect(stages[2]).toHaveTextContent('O salto 3 não respondeu, mas os pacotes passaram.')
+  expect(stages[2]).toHaveTextContent('um projeto do Comitê Gestor da Internet no Brasil')
+  expect(stages[3]).toHaveTextContent('O tempo sobe de 24 ms para 135 ms')
+  expect(stages[3]).toHaveTextContent('Foi uma cópia perto de São Paulo')
+  await userEvent.selectOptions(within(screen.getByRole('region', { name: 'O seu dado' })).getByLabelText('Destino'), '5009')
+  const lost = await screen.findByText(/O A-root não respondeu nesta rodada/)
+  expect(lost).toHaveTextContent('A rota foi vista até o salto 2, e os seguintes não responderam.')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
 })
 
@@ -145,5 +158,5 @@ it('keeps the traceroute lesson readable without a followed probe', async () => 
   window.location.hash = '#/aprender/traceroute'
   render(<App />)
   expect(await screen.findByText('Acompanhe uma probe para ver a rota dela aqui.')).toBeInTheDocument()
-  expect(screen.getByText(/costuma ser o roteador da sua casa/)).toBeInTheDocument()
+  expect(screen.getByText(/aqui aparece a rota dela contada em etapas/)).toBeInTheDocument()
 })
