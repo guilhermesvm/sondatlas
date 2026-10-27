@@ -337,8 +337,12 @@ def account_api(monkeypatch, tmp_path):
         key = headers["Authorization"].removeprefix("Key ")
         if key == "offline-key":
             raise requests.ConnectionError("offline")
-        if key not in ("good-key", "probes-only-key", "credits-only-key", "no-schedule-key"):
+        if key not in ("good-key", "probes-only-key", "credits-only-key", "no-schedule-key", "no-list-key"):
             return Response(403, {"detail": "refused"})
+        if "/measurements/my/" in url:
+            if key == "no-list-key":
+                return Response(403, {"detail": "no permission"})
+            return Response(200, {"count": 0, "results": []})
         if url.endswith("/credits/income-items/"):
             return Response(200, {"groups": {"hosted_probes": [{
                 "probe_id": 1017210, "probe": "https://atlas.ripe.net/api/v2/probes/1017210/", "description": "Casa",
@@ -364,7 +368,7 @@ def account_api(monkeypatch, tmp_path):
             raise requests.ConnectionError("offline")
         if json != {}:
             raise AssertionError("the permission check must not create anything")
-        if key in ("good-key", "probes-only-key", "credits-only-key"):
+        if key in ("good-key", "probes-only-key", "credits-only-key", "no-list-key"):
             return Response(400, {"error": {"detail": "definitions: This field is required."}})
         return Response(403, {"detail": "no permission"})
 
@@ -395,6 +399,7 @@ def test_account_key_is_checked_saved_and_never_returned(account_api):
     assert calls == [
         ("https://atlas.ripe.net/api/v2/credits/", "Key good-key"),
         ("POST https://atlas.ripe.net/api/v2/measurements/", "Key good-key"),
+        ("https://atlas.ripe.net/api/v2/measurements/my/?page_size=1&fields=id", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/credits/income-items/", "Key good-key"),
     ] * 2
@@ -430,7 +435,7 @@ def test_disconnecting_removes_the_key_and_can_repeat(account_api):
     assert calls == []
 
 
-@pytest.mark.parametrize("key, missing", [("probes-only-key", "credits"), ("credits-only-key", "probes"), ("no-schedule-key", "measurements")])
+@pytest.mark.parametrize("key, missing", [("probes-only-key", "credits"), ("credits-only-key", "probes"), ("no-schedule-key", "measurements"), ("no-list-key", "my_measurements")])
 def test_key_missing_one_permission_is_not_linked_and_says_which(account_api, key, missing):
     client, state_path, _ = account_api
     response = client.put("/account", json={"key": key})
@@ -529,3 +534,56 @@ def test_ping_challenge_explains_what_ripe_refused(challenge_api, status, body, 
     response = client.post("/challenges/ping", json={"probe_id": 1017210, "target": "google.com"})
     assert response.status_code == 422
     assert response.json() == {"detail": detail}
+
+
+def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(challenge_api, monkeypatch):
+    client, _, created, _ = challenge_api
+    asked = []
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {"count": 61, "results": [{
+                "id": 228260804, "type": "ping", "target": "github.com", "creation_time": 1793110783,
+                "probes": [{"id": 1017210, "url": "https://atlas.ripe.net/api/v2/probes/1017210/"}],
+            }]}
+
+        def raise_for_status(self):
+            pass
+
+    def get(url, headers, timeout):
+        asked.append((url, headers["Authorization"]))
+        return Response()
+
+    monkeypatch.setattr(atlas_account.requests, "get", get)
+    response = client.get("/challenges")
+    assert response.status_code == 200
+    assert response.json() == {"count": 61, "challenges": [
+        {"id": 228260804, "type": "ping", "target": "github.com", "created": 1793110783, "probe_id": 1017210},
+    ]}
+    assert "good-key" not in response.text
+    assert asked == [("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=-id&page_size=50"
+                      "&fields=id,type,target,creation_time,probes&optional_fields=probes", "Key good-key")]
+    assert created == []
+
+
+@pytest.mark.parametrize("status, expected, detail", [
+    (403, 422, {"missing_permissions": ["my_measurements"]}),
+    (502, 503, "RIPE Atlas is unavailable"),
+])
+def test_challenge_list_says_what_is_missing_or_unavailable(challenge_api, monkeypatch, status, expected, detail):
+    client, state_path, _, _ = challenge_api
+
+    class Response:
+        status_code = status
+
+        def raise_for_status(self):
+            raise requests.HTTPError(str(status))
+
+    monkeypatch.setattr(atlas_account.requests, "get", lambda url, headers, timeout: Response())
+    response = client.get("/challenges")
+    assert response.status_code == expected
+    assert response.json() == {"detail": detail}
+    atlas_account.delete_key(state_path)
+    assert client.get("/challenges").status_code == 409

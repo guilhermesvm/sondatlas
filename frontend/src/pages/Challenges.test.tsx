@@ -25,9 +25,12 @@ const round = {
 
 const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }] }
 
-function stubBackend(account: unknown, results: unknown[] = [round]) {
+const noChallenges = { count: 0, challenges: [] }
+
+function stubBackend(account: unknown, results: unknown[] = [round], challenges: [unknown, number?] = [noChallenges]) {
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/account') return json(account)
+    if (url === '/api/challenges') return json(...challenges)
     if (url === '/api/challenges/ping') return json({ measurement_id: 123456789 })
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(detail)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/results/')) return json(results)
@@ -82,7 +85,7 @@ it('checks the destination before showing the cost', async () => {
 it('asks for the measurement permission or a linked account before any challenge', async () => {
   stubBackend({ ...linked, missing_permissions: ['measurements'] })
   const { unmount } = renderChallenges()
-  const alert = await screen.findByText(/Para os desafios, a chave precisa de/)
+  const alert = await screen.findByText(/Para os desafios, falta na chave a permissão/)
   expect(within(alert).getByText('Schedule a new measurement').tagName).toBe('STRONG')
   expect(screen.queryByRole('button', { name: 'Ver o custo' })).not.toBeInTheDocument()
   unmount()
@@ -108,4 +111,29 @@ it('opens a result from its own address and confirms before leaving while the pr
   await userEvent.click(within(screen.getByRole('dialog', { name: 'Sair antes do resultado?' })).getByRole('button', { name: 'Fazer outro ping' }))
   expect(window.location.hash).toBe('#/desafios')
   expect(await screen.findByText('Vincule a sua conta do RIPE Atlas')).toBeInTheDocument()
+})
+
+it('lists the challenges of the account, each opening its result, or says what the key lacks', async () => {
+  stubBackend(linked, [round], [{ count: 61, challenges: [
+    { id: 228260804, type: 'ping', target: 'github.com', created: 1793110783, probe_id: 1017210 },
+    { id: 228255791, type: 'ping', target: '1.1.1.1', created: 1793107000, probe_id: 1017210 },
+  ] }])
+  const { unmount } = renderChallenges()
+  const list = await screen.findByRole('region', { name: 'Seus desafios' })
+  expect(await within(list).findByText(/Você criou 61 desafios pela Sondatlas. Aqui estão os 2 mais recentes./)).toBeInTheDocument()
+  expect(within(list).getByRole('link', { name: 'Ping até github.com' })).toHaveAttribute('href', '#/desafios/228260804')
+  expect(within(list).getAllByText('Da probe 1017210')).toHaveLength(2)
+  unmount()
+
+  stubBackend(linked)
+  const second = renderChallenges()
+  expect(await screen.findByText(/Você ainda não criou nenhum desafio/)).toBeInTheDocument()
+  second.unmount()
+
+  const mock = stubBackend({ ...linked, missing_permissions: ['my_measurements'] })
+  renderChallenges()
+  const alert = await screen.findByText(/Para listar os seus desafios aqui, falta na chave a permissão/)
+  expect(within(alert).getByText('List your measurements').tagName).toBe('STRONG')
+  expect(screen.getByRole('button', { name: 'Ver o custo' })).toBeInTheDocument()
+  expect(mock.mock.calls.some(([url]) => url === '/api/challenges')).toBe(false)
 })

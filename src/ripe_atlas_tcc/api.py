@@ -15,6 +15,7 @@ from ripe_atlas_tcc.atlas_account import (
     create_ping,
     delete_key,
     fetch_account,
+    fetch_challenges,
     fetch_my_probes,
     load_key,
     save_key,
@@ -147,7 +148,7 @@ def get_account():
 @app.put(
     "/account",
     summary="Check a RIPE Atlas API key and save it locally",
-    description="The key is saved in data/state only after RIPE Atlas accepts it with every required permission (probes, credits and creating measurements, checked with an empty request that creates nothing). On any failure the previous key is kept. The response lists the account probes, never the key.",
+    description="The key is saved in data/state only after RIPE Atlas accepts it with every required permission (probes, credits, creating measurements and listing your measurements; creating is checked with an empty request that creates nothing). On any failure the previous key is kept. The response lists the account probes, never the key.",
     responses={
         422: {"description": "Empty key, RIPE Atlas refused it, or detail.missing_permissions lists what it lacks; previous key is kept"},
         503: {"description": "RIPE Atlas unavailable or key not saved; previous key is kept"},
@@ -237,6 +238,33 @@ def post_ping_challenge(
         raise HTTPException(status_code=422, detail={"ripe_error": str(error)}) from None
     except (requests.RequestException, ValueError, KeyError, IndexError) as error:
         logger.warning("Ping challenge failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable") from None
+
+
+@app.get(
+    "/challenges",
+    summary="List the measurements the account created through Sondatlas",
+    description="Reads GET /api/v2/measurements/my/ with the saved key, only the ones tagged sondatlas, newest first: the 50 latest and the total count. Needs the List your measurements permission. The key is never returned.",
+    responses={
+        409: {"description": "No RIPE Atlas account linked"},
+        422: {"description": "The key lacks List your measurements (detail.missing_permissions)"},
+        503: {"description": "RIPE Atlas unavailable or the saved key cannot be read"},
+    },
+)
+def get_challenges():
+    try:
+        key = load_key(ACCOUNT_STATE_PATH)
+    except (OSError, ValueError, KeyError) as error:
+        logger.warning("Saved account unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Saved account is unavailable") from None
+    if key is None:
+        raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
+    try:
+        return fetch_challenges(key)
+    except MissingPermissionError:
+        raise HTTPException(status_code=422, detail={"missing_permissions": ["my_measurements"]}) from None
+    except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as error:
+        logger.warning("Challenge list failed (%s)", type(error).__name__)
         raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable") from None
 
 

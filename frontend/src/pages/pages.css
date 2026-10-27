@@ -47,6 +47,9 @@
 .install-note { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }
 .install-choice { margin-top: 16px; padding-left: 16px; border-left: 4px solid var(--accent-line); }
 .follow-box { margin-top: 28px; max-width: 720px; padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--mantine-radius-md); background: var(--surface); }
+.challenge-list { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.challenge-list > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.challenge-date { font-variant-numeric: tabular-nums; }
 .danger-button { color: var(--error-text); }
 .settings-layout { display: grid; grid-template-columns: minmax(0, 680px); gap: 24px 40px; margin-top: 28px; }
 .settings-layout.with-guide { grid-template-columns: minmax(0, 680px) minmax(240px, 300px); }

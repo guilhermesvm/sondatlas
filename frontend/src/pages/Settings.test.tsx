@@ -55,7 +55,7 @@ it('links the account, lists its probes, hides the key and the guide and keeps i
   await userEvent.click(screen.getByRole('button', { name: 'Vincular' }))
   expect(await screen.findByText('Vinculada')).toBeInTheDocument()
   expect(screen.getByText('1.206.887 no saldo')).toBeInTheDocument()
-  expect(screen.getByText('A chave pode ver as suas probes, consultar o seu saldo de créditos e criar medições com os seus créditos.')).toBeInTheDocument()
+  expect(screen.getByText('A chave pode ver as suas probes, consultar o seu saldo de créditos, criar medições com os seus créditos e listar as medições que você criou.')).toBeInTheDocument()
   const [followed, other] = within(screen.getByText('Suas probes').nextElementSibling as HTMLElement).getAllByRole('listitem')
   expect(followed).toHaveTextContent('Probe 1017210')
   expect(within(followed).getByRole('link', { name: 'Ver Minha probe' })).toHaveAttribute('href', '#/minha-probe')

@@ -3,6 +3,7 @@ export const permissions = [
   { id: 'probes', group: 'PROBES', name: 'Show information about your probes', use: 'ver as suas probes' },
   { id: 'credits', group: 'CREDITS', name: 'Get information about your credits', use: 'consultar o seu saldo de créditos' },
   { id: 'measurements', group: 'MEASUREMENTS', name: 'Schedule a new measurement', use: 'criar medições com os seus créditos' },
+  { id: 'my_measurements', group: 'MEASUREMENTS', name: 'List your measurements', use: 'listar as medições que você criou' },
 ] as const
 
 export function missingPermissions(ids: readonly string[]) {

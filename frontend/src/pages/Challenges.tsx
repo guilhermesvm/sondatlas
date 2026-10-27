@@ -2,7 +2,7 @@ import { Alert, Anchor, Autocomplete, Button, Group, Modal, SegmentedControl, Se
 import { Fragment, useEffect, useState, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
-import { ChallengeError, createPing, destinations, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Measurement, type PingResult } from '../features/challenges/challenge'
+import { ChallengeError, createPing, destinations, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, measurementFromHash, packetChoices, pingCost, validTarget, type Challenge, type Measurement, type PingResult } from '../features/challenges/challenge'
 import { formatMetric } from '../features/ping-history/chart'
 import '../features/lessons/lessons.css'
 import Loading from '../lib/Loading'
@@ -263,6 +263,47 @@ function PingChallenge({ account }: { account: Account }) {
   </section>
 }
 
+function ChallengeList({ account }: { account: Account }) {
+  const missing = account.missing_permissions?.includes('my_measurements')
+  const [list, setList] = useState<{ count: number, challenges: Challenge[] } | null>(null)
+  const [error, setError] = useState<ChallengeError | null>(null)
+
+  useEffect(() => {
+    if (missing) return
+    const controller = new AbortController()
+    fetchChallenges(controller.signal).then(setList, (reason: Error) => {
+      if (!controller.signal.aborted) setError(reason instanceof ChallengeError ? reason : new ChallengeError(reason.message))
+    })
+    return () => controller.abort()
+  }, [missing])
+
+  const lacking = missing ? ['my_measurements'] : error?.missing ?? []
+  return <section className="follow-box" aria-labelledby="my-challenges">
+    <Title order={2} size="h4" id="my-challenges">Seus desafios</Title>
+    {lacking.length > 0 && <Alert color="yellow" mt="sm" title="Falta uma permissão na chave">
+      Para listar os seus desafios aqui, falta na chave <Missing ids={lacking} />. Edite a chave no site do RIPE Atlas e volte aqui. Enquanto isso, eles ficam na <MineLink />.
+    </Alert>}
+    {error && !lacking.length && <SystemError title="Não foi possível consultar os seus desafios">{error.message}</SystemError>}
+    {!list && !error && !missing && <Loading mt="sm">Consultando os seus desafios…</Loading>}
+    {list && !list.challenges.length && <Text size="sm" mt="xs">Você ainda não criou nenhum desafio. O primeiro ping que você criar acima aparece aqui.</Text>}
+    {list && list.challenges.length > 0 && <>
+      <Text size="sm" mt={4}>
+        {list.count === 1 ? 'Você criou 1 desafio pela Sondatlas.' : `Você criou ${count(list.count)} desafios pela Sondatlas.`}
+        {list.count > list.challenges.length ? ` Aqui estão os ${list.challenges.length} mais recentes.` : ''} Abra um para ver o resultado explicado.
+      </Text>
+      <ul className="challenge-list">
+        {list.challenges.map(challenge => <li key={challenge.id}>
+          <div>
+            <Anchor href={`#/desafios/${challenge.id}`} fw={600}>{challenge.type === 'ping' ? 'Ping' : challenge.type} até {challenge.target}</Anchor>
+            {challenge.probe_id && <Text size="xs" c="dimmed">Da probe {challenge.probe_id}</Text>}
+          </div>
+          <Text size="sm" c="dimmed" className="challenge-date">{formatLocal(challenge.created * 1000)}</Text>
+        </li>)}
+      </ul>
+    </>}
+  </section>
+}
+
 export default function Challenges() {
   const [account, setAccount] = useState<Account | null>(null)
   const [error, setError] = useState('')
@@ -300,10 +341,11 @@ export default function Challenges() {
         <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
       </Alert>}
       {account?.connected && missing.length > 0 && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
-        Para os desafios, a chave precisa de <Missing ids={missing} />. Edite a chave no site do RIPE Atlas e volte aqui.
+        Para os desafios, falta na chave <Missing ids={missing} />. Edite a chave no site do RIPE Atlas e volte aqui.
         <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
       </Alert>}
       {account?.connected && missing.length === 0 && <PingChallenge account={account} />}
+      {account?.connected && <ChallengeList account={account} />}
     </>}
   </div>
 }

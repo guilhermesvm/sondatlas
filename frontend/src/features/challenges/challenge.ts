@@ -102,6 +102,34 @@ export async function fetchMeasurement(measurementId: number, signal: AbortSigna
   return { target, type, probeId: probes?.[0]?.id ?? null }
 }
 
+export interface Challenge {
+  id: number
+  type: string
+  target: string
+  created: number
+  probe_id: number | null
+}
+
+export async function fetchChallenges(signal: AbortSignal) {
+  let response: Response
+  try {
+    response = await fetch('/api/challenges', { signal })
+  } catch (error) {
+    if (signal.aborted) throw error
+    throw new ChallengeError(localApiDown)
+  }
+  if (response.ok) return await response.json() as { count: number, challenges: Challenge[] }
+  const { detail } = await response.json().catch(() => ({})) as { detail?: { missing_permissions?: string[] } }
+  if (typeof detail === 'object' && detail.missing_permissions) throw new ChallengeError('A chave não tem a permissão para listar as suas medições.', detail.missing_permissions)
+  const messages: Record<number, string> = {
+    404: oldApi,
+    405: oldApi,
+    [proxyDown]: localApiDown,
+    503: 'O RIPE Atlas não respondeu agora. Tente de novo em instantes.',
+  }
+  throw new ChallengeError(messages[response.status] ?? 'Não foi possível consultar os seus desafios. Tente de novo.')
+}
+
 // The measurement is public, so its results come straight from RIPE Atlas. An empty list means it is still running.
 export async function fetchPingResult(measurementId: number, signal: AbortSignal) {
   const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/results/`, { signal })

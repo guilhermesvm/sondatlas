@@ -117,15 +117,59 @@ def can_schedule(key):
     return True
 
 
+MY_MEASUREMENTS_URL = "https://atlas.ripe.net/api/v2/measurements/my/"
+
+
+def can_list(key):
+    """True when the key may list the measurements of its owner ("List your measurements")."""
+    response = requests.get(
+        f"{MY_MEASUREMENTS_URL}?page_size=1&fields=id",
+        headers={"Authorization": f"Key {key}"},
+        timeout=30,
+    )
+    if response.status_code in (401, 403):
+        return False
+    response.raise_for_status()
+    return True
+
+
+def fetch_challenges(key):
+    """The newest measurements the key owner created through Sondatlas (tag sondatlas), with the total."""
+    response = requests.get(
+        f"{MY_MEASUREMENTS_URL}?tags=sondatlas&sort=-id&page_size=50"
+        "&fields=id,type,target,creation_time,probes&optional_fields=probes",
+        headers={"Authorization": f"Key {key}"},
+        timeout=30,
+    )
+    if response.status_code in (401, 403):
+        raise MissingPermissionError()
+    response.raise_for_status()
+    page = response.json()
+    return {
+        "count": page["count"],
+        "challenges": [
+            {
+                "id": measurement["id"],
+                "type": measurement["type"],
+                "target": measurement["target"],
+                "created": measurement["creation_time"],
+                "probe_id": (measurement.get("probes") or [{}])[0].get("id"),
+            }
+            for measurement in page["results"]
+        ],
+    }
+
+
 def fetch_account(key):
     """RIPE answers a missing permission like an invalid key, so the key is
     refused only when no permission works; otherwise the missing ones are listed."""
     credits = fetch_credits(key)
     scheduling = can_schedule(key)
+    listing = can_list(key)
     try:
         probes = fetch_my_probes(key)
     except KeyRefusedError:
-        if credits is None and not scheduling:
+        if credits is None and not scheduling and not listing:
             raise
         probes = None
     return {
@@ -134,7 +178,7 @@ def fetch_account(key):
         "credits": credits,
         "income": fetch_income(key) if credits is not None else None,
         "missing_permissions": [
-            name for name, missing in (("probes", probes is None), ("credits", credits is None), ("measurements", not scheduling)) if missing
+            name for name, missing in (("probes", probes is None), ("credits", credits is None), ("measurements", not scheduling), ("my_measurements", not listing)) if missing
         ],
     }
 
