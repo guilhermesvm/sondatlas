@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 
 import requests
 
@@ -10,10 +10,15 @@ from ripe_atlas_tcc import probe_distribution
 from ripe_atlas_tcc.atlas_account import (
     ACCOUNT_STATE_PATH,
     KeyRefusedError,
+    MeasurementRejectedError,
+    MissingPermissionError,
+    create_ping,
     delete_key,
     fetch_account,
+    fetch_my_probes,
     load_key,
     save_key,
+    valid_target,
 )
 from ripe_atlas_tcc.influxdb_queries import query_ping_results
 from ripe_atlas_tcc.probe_state import (
@@ -179,6 +184,57 @@ def delete_account():
         logger.warning("Account key not removed (%s)", type(error).__name__)
         raise HTTPException(status_code=503, detail="The key could not be removed") from None
     return {"connected": False}
+
+
+LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+
+
+def local_only(request: Request):
+    """Routes that spend credits answer only requests addressed to this computer, which blocks DNS rebinding."""
+    host = request.headers.get("host", "").rsplit(":", 1)[0]
+    if host not in LOCAL_HOSTS:
+        raise HTTPException(status_code=403, detail="Only requests addressed to this computer may spend credits")
+
+
+@app.post(
+    "/challenges/ping",
+    summary="Create a one-off IPv4 ping from one of the account probes",
+    description="Spends the account credits (about 6 for a default ping). The measurement is public, as RIPE Atlas makes it by default, and tagged sondatlas. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned.",
+    dependencies=[Depends(local_only)],
+    responses={
+        403: {"description": "Request not addressed to this computer, or RIPE Atlas refused the saved key"},
+        409: {"description": "No RIPE Atlas account linked"},
+        422: {"description": "Invalid target, a probe that is not the account's, a missing permission (detail.missing_permissions) or a measurement RIPE Atlas refused (detail.ripe_error)"},
+        503: {"description": "RIPE Atlas unavailable or the saved key cannot be read"},
+    },
+)
+def post_ping_challenge(
+    probe_id: Annotated[int, Body(gt=0)],
+    target: Annotated[str, Body(min_length=1, max_length=253)],
+):
+    target = target.strip().lower()
+    if not valid_target(target):
+        raise HTTPException(status_code=422, detail="Target must be a host name or a public IPv4 address")
+    try:
+        key = load_key(ACCOUNT_STATE_PATH)
+    except (OSError, ValueError, KeyError) as error:
+        logger.warning("Saved account unavailable (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Saved account is unavailable") from None
+    if key is None:
+        raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
+    try:
+        if probe_id not in {probe["id"] for probe in fetch_my_probes(key)}:
+            raise HTTPException(status_code=422, detail="The probe is not in the linked account")
+        return {"measurement_id": create_ping(key, probe_id, target)}
+    except KeyRefusedError:
+        raise HTTPException(status_code=403, detail="RIPE Atlas refused the saved key") from None
+    except MissingPermissionError:
+        raise HTTPException(status_code=422, detail={"missing_permissions": ["measurements"]}) from None
+    except MeasurementRejectedError as error:
+        raise HTTPException(status_code=422, detail={"ripe_error": str(error)}) from None
+    except (requests.RequestException, ValueError, KeyError, IndexError) as error:
+        logger.warning("Ping challenge failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=503, detail="RIPE Atlas is unavailable") from None
 
 
 @app.get(

@@ -1,4 +1,6 @@
+import ipaddress
 import json
+import re
 from pathlib import Path
 
 import requests
@@ -10,6 +12,14 @@ PROBE_FIELDS = ("id", "description", "status", "first_connected", "total_uptime"
 
 class KeyRefusedError(Exception):
     pass
+
+
+class MissingPermissionError(Exception):
+    pass
+
+
+class MeasurementRejectedError(Exception):
+    """RIPE Atlas refused the measurement; the message is RIPE's own, safe to show."""
 
 
 def load_key(state_path):
@@ -127,3 +137,49 @@ def fetch_account(key):
             name for name, missing in (("probes", probes is None), ("credits", credits is None), ("measurements", not scheduling)) if missing
         ],
     }
+
+
+HOSTNAME = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+
+
+def valid_target(target):
+    """A host name or a public IPv4 address; RIPE Atlas refuses private ones anyway."""
+    try:
+        return ipaddress.IPv4Address(target).is_global
+    except ValueError:
+        return bool(HOSTNAME.match(target))
+
+
+def ripe_message(response):
+    try:
+        error = response.json().get("error", {})
+    except ValueError:
+        return "RIPE Atlas refused the measurement"
+    details = [error.get("detail")] + [item.get("detail") for item in error.get("errors", []) if isinstance(item, dict)]
+    return " ".join(str(detail) for detail in details if detail)[:300] or "RIPE Atlas refused the measurement"
+
+
+def create_ping(key, probe_id, target):
+    """One-off IPv4 ping from one probe, public by RIPE Atlas default. Returns the measurement ID."""
+    response = requests.post(
+        "https://atlas.ripe.net/api/v2/measurements/",
+        headers={"Authorization": f"Key {key}"},
+        json={
+            "definitions": [{
+                "type": "ping",
+                "af": 4,
+                "target": target,
+                "description": "Sondatlas: desafio do ping",
+                "tags": ["sondatlas"],
+            }],
+            "probes": [{"type": "probes", "value": str(probe_id), "requested": 1}],
+            "is_oneoff": True,
+        },
+        timeout=30,
+    )
+    if response.status_code in (401, 403):
+        raise MissingPermissionError()
+    if response.status_code == 400:
+        raise MeasurementRejectedError(ripe_message(response))
+    response.raise_for_status()
+    return response.json()["measurements"][0]

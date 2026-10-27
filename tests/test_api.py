@@ -448,3 +448,80 @@ def test_saved_key_without_the_credits_permission_still_lists_probes(account_api
     assert account["credits"] is None
     assert account["income"] is None
     assert account["missing_permissions"] == ["credits"]
+
+
+@pytest.fixture
+def challenge_api(monkeypatch, tmp_path):
+    state_path = tmp_path / "state" / "atlas-account.json"
+    created = []
+    answer = {"status": 201, "body": {"measurements": [123456789]}}
+
+    class Response:
+        def __init__(self, status_code, body):
+            self.status_code = status_code
+            self.body = body
+
+        def json(self):
+            return self.body
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError(str(self.status_code))
+
+    def get(url, headers, timeout):
+        return Response(200, {"results": [{"id": 1017210, "status": {"id": 1}}]})
+
+    def post(url, headers, json, timeout):
+        created.append((url, headers["Authorization"], json))
+        return Response(answer["status"], answer["body"])
+
+    monkeypatch.setattr(api, "ACCOUNT_STATE_PATH", state_path)
+    monkeypatch.setattr(atlas_account.requests, "get", get)
+    monkeypatch.setattr(atlas_account.requests, "post", post)
+    atlas_account.save_key(state_path, "good-key")
+    with TestClient(api.app, base_url="http://127.0.0.1:8000") as client:
+        yield client, state_path, created, answer
+
+
+def test_ping_challenge_creates_one_public_one_off_ping_from_the_account_probe(challenge_api):
+    client, _, created, _ = challenge_api
+    response = client.post("/challenges/ping", json={"probe_id": 1017210, "target": " Google.com "})
+    assert response.status_code == 200
+    assert response.json() == {"measurement_id": 123456789}
+    assert "good-key" not in response.text
+    assert created == [("https://atlas.ripe.net/api/v2/measurements/", "Key good-key", {
+        "definitions": [{"type": "ping", "af": 4, "target": "google.com", "description": "Sondatlas: desafio do ping", "tags": ["sondatlas"]}],
+        "probes": [{"type": "probes", "value": "1017210", "requested": 1}],
+        "is_oneoff": True,
+    })]
+
+
+@pytest.mark.parametrize("headers, body, status", [
+    ({"Host": "evil.example"}, {"probe_id": 1017210, "target": "google.com"}, 403),
+    ({}, {"probe_id": 1018246, "target": "google.com"}, 422),
+    ({}, {"probe_id": 1017210, "target": "192.168.1.1"}, 422),
+    ({}, {"probe_id": 1017210, "target": "http://google.com"}, 422),
+])
+def test_ping_challenge_refuses_foreign_hosts_other_probes_and_bad_targets_without_spending(challenge_api, headers, body, status):
+    client, _, created, _ = challenge_api
+    assert client.post("/challenges/ping", json=body, headers=headers).status_code == status
+    assert created == []
+
+
+def test_ping_challenge_needs_a_linked_account(challenge_api):
+    client, state_path, created, _ = challenge_api
+    atlas_account.delete_key(state_path)
+    assert client.post("/challenges/ping", json={"probe_id": 1017210, "target": "google.com"}).status_code == 409
+    assert created == []
+
+
+@pytest.mark.parametrize("status, body, detail", [
+    (403, {"error": {"detail": "no permission"}}, {"missing_permissions": ["measurements"]}),
+    (400, {"error": {"detail": "Bad request", "errors": [{"detail": "Not enough credits"}]}}, {"ripe_error": "Bad request Not enough credits"}),
+])
+def test_ping_challenge_explains_what_ripe_refused(challenge_api, status, body, detail):
+    client, _, _, answer = challenge_api
+    answer.update(status=status, body=body)
+    response = client.post("/challenges/ping", json={"probe_id": 1017210, "target": "google.com"})
+    assert response.status_code == 422
+    assert response.json() == {"detail": detail}
