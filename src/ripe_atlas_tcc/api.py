@@ -199,7 +199,7 @@ def local_only(request: Request):
 @app.post(
     "/challenges/ping",
     summary="Create a one-off IPv4 ping from one of the account probes",
-    description="Spends the account credits (about 6 for a default ping). The measurement is public, as RIPE Atlas makes it by default, and tagged sondatlas. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned.",
+    description="Spends the account credits (2 per packet for a one-off ping, 6 for the default 3 packets). packets goes from 1 to 16 like in RIPE Atlas; description is optional (up to 100 characters, a Sondatlas limit). The measurement is public, as RIPE Atlas makes it by default, and always tagged sondatlas. Only requests addressed to 127.0.0.1 or localhost are accepted. The key is never returned.",
     dependencies=[Depends(local_only)],
     responses={
         403: {"description": "Request not addressed to this computer, or RIPE Atlas refused the saved key"},
@@ -211,8 +211,11 @@ def local_only(request: Request):
 def post_ping_challenge(
     probe_id: Annotated[int, Body(gt=0)],
     target: Annotated[str, Body(min_length=1, max_length=253)],
+    packets: Annotated[int, Body(ge=1, le=16)] = 3,
+    description: Annotated[str | None, Body(max_length=100)] = None,
 ):
     target = target.strip().lower()
+    description = (description or "").strip() or f"Sondatlas: ping para {target}"
     if not valid_target(target):
         raise HTTPException(status_code=422, detail="Target must be a host name or a public IPv4 address")
     try:
@@ -225,7 +228,7 @@ def post_ping_challenge(
     try:
         if probe_id not in {probe["id"] for probe in fetch_my_probes(key)}:
             raise HTTPException(status_code=422, detail="The probe is not in the linked account")
-        return {"measurement_id": create_ping(key, probe_id, target)}
+        return {"measurement_id": create_ping(key, probe_id, target, packets, description)}
     except KeyRefusedError:
         raise HTTPException(status_code=403, detail="RIPE Atlas refused the saved key") from None
     except MissingPermissionError:

@@ -159,8 +159,9 @@ def ripe_message(response):
     return " ".join(str(detail) for detail in details if detail)[:300] or "RIPE Atlas refused the measurement"
 
 
-def create_ping(key, probe_id, target):
-    """One-off IPv4 ping from one probe, public by RIPE Atlas default. Returns the measurement ID."""
+def create_ping(key, probe_id, target, packets, description):
+    """One-off IPv4 ping from one probe, public by RIPE Atlas default and tagged sondatlas,
+    so anyone can count the measurements made through Sondatlas. Returns the measurement ID."""
     response = requests.post(
         "https://atlas.ripe.net/api/v2/measurements/",
         headers={"Authorization": f"Key {key}"},
@@ -169,7 +170,8 @@ def create_ping(key, probe_id, target):
                 "type": "ping",
                 "af": 4,
                 "target": target,
-                "description": "Sondatlas: desafio do ping",
+                "packets": packets,
+                "description": description,
                 "tags": ["sondatlas"],
             }],
             "probes": [{"type": "probes", "value": str(probe_id), "requested": 1}],

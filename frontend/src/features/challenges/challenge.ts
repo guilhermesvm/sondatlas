@@ -14,10 +14,25 @@ export interface PingResult {
   result: { rtt?: number }[]
 }
 
-// One-off results cost twice the periodic ones (credits docs): 6 for a default ping of 3 packets.
-export const pingCost = 6
+// A periodic ping costs 1 credit per packet and a one-off result costs twice as much (credits docs): 6 for the default 3 packets.
+export const pingCost = (packets: number) => 2 * packets
 
-export const suggestions = ['google.com', 'wikipedia.org', 'nic.br', 'ripe.net', 'cloudflare.com']
+export const packetChoices = [3, 5, 10]
+
+// Owners checked on RIPEstat (2026-10-27): AS13335 Cloudflare, AS15169 Google, AS19281 Quad9, AS25152 K-root.
+export const destinations = [
+  { group: 'Nomes', items: [
+    { value: 'google.com', note: 'Google' },
+    { value: 'wikipedia.org', note: 'Wikipedia' },
+    { value: 'nic.br', note: 'NIC.br, que cuida dos domínios .br' },
+  ] },
+  { group: 'Endereços IPv4', items: [
+    { value: '1.1.1.1', note: 'DNS público da Cloudflare' },
+    { value: '8.8.8.8', note: 'DNS público do Google' },
+    { value: '9.9.9.9', note: 'DNS público do Quad9' },
+    { value: '193.0.14.129', note: 'K-root, servidor raiz do RIPE NCC' },
+  ] },
+]
 
 const hostname = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/
 
@@ -42,11 +57,12 @@ export class ChallengeError extends Error {
   }
 }
 
-export async function createPing(probeId: number, target: string) {
+export async function createPing(probeId: number, target: string, packets: number, description: string) {
   let response: Response
   try {
     response = await fetch('/api/challenges/ping', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ probe_id: probeId, target: target.trim().toLowerCase() }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ probe_id: probeId, target: target.trim().toLowerCase(), packets, description: description.trim() || null }),
     })
   } catch {
     throw new ChallengeError(localApiDown)
@@ -74,4 +90,12 @@ export async function fetchPingResult(measurementId: number, signal: AbortSignal
   if (!round) return null
   const { timestamp, dst_name, dst_addr, size, ttl, sent, rcvd, min, avg, max, result } = round
   return { timestamp, dst_name, dst_addr, size, ttl, sent, rcvd, min, avg, max, result }
+}
+
+// Built-in ping from every probe to the K-root, every 4 minutes: the comparison for the probe's own ping.
+export async function fetchKRootAverage(probeId: number, signal: AbortSignal) {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/1001/latest/?probe_ids=${probeId}`, { signal })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const [round] = await response.json() as { avg?: number, rcvd?: number }[]
+  return round?.rcvd && round.avg && round.avg > 0 ? round.avg : null
 }

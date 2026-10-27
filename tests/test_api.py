@@ -490,10 +490,12 @@ def test_ping_challenge_creates_one_public_one_off_ping_from_the_account_probe(c
     assert response.json() == {"measurement_id": 123456789}
     assert "good-key" not in response.text
     assert created == [("https://atlas.ripe.net/api/v2/measurements/", "Key good-key", {
-        "definitions": [{"type": "ping", "af": 4, "target": "google.com", "description": "Sondatlas: desafio do ping", "tags": ["sondatlas"]}],
+        "definitions": [{"type": "ping", "af": 4, "target": "google.com", "packets": 3, "description": "Sondatlas: ping para google.com", "tags": ["sondatlas"]}],
         "probes": [{"type": "probes", "value": "1017210", "requested": 1}],
         "is_oneoff": True,
     })]
+    client.post("/challenges/ping", json={"probe_id": 1017210, "target": "8.8.8.8", "packets": 10, "description": " Meu teste "})
+    assert created[1][2]["definitions"][0] == {"type": "ping", "af": 4, "target": "8.8.8.8", "packets": 10, "description": "Meu teste", "tags": ["sondatlas"]}
 
 
 @pytest.mark.parametrize("headers, body, status", [
@@ -501,6 +503,8 @@ def test_ping_challenge_creates_one_public_one_off_ping_from_the_account_probe(c
     ({}, {"probe_id": 1018246, "target": "google.com"}, 422),
     ({}, {"probe_id": 1017210, "target": "192.168.1.1"}, 422),
     ({}, {"probe_id": 1017210, "target": "http://google.com"}, 422),
+    ({}, {"probe_id": 1017210, "target": "google.com", "packets": 17}, 422),
+    ({}, {"probe_id": 1017210, "target": "google.com", "description": "x" * 101}, 422),
 ])
 def test_ping_challenge_refuses_foreign_hosts_other_probes_and_bad_targets_without_spending(challenge_api, headers, body, status):
     client, _, created, _ = challenge_api
