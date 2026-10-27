@@ -64,7 +64,7 @@ export default function Achievements() {
     <Text size="lg" mt="sm" maw={680}>Marcos das suas probes no RIPE Atlas, calculados com os dados do próprio RIPE.</Text>
     {linked && <Text fw={600} mt="md">{earned} de {badges.length} conquistadas</Text>}
 
-    {linked && (account.missing_permissions ?? []).length > 0 && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
+    {linked && (account.missing_permissions ?? []).some(permission => permission === 'probes' || permission === 'credits') && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
       Algumas conquistas precisam de uma permissão que a chave não tem. Veja o que falta em Configurações.
       <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
     </Alert>}

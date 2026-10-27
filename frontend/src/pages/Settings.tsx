@@ -64,7 +64,7 @@ function ProbeList({ probes }: { probes: AccountProbe[] }) {
 
 const unlocks = [
   { title: 'Conquistas', text: 'Contam só as suas probes.', href: '#/conquistas', link: 'Ver conquistas' },
-  { title: 'Desafios', text: 'Medições criadas por você, com os seus créditos. Vão pedir mais permissões na chave.' },
+  { title: 'Desafios', text: 'Medições criadas por você, com os seus créditos.' },
 ]
 
 export default function Settings() {

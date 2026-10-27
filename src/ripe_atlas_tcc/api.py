@@ -142,7 +142,7 @@ def get_account():
 @app.put(
     "/account",
     summary="Check a RIPE Atlas API key and save it locally",
-    description="The key is saved in data/state only after RIPE Atlas accepts it with every required permission (probes and credits). On any failure the previous key is kept. The response lists the account probes, never the key.",
+    description="The key is saved in data/state only after RIPE Atlas accepts it with every required permission (probes, credits and creating measurements, checked with an empty request that creates nothing). On any failure the previous key is kept. The response lists the account probes, never the key.",
     responses={
         422: {"description": "Empty key, RIPE Atlas refused it, or detail.missing_permissions lists what it lacks; previous key is kept"},
         503: {"description": "RIPE Atlas unavailable or key not saved; previous key is kept"},

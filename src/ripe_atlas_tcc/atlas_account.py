@@ -90,14 +90,32 @@ def fetch_income(key):
     ]
 
 
+def can_schedule(key):
+    """True when the key may create measurements. An empty request creates nothing:
+    RIPE answers 400 (incomplete) to a key that may create and 401 or 403 to one that may not."""
+    response = requests.post(
+        "https://atlas.ripe.net/api/v2/measurements/",
+        headers={"Authorization": f"Key {key}"},
+        json={},
+        timeout=30,
+    )
+    if response.status_code in (401, 403):
+        return False
+    if response.status_code == 400:
+        return True
+    response.raise_for_status()
+    return True
+
+
 def fetch_account(key):
     """RIPE answers a missing permission like an invalid key, so the key is
     refused only when no permission works; otherwise the missing ones are listed."""
     credits = fetch_credits(key)
+    scheduling = can_schedule(key)
     try:
         probes = fetch_my_probes(key)
     except KeyRefusedError:
-        if credits is None:
+        if credits is None and not scheduling:
             raise
         probes = None
     return {
@@ -106,6 +124,6 @@ def fetch_account(key):
         "credits": credits,
         "income": fetch_income(key) if credits is not None else None,
         "missing_permissions": [
-            name for name, value in (("probes", probes), ("credits", credits)) if value is None
+            name for name, missing in (("probes", probes is None), ("credits", credits is None), ("measurements", not scheduling)) if missing
         ],
     }

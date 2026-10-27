@@ -337,7 +337,7 @@ def account_api(monkeypatch, tmp_path):
         key = headers["Authorization"].removeprefix("Key ")
         if key == "offline-key":
             raise requests.ConnectionError("offline")
-        if key not in ("good-key", "probes-only-key", "credits-only-key"):
+        if key not in ("good-key", "probes-only-key", "credits-only-key", "no-schedule-key"):
             return Response(403, {"detail": "refused"})
         if url.endswith("/credits/income-items/"):
             return Response(200, {"groups": {"hosted_probes": [{
@@ -357,8 +357,20 @@ def account_api(monkeypatch, tmp_path):
             "address_v4": "203.0.113.77", "prefix_v4": "203.0.113.0/24", "asn_v4": 64500,
         }]})
 
+    def post(url, headers, json, timeout):
+        calls.append(("POST " + url, headers["Authorization"]))
+        key = headers["Authorization"].removeprefix("Key ")
+        if key == "offline-key":
+            raise requests.ConnectionError("offline")
+        if json != {}:
+            raise AssertionError("the permission check must not create anything")
+        if key in ("good-key", "probes-only-key", "credits-only-key"):
+            return Response(400, {"error": {"detail": "definitions: This field is required."}})
+        return Response(403, {"detail": "no permission"})
+
     monkeypatch.setattr(api, "ACCOUNT_STATE_PATH", state_path)
     monkeypatch.setattr(atlas_account.requests, "get", get)
+    monkeypatch.setattr(atlas_account.requests, "post", post)
     with TestClient(api.app) as client:
         yield client, state_path, calls
 
@@ -382,6 +394,7 @@ def test_account_key_is_checked_saved_and_never_returned(account_api):
         assert "203.0.113" not in response.text
     assert calls == [
         ("https://atlas.ripe.net/api/v2/credits/", "Key good-key"),
+        ("POST https://atlas.ripe.net/api/v2/measurements/", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/probes/my/", "Key good-key"),
         ("https://atlas.ripe.net/api/v2/credits/income-items/", "Key good-key"),
     ] * 2
@@ -417,7 +430,7 @@ def test_disconnecting_removes_the_key_and_can_repeat(account_api):
     assert calls == []
 
 
-@pytest.mark.parametrize("key, missing", [("probes-only-key", "credits"), ("credits-only-key", "probes")])
+@pytest.mark.parametrize("key, missing", [("probes-only-key", "credits"), ("credits-only-key", "probes"), ("no-schedule-key", "measurements")])
 def test_key_missing_one_permission_is_not_linked_and_says_which(account_api, key, missing):
     client, state_path, _ = account_api
     response = client.put("/account", json={"key": key})
