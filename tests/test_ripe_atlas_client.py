@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 import requests
 
-from ripe_atlas_tcc import ripe_atlas_client
+from ripe_atlas_tcc.shared import ripe_atlas_client
 
 
 def test_fetch_probe_first_connected_returns_utc_datetime(monkeypatch):

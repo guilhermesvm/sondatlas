@@ -2,7 +2,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from ripe_atlas_tcc import pipeline, probe_state
+from ripe_atlas_tcc.pipeline import runner as pipeline
+from ripe_atlas_tcc.shared import probe_state
 
 
 PROBE_ID = 1017210

@@ -1,4 +1,4 @@
-from ripe_atlas_tcc.probe_state import load_selected_probe, save_selected_probe
+from ripe_atlas_tcc.shared.probe_state import load_selected_probe, save_selected_probe
 
 
 def test_selected_probe_is_saved_and_loaded(tmp_path):

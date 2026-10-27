@@ -4,8 +4,8 @@ from scripts.cleanup_json import (
     delete_collected_json_files,
     delete_probe_distribution_collections,
 )
-from ripe_atlas_tcc.execution_lock import execution_lock
-from ripe_atlas_tcc.probe_distribution import read_distribution
+from ripe_atlas_tcc.shared.execution_lock import execution_lock
+from ripe_atlas_tcc.api.probe_distribution import read_distribution
 
 
 def test_delete_collected_json_files_removes_only_json_files(tmp_path):

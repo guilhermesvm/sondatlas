@@ -6,8 +6,8 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 
 import requests
 
-from ripe_atlas_tcc import probe_distribution
-from ripe_atlas_tcc.atlas_account import (
+from ripe_atlas_tcc.api import probe_distribution
+from ripe_atlas_tcc.api.atlas_account import (
     ACCOUNT_STATE_PATH,
     KeyRefusedError,
     MeasurementRejectedError,
@@ -21,14 +21,14 @@ from ripe_atlas_tcc.atlas_account import (
     save_key,
     valid_target,
 )
-from ripe_atlas_tcc.influxdb_queries import query_ping_results
-from ripe_atlas_tcc.probe_state import (
+from ripe_atlas_tcc.api.influxdb_queries import query_ping_results
+from ripe_atlas_tcc.shared.probe_state import (
     clear_selected_probe,
     load_selected_probe,
     save_selected_probe,
 )
-from ripe_atlas_tcc.ripe_atlas_client import fetch_probe
-from ripe_atlas_tcc.settings import (
+from ripe_atlas_tcc.shared.ripe_atlas_client import fetch_probe
+from ripe_atlas_tcc.shared.settings import (
     PING_MEASUREMENTS,
     PROBE_STATE_PATH,
     load_influxdb_config,

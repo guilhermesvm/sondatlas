@@ -148,21 +148,29 @@ is not tracked by Git.
 
 ```text
 src/ripe_atlas_tcc/
-    pipeline.py             coordinates one ingestion run
-    backfill_state.py       stores resumable historical-load progress
-    collection_state.py     calculates windows and stores collection progress
-    execution_lock.py       prevents concurrent pipeline processes
-    settings.py             defines the ping catalog and loads configuration
-    ripe_atlas_client.py    communicates with the RIPE Atlas API
-    normalization.py        normalizes ping results
-    json_storage.py         stores raw and normalized JSON files
-    influxdb_storage.py     writes normalized points to InfluxDB
-    influxdb_queries.py     reads ping history by probe, measurement, and period
-    api.py                  exposes ping reads and manual distribution refresh
-    probe_distribution.py  collects, aggregates and saves public probe metadata
-    console_output.py       formats terminal output
-    init_secrets.py         creates the InfluxDB password and token for Compose
+    __main__.py                 python -m ripe_atlas_tcc (runs the pipeline)
+    init_secrets.py             creates the InfluxDB password and token for Compose
+    shared/                     used by both the pipeline and the API
+        settings.py             defines the ping catalog and loads configuration
+        probe_state.py          stores the selected probe
+        ripe_atlas_client.py    communicates with the RIPE Atlas API
+        execution_lock.py       prevents concurrent pipeline processes
+    pipeline/                   collection: RIPE Atlas -> JSON -> InfluxDB
+        runner.py               coordinates collection, polling and backfill
+        collection_state.py     calculates windows and stores collection progress
+        backfill_state.py       stores resumable historical-load progress
+        normalization.py        normalizes ping results
+        json_storage.py         stores raw and normalized JSON files
+        influxdb_storage.py     writes normalized points to InfluxDB
+        console_output.py       formats terminal output
+    api/                        HTTP API for the dashboard
+        app.py                  FastAPI routes
+        influxdb_queries.py     reads ping history by probe, measurement, and period
+        atlas_account.py        stores the RIPE Atlas key and creates challenges
+        probe_distribution.py   collects, aggregates and saves public probe metadata
 ```
+
+`pipeline/` and `api/` import from `shared/`, never from each other.
 
 The pipeline runs with `python -m ripe_atlas_tcc` (the package's
 `__main__.py`). The root `start-kit` and `stop-kit` scripts (`.ps1` and
@@ -408,8 +416,8 @@ Use `query_ping_results()` to read individual pings from the configured bucket:
 ```python
 from datetime import datetime, timezone
 
-from ripe_atlas_tcc.influxdb_queries import query_ping_results
-from ripe_atlas_tcc.settings import load_influxdb_config
+from ripe_atlas_tcc.api.influxdb_queries import query_ping_results
+from ripe_atlas_tcc.shared.settings import load_influxdb_config
 
 records = query_ping_results(
     probe_id=1017210,
@@ -448,7 +456,7 @@ python -m pip install -e ".[dev]"
 Start the API from the project directory with the virtual environment active:
 
 ```bash
-python -m uvicorn ripe_atlas_tcc.api:app --host 127.0.0.1 --port 8000
+python -m uvicorn ripe_atlas_tcc.api.app:app --host 127.0.0.1 --port 8000
 ```
 
 Open `http://127.0.0.1:8000/docs` for the interactive API documentation. Keep
@@ -575,7 +583,7 @@ Python environment and start the backend:
 
 ```bash
 source .venv/Scripts/activate
-python -m uvicorn ripe_atlas_tcc.api:app --host 127.0.0.1 --port 8000
+python -m uvicorn ripe_atlas_tcc.api.app:app --host 127.0.0.1 --port 8000
 ```
 
 In a second terminal, install the locked frontend dependencies and start Vite:

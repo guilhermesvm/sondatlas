@@ -1,7 +1,7 @@
 import sys
 
-from ripe_atlas_tcc.influxdb_storage import check_influxdb_connection
-from ripe_atlas_tcc.settings import load_influxdb_config
+from ripe_atlas_tcc.pipeline.influxdb_storage import check_influxdb_connection
+from ripe_atlas_tcc.shared.settings import load_influxdb_config
 
 
 def main():
