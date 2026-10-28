@@ -147,10 +147,11 @@ export interface Challenge {
   status?: { id: number | null, name: string | null }
 }
 
-export async function fetchChallenges(signal: AbortSignal, oldest = false, kind?: Kind, group = false) {
+// made leaves out the measurements RIPE Atlas ended without measuring, as the badges count.
+export async function fetchChallenges(signal: AbortSignal, oldest = false, kind?: Kind, group = false, made = false) {
   let response: Response
   try {
-    const query = new URLSearchParams({ ...(oldest ? { oldest: 'true' } : {}), ...(kind ? { type: kind } : {}), ...(group ? { group: 'true' } : {}) }).toString()
+    const query = new URLSearchParams({ ...(oldest ? { oldest: 'true' } : {}), ...(kind ? { type: kind } : {}), ...(group ? { group: 'true' } : {}), ...(made ? { made: 'true' } : {}) }).toString()
     response = await fetch(query ? `/api/challenges?${query}` : '/api/challenges', { signal })
   } catch (error) {
     if (signal.aborted) throw error

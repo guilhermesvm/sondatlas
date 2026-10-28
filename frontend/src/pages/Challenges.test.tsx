@@ -158,7 +158,7 @@ it('lists the challenges of the account, each opening its result, or says what t
   expect(await within(list).findByText(/Você criou 61 desafios pela Sondatlas. Aqui estão os 3 mais recentes./)).toBeInTheDocument()
   expect(within(list).getByRole('link', { name: 'Ping até github.com' })).toHaveAttribute('href', '#/desafios/228260804')
   expect(within(list).getAllByText('Da probe 1017210')).toHaveLength(2)
-  expect(within(list).getByText('Não foi feita: o RIPE Atlas marcou como Failed')).toHaveClass('challenge-failed')
+  expect(within(list).getByText('Não foi feita. O RIPE Atlas marcou como Failed')).toHaveClass('challenge-failed')
   unmount()
 
   stubBackend(linked)

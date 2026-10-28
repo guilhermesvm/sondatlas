@@ -13,7 +13,7 @@ const groups = [
   { id: 'uptime', title: 'Tempo no ar', text: 'Somando todo o tempo conectada, mesmo com quedas no meio.' },
   { id: 'history', title: 'Histórico de conexão', text: 'Calculadas pelos registros de conexão e queda que o RIPE Atlas guarda de cada probe.' },
   { id: 'credits', title: 'Créditos', text: 'Os créditos ficam na sua conta e somam todas as suas probes. Cada probe rende 15 por minuto conectada e 1 por resultado de medição. Estes badges olham o saldo atual.' },
-  { id: 'challenges', title: 'Desafios', text: 'Medições que você criou pela Sondatlas, com os seus créditos. Contam todas, mesmo as que não trouxeram resposta.' },
+  { id: 'challenges', title: 'Desafios', text: 'Medições que você criou pela Sondatlas, com os seus créditos. Contam as que o RIPE Atlas fez, mesmo sem resposta do destino.' },
 ] as const
 
 function BadgeTile({ badge }: { badge: Badge }) {

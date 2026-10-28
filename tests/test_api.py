@@ -606,6 +606,9 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
     assert client.get("/challenges", params={"type": "dns"}).status_code == 422
     client.get("/challenges", params={"oldest": True, "group": True})
     assert asked[-1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas-grupo&sort=id&")
+    assert "status__in" not in asked[-1][0]
+    client.get("/challenges", params={"oldest": True, "made": True})
+    assert asked[-1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&status__in=0,1,2,4,8&fields=")
 
 
 @pytest.mark.parametrize("status, expected, detail", [

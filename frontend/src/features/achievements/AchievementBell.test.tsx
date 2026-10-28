@@ -22,7 +22,7 @@ const linked = {
 function stubBackend(account: unknown) {
   vi.stubGlobal('fetch', vi.fn((url: string) => {
     if (url === '/api/account') return json(account)
-    if (url === '/api/challenges?oldest=true') return json({ count: 1, challenges: [{ id: 228700000, type: 'ping', target: 'google.com', created: now - 60, probe_id: 1017210 }] })
+    if (url === '/api/challenges?oldest=true&made=true') return json({ count: 1, challenges: [{ id: 228700000, type: 'ping', target: 'google.com', created: now - 60, probe_id: 1017210 }] })
     if (url.startsWith('/api/challenges')) return json({ count: 0, challenges: [] })
     if (url.startsWith('https://atlas.ripe.net/api/v2/probes/?asn_v4=')) return json({ next: null, results: [{ first_connected: first }] })
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/7000/')) return json([])

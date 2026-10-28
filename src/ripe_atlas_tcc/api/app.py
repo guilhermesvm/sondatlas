@@ -301,6 +301,7 @@ def get_challenges(
     oldest: Annotated[bool, Query(description="Oldest first, to date the first, 10th, 25th and 50th challenge")] = False,
     kind: Annotated[Literal["ping", "traceroute"] | None, Query(alias="type", description="Only one type of measurement")] = None,
     group: Annotated[bool, Query(description="Only measurements asked from more than one probe")] = False,
+    made: Annotated[bool, Query(description="Leave out the ones RIPE Atlas ended without measuring (Forced to stop, No suitable probes, Failed), as the badges count")] = False,
 ):
     try:
         key = load_key(ACCOUNT_STATE_PATH)
@@ -310,7 +311,7 @@ def get_challenges(
     if key is None:
         raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
     try:
-        return fetch_challenges(key, oldest, kind, group)
+        return fetch_challenges(key, oldest, kind, group, made)
     except MissingPermissionError:
         raise HTTPException(status_code=422, detail={"missing_permissions": ["my_measurements"]}) from None
     except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as error:

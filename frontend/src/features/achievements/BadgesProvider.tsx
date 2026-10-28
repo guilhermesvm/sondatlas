@@ -54,7 +54,7 @@ export function BadgesProvider({ children }: { children: ReactNode }) {
         })
         const history = (set: typeof setChallenges, kind?: 'traceroute', group = false) => {
           if (result.missing_permissions?.includes('my_measurements')) set('missing')
-          else if (result.connected) fetchChallenges(controller.signal, true, kind, group).then(list => set({ count: list.count, oldest: list.challenges }), (reason: Error) => {
+          else if (result.connected) fetchChallenges(controller.signal, true, kind, group, true).then(list => set({ count: list.count, oldest: list.challenges }), (reason: Error) => {
             if (!controller.signal.aborted) set(reason instanceof ChallengeError && reason.missing.length ? 'missing' : 'failed')
           })
         }

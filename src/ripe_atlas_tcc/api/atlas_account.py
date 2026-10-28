@@ -134,13 +134,18 @@ def can_list(key):
     return True
 
 
-def fetch_challenges(key, oldest=False, kind=None, group=False):
+# Measurement statuses from the OpenAPI, all but 5 Forced to stop, 6 No suitable probes and 7 Failed. There is no filter to leave statuses out.
+MADE_STATUSES = "0,1,2,4,8"
+
+
+def fetch_challenges(key, oldest=False, kind=None, group=False, made=False):
     """The 50 newest (or oldest) measurements the key owner created through Sondatlas (tag sondatlas), with the total.
     kind keeps only one type, such as traceroute; group keeps only the pings from several probes (tag sondatlas-grupo).
     probes_requested comes as 0 for one-off measurements, so the group is told by its tag and its size by participant_count.
-    status tells the ones RIPE Atlas ended without measuring, such as Failed, whose probes come empty."""
+    status tells the ones RIPE Atlas ended without measuring, such as Failed, whose probes come empty, and made leaves them out."""
     response = requests.get(
         f"{MY_MEASUREMENTS_URL}?tags={GROUP_TAG if group else 'sondatlas'}&sort={'id' if oldest else '-id'}&page_size=50{f'&type={kind}' if kind else ''}"
+        f"{f'&status__in={MADE_STATUSES}' if made else ''}"
         "&fields=id,type,target,creation_time,probes,tags,participant_count,status&optional_fields=probes",
         headers={"Authorization": f"Key {key}"},
         timeout=30,

@@ -12,9 +12,9 @@ const first = 1791940871
 function stubBackend(account: unknown) {
   const mock = vi.fn((url: string) => {
     if (url === '/api/account') return json(account)
-    if (url === '/api/challenges?oldest=true&type=traceroute') return json({ count: 0, challenges: [] })
-    if (url === '/api/challenges?oldest=true&group=true') return json({ count: 1, challenges: [{ id: 228400000, type: 'ping', target: 'google.com', created: first + 86400 * 20, probe_id: 1017210, group: true, probes: 11 }] })
-    if (url === '/api/challenges?oldest=true') return json({ count: 12, challenges: Array.from({ length: 12 }, (_, index) => ({
+    if (url === '/api/challenges?oldest=true&type=traceroute&made=true') return json({ count: 0, challenges: [] })
+    if (url === '/api/challenges?oldest=true&group=true&made=true') return json({ count: 1, challenges: [{ id: 228400000, type: 'ping', target: 'google.com', created: first + 86400 * 20, probe_id: 1017210, group: true, probes: 11 }] })
+    if (url === '/api/challenges?oldest=true&made=true') return json({ count: 12, challenges: Array.from({ length: 12 }, (_, index) => ({
       id: 228248657 + index, type: 'ping', target: 'google.com', created: first + 86400 * index, probe_id: 1017210,
     })) })
     if (url.startsWith('https://atlas.ripe.net/api/v2/probes/?asn_v4=64500')) {
