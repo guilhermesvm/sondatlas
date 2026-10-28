@@ -31,7 +31,11 @@ function stubBackend(account: unknown, results: unknown[] = [round], challenges:
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/account') return json(account)
     if (url === '/api/challenges') return json(...challenges)
-    if (url === '/api/challenges/ping' || url === '/api/challenges/traceroute') return json({ measurement_id: 123456789 })
+    if (url === '/api/challenges/ping' || url === '/api/challenges/traceroute' || url === '/api/challenges/group-ping') return json({ measurement_id: 123456789 })
+    if (url.startsWith('https://atlas.ripe.net/api/v2/probes/?id__in=')) return json({ results: [
+      { id: 1017210, country_code: 'BR', asn_v4: 263077 }, { id: 6001, country_code: 'JP', asn_v4: 2516 },
+      { id: 6002, country_code: 'DE', asn_v4: 3320 }, { id: 6003, country_code: 'ZA', asn_v4: 37100 },
+    ] })
     if (url.startsWith('https://stat.ripe.net/data/network-info/')) return json({ data: { asns: url.includes('142.250.0.1') ? ['15169'] : ['64500'] } })
     if (url.startsWith('https://stat.ripe.net/data/as-overview/')) return json({ data: { holder: url.includes('AS15169') ? 'GOOGLE - Google LLC' : 'EXAMPLE - Provedor Exemplo' } })
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(measurement)
@@ -44,16 +48,18 @@ function stubBackend(account: unknown, results: unknown[] = [round], challenges:
   return mock
 }
 
+// The page has two forms: the single-probe challenge and the group ping.
+const single = async () => within(await screen.findByRole('region', { name: 'Desafio: uma medição sua' }))
 const renderChallenges = () => render(<ProbeProvider><Challenges /></ProbeProvider>)
 
 it('creates a ping from a connected probe after showing the cost, and explains the result', async () => {
   const mock = stubBackend(linked)
   renderChallenges()
-  const destination = await screen.findByRole('combobox', { name: 'Destino' })
+  const destination = (await single()).getByRole('combobox', { name: 'Destino' })
   await userEvent.type(destination, 'Google.com')
-  await userEvent.click(screen.getByRole('radio', { name: '5' }))
+  await userEvent.click((await single()).getByRole('radio', { name: '5' }))
   expect(screen.getByLabelText('Descrição (opcional)')).toHaveAttribute('placeholder', 'Sondatlas: ping para google.com')
-  await userEvent.click(screen.getByRole('button', { name: 'Ver o custo' }))
+  await userEvent.click((await single()).getByRole('button', { name: 'Ver o custo' }))
   const dialog = screen.getByRole('dialog', { name: 'Criar este ping?' })
   expect(dialog).toHaveTextContent('Da probe 1017210 até google.com, com 5 pacotes.')
   expect(dialog).toHaveTextContent('Custa cerca de 10 créditos, cobrados nas próximas 4 a 6 horas. Seu saldo: 1.214.346.')
@@ -78,10 +84,10 @@ it('creates a ping from a connected probe after showing the cost, and explains t
 it('checks the destination before showing the cost', async () => {
   const mock = stubBackend(linked)
   renderChallenges()
-  await userEvent.click(await screen.findByRole('button', { name: 'Ver o custo' }))
+  await userEvent.click((await single()).getByRole('button', { name: 'Ver o custo' }))
   expect(screen.getByText('Escolha ou digite um destino.')).toBeInTheDocument()
-  await userEvent.type(screen.getByRole('combobox', { name: 'Destino' }), '192.168.1.1')
-  await userEvent.click(screen.getByRole('button', { name: 'Ver o custo' }))
+  await userEvent.type((await single()).getByRole('combobox', { name: 'Destino' }), '192.168.1.1')
+  await userEvent.click((await single()).getByRole('button', { name: 'Ver o custo' }))
   expect(screen.getByText('Digite um nome, como google.com, ou um endereço IPv4 público.')).toBeInTheDocument()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(mock.mock.calls.some(([url]) => url === '/api/challenges/ping')).toBe(false)
@@ -141,7 +147,7 @@ it('lists the challenges of the account, each opening its result, or says what t
   renderChallenges()
   const alert = await screen.findByText(/Para listar os seus desafios aqui, falta na chave a permissão/)
   expect(within(alert).getByText('List your measurements').tagName).toBe('STRONG')
-  expect(screen.getByRole('button', { name: 'Ver o custo' })).toBeInTheDocument()
+  expect((await single()).getByRole('button', { name: 'Ver o custo' })).toBeInTheDocument()
   expect(mock.mock.calls.some(([url]) => url === '/api/challenges')).toBe(false)
 })
 
@@ -186,12 +192,12 @@ const route = {
 it('creates a traceroute with the cost of the packets per hop and reads the route like the lesson', async () => {
   const mock = stubBackend(linked, [route], [noChallenges], { ...detail, type: 'traceroute' })
   renderChallenges()
-  await userEvent.click(await screen.findByRole('radio', { name: 'Traceroute' }))
-  expect(screen.getAllByRole('radio').map(radio => radio.getAttribute('value'))).toEqual(['ping', 'traceroute', '3', '10'])
-  await userEvent.type(screen.getByRole('combobox', { name: 'Destino' }), 'google.com')
-  await userEvent.click(screen.getByRole('radio', { name: '10' }))
+  await userEvent.click((await single()).getByRole('radio', { name: 'Traceroute' }))
+  expect((await single()).getAllByRole('radio').map(radio => radio.getAttribute('value'))).toEqual(['ping', 'traceroute', '3', '10'])
+  await userEvent.type((await single()).getByRole('combobox', { name: 'Destino' }), 'google.com')
+  await userEvent.click((await single()).getByRole('radio', { name: '10' }))
   expect(screen.getByLabelText('Descrição (opcional)')).toHaveAttribute('placeholder', 'Sondatlas: traceroute para google.com')
-  await userEvent.click(screen.getByRole('button', { name: 'Ver o custo' }))
+  await userEvent.click((await single()).getByRole('button', { name: 'Ver o custo' }))
   const dialog = screen.getByRole('dialog', { name: 'Criar este traceroute?' })
   expect(dialog).toHaveTextContent('Da probe 1017210 até google.com, com 10 pacotes por salto.')
   expect(dialog).toHaveTextContent('Custa cerca de 200 créditos')
@@ -241,4 +247,51 @@ it('does not call a private address in the middle of the route your home', async
   expect(stages.map(stage => stage.getAttribute('data-kind'))).toEqual(['provider', 'transit', 'destination'])
   expect(stages[1]).toHaveTextContent('Um roteador com endereço privado, 172.25.138.2, usado dentro da rede de algum provedor.')
   expect(screen.queryByText(/Na sua casa/)).not.toBeInTheDocument()
+})
+
+const groupRounds = [
+  { prb_id: 6001, avg: 180.5, sent: 3, rcvd: 3, dst_addr: '142.250.1.1', from: '198.51.100.1' },
+  { prb_id: 1017210, avg: 58.7, sent: 3, rcvd: 3, dst_addr: '172.217.172.46', from: '203.0.113.77' },
+  { prb_id: 6002, avg: 12.2, sent: 3, rcvd: 3, dst_addr: '142.250.2.2', from: '198.51.100.2' },
+  { prb_id: 6003, avg: -1, sent: 3, rcvd: 0, dst_addr: '142.250.3.3', from: '198.51.100.3' },
+]
+
+it('creates a ping from probes on every continent, with the cost of each probe and the own probe optional', async () => {
+  const mock = stubBackend(linked)
+  renderChallenges()
+  const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
+  await userEvent.type(group.getByRole('combobox', { name: 'Destino' }), 'google.com')
+  await userEvent.click(within(group.getByRole('radiogroup', { name: 'Probes' })).getByRole('radio', { name: '10' }))
+  expect(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' })).toBeChecked()
+  await userEvent.click(group.getByRole('button', { name: 'Ver o custo' }))
+  let dialog = screen.getByRole('dialog', { name: 'Criar este ping de várias probes?' })
+  expect(dialog).toHaveTextContent('De 10 probes, divididas entre os cinco continentes, e da sua probe 1017210, até google.com, com 3 pacotes cada.')
+  expect(dialog).toHaveTextContent('Custa cerca de 66 créditos, 6 por probe')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+  await userEvent.click(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' }))
+  await userEvent.click(group.getByRole('button', { name: 'Ver o custo' }))
+  dialog = screen.getByRole('dialog', { name: 'Criar este ping de várias probes?' })
+  expect(dialog).toHaveTextContent('Custa cerca de 60 créditos')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Criar o ping' }))
+  const post = mock.mock.calls.find(([url]) => url === '/api/challenges/group-ping')
+  expect(post?.[1]?.body).toBe(JSON.stringify({ target: 'google.com', total: 10, probe_id: null, packets: 3 }))
+  expect(window.location.hash).toBe('#/desafios/123456789')
+})
+
+it('compares the probes of a group ping as they arrive, marks your probe and never shows their addresses', async () => {
+  window.location.hash = '#/desafios/123456789'
+  const group = { ...detail, tags: ['sondatlas', 'sondatlas-grupo'], participant_count: 6 }
+  stubBackend(linked, groupRounds, [noChallenges], group)
+  renderChallenges()
+  expect(await screen.findByText('Ping de 6 probes até google.com')).toBeInTheDocument()
+  expect(await screen.findByText('Chegaram 4 de 6 resultados. Cada probe mede no seu tempo…')).toBeInTheDocument()
+  const rows = screen.getAllByRole('row').slice(1)
+  expect(rows.map(row => row.firstElementChild?.textContent)).toEqual(['6002', '1017210sua', '6001', '6003'])
+  expect(rows[0]).toHaveTextContent('Alemanha')
+  expect(rows[3]).toHaveTextContent('sem resposta')
+  expect(screen.getByText('De 12,2 ms a 180,5 ms')).toBeInTheDocument()
+  expect(screen.getByText(/As probes receberam 4 endereços diferentes para google.com/)).toBeInTheDocument()
+  expect(screen.getByText(/A sua probe ficou em 2º lugar entre as que responderam/)).toBeInTheDocument()
+  expect(document.body).not.toHaveTextContent('198.51.100')
+  expect(document.body).not.toHaveTextContent('203.0.113.77')
 })

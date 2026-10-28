@@ -8,6 +8,7 @@ const icons: Record<string, ReactNode> = {
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /><path d="m8.5 15 2.5 2.5 4.5-4.5" /></>,
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /><path d="M12 1v4M12 19v4M1 12h4M19 12h4" /></>,
   route: <><circle cx="5" cy="19" r="2" /><circle cx="19" cy="5" r="2" /><path d="M7 19h8a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h8" /></>,
+  pins: <><circle cx="12" cy="12" r="9" /><path d="M3.5 9h17M3.5 15h17" /><circle cx="8" cy="6.5" r="1.4" /><circle cx="16" cy="11" r="1.4" /><circle cx="10" cy="17.5" r="1.4" /></>,
   probes: <><rect x="3" y="9" width="11" height="11" rx="2" /><path d="M10 9V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-5" /></>,
 }
 

@@ -12,7 +12,10 @@ from ripe_atlas_tcc.api.atlas_account import (
     KeyRefusedError,
     MeasurementRejectedError,
     MissingPermissionError,
+    GROUP_TAG,
     create_measurement,
+    from_continents,
+    from_probe,
     delete_key,
     fetch_account,
     fetch_challenges,
@@ -219,7 +222,7 @@ def post_ping_challenge(
     packets: Annotated[int, Body(ge=1, le=16)] = 3,
     description: Annotated[str | None, Body(max_length=100)] = None,
 ):
-    return run_challenge("ping", probe_id, target, packets, description)
+    return run_challenge("ping", target, packets, description, [from_probe(probe_id)], probe_id)
 
 
 @app.post(
@@ -235,12 +238,31 @@ def post_traceroute_challenge(
     packets: Annotated[int, Body(ge=1, le=16)] = 3,
     description: Annotated[str | None, Body(max_length=100)] = None,
 ):
-    return run_challenge("traceroute", probe_id, target, packets, description)
+    return run_challenge("traceroute", target, packets, description, [from_probe(probe_id)], probe_id)
 
 
-def run_challenge(kind, probe_id, target, packets, description):
+@app.post(
+    "/challenges/group-ping",
+    summary="Create a one-off IPv4 ping from probes on every inhabited continent, and optionally one of the account probes",
+    description="total (5, 10 or 20) is split evenly among Africa, the Americas, Asia, Europe and Oceania (the region selector of RIPE Atlas, which chooses the probes). Spends 2 credits per packet per probe. " + CHALLENGE_RULES,
+    dependencies=[Depends(local_only)],
+    responses=CHALLENGE_RESPONSES,
+)
+def post_group_ping_challenge(
+    target: Annotated[str, Body(min_length=1, max_length=253)],
+    total: Annotated[Literal[5, 10, 20], Body()],
+    probe_id: Annotated[int | None, Body(gt=0)] = None,
+    packets: Annotated[int, Body(ge=1, le=16)] = 3,
+    description: Annotated[str | None, Body(max_length=100)] = None,
+):
+    sources = from_continents(total) + ([from_probe(probe_id)] if probe_id else [])
+    return run_challenge("ping", target, packets, description, sources, probe_id, "ping de várias probes", ("sondatlas", GROUP_TAG))
+
+
+def run_challenge(kind, target, packets, description, sources, probe_id, label=None, tags=("sondatlas",)):
+    """probe_id, when given, must be one of the account probes."""
     target = target.strip().lower()
-    description = (description or "").strip() or f"Sondatlas: {kind} para {target}"
+    description = (description or "").strip() or f"Sondatlas: {label or kind} para {target}"
     if not valid_target(target):
         raise HTTPException(status_code=422, detail="Target must be a host name or a public IPv4 address")
     try:
@@ -251,9 +273,9 @@ def run_challenge(kind, probe_id, target, packets, description):
     if key is None:
         raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
     try:
-        if probe_id not in {probe["id"] for probe in fetch_my_probes(key)}:
+        if probe_id is not None and probe_id not in {probe["id"] for probe in fetch_my_probes(key)}:
             raise HTTPException(status_code=422, detail="The probe is not in the linked account")
-        return {"measurement_id": create_measurement(key, probe_id, kind, target, packets, description)}
+        return {"measurement_id": create_measurement(key, sources, kind, target, packets, description, tags)}
     except KeyRefusedError:
         raise HTTPException(status_code=403, detail="RIPE Atlas refused the saved key") from None
     except MissingPermissionError:
@@ -278,6 +300,7 @@ def run_challenge(kind, probe_id, target, packets, description):
 def get_challenges(
     oldest: Annotated[bool, Query(description="Oldest first, to date the first, 10th, 25th and 50th challenge")] = False,
     kind: Annotated[Literal["ping", "traceroute"] | None, Query(alias="type", description="Only one type of measurement")] = None,
+    group: Annotated[bool, Query(description="Only measurements asked from more than one probe")] = False,
 ):
     try:
         key = load_key(ACCOUNT_STATE_PATH)
@@ -287,7 +310,7 @@ def get_challenges(
     if key is None:
         raise HTTPException(status_code=409, detail="No RIPE Atlas account linked")
     try:
-        return fetch_challenges(key, oldest, kind)
+        return fetch_challenges(key, oldest, kind, group)
     except MissingPermissionError:
         raise HTTPException(status_code=422, detail={"missing_permissions": ["my_measurements"]}) from None
     except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as error:

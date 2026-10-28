@@ -1,0 +1,5 @@
+.group-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+.group-table caption { text-align: left; font-size: 14px; margin-bottom: 6px; }
+.group-table th, .group-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.group-table th { font-weight: 600; }
+.group-table tr[data-yours='true'] td { background: var(--accent-bg); font-weight: 600; }
