@@ -103,9 +103,11 @@ command -v curl >/dev/null || erro "curl não encontrado. Instale com: sudo apt 
 
 if [ "$MODO" = tudo ]; then
   motivo=$(motivo_sem_vm)
-  if [ -n "$motivo" ]; then
+  if grep -qi microsoft /proc/version 2>/dev/null; then
     echo "$motivo"
-    passo "Ligando só a aplicação. Se a sua probe usa a VM do kit, resolva isso e rode este comando de novo"
+    passo "Ligando só a aplicação. Para ligar também a VM da probe, use o PowerShell"
+  elif [ -n "$motivo" ]; then
+    passo "Ligando só a aplicação, porque este computador não tem Vagrant ou VirtualBox. Isso é normal se a sua probe roda direto num Debian ou Raspberry Pi"
   else
     estado=$(estado_da_vm)
     if [ "$estado" = not_created ]; then

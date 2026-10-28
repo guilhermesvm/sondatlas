@@ -101,8 +101,7 @@ if (-not $versaoCompose -or [version]$versaoCompose -lt [version]'2.24.0') {
 if (-not $App) {
     $motivo = MotivoSemVM
     if ($motivo) {
-        Write-Host $motivo
-        Passo 'Ligando só a aplicação. Se a sua probe usa a VM do kit, resolva isso e rode este comando de novo'
+        Passo 'Ligando só a aplicação, porque este computador não tem Vagrant ou VirtualBox. Isso é normal se a sua probe roda direto num Debian ou Raspberry Pi'
     } else {
         $estado = EstadoDaVM
         if ($estado -eq 'not_created') {
