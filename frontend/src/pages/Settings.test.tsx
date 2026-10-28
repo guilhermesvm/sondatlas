@@ -34,6 +34,7 @@ function stubBackend(saved: 'none' | 'good-key' | 'refused') {
       if (saved === 'refused') return json({ detail: 'RIPE Atlas refused the saved key' }, 403)
       return json(saved === 'none' ? { connected: false } : linkedAccount)
     }
+    if (url === '/api/probe' && init?.method === 'PUT') return json({ probe_id: JSON.parse(String(init.body)).probe_id, is_public: true })
     if (url === '/api/probe') return json({ probe_id: 1017210 })
     return json(probeStatus)
   })
@@ -99,4 +100,22 @@ it('unlinks after confirming and reminds to delete the key on the RIPE Atlas sit
   await userEvent.click(within(dialog).getByRole('button', { name: 'Sim, desvincular' }))
   expect(await screen.findByLabelText('Chave de API do RIPE Atlas')).toBeInTheDocument()
   expect(mock.mock.calls.some(([url, init]) => url === '/api/account' && init?.method === 'DELETE')).toBe(true)
+})
+
+it('follows another probe of the account from the list after the same notice as the Follow phase', async () => {
+  const mock = stubBackend('good-key')
+  render(<ProbeProvider><Settings /></ProbeProvider>)
+  const list = await screen.findByText('Probe 1018246')
+  const followed = screen.getByText('Probe 1017210').closest('li')!
+  expect(within(followed).getByText('Acompanhada')).toBeInTheDocument()
+  expect(within(followed).queryByRole('button', { name: 'Acompanhar esta probe' })).not.toBeInTheDocument()
+  await userEvent.click(within(list.closest('li')!).getByRole('button', { name: 'Acompanhar esta probe' }))
+  const dialog = screen.getByRole('dialog', { name: 'Acompanhar a probe 1018246?' })
+  expect(dialog).toHaveTextContent('A coleta passa da probe 1017210 para a probe 1018246. Os dados da probe 1017210 continuam guardados.')
+  expect(mock.mock.calls.some(([url, init]) => url === '/api/probe' && init?.method === 'PUT')).toBe(false)
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Acompanhar esta probe' }))
+  const put = mock.mock.calls.find(([url, init]) => url === '/api/probe' && init?.method === 'PUT')
+  expect(put?.[1]?.body).toBe(JSON.stringify({ probe_id: 1018246 }))
+  expect(await within(screen.getByText('Probe 1018246').closest('li')!).findByText('Acompanhada')).toBeInTheDocument()
+  expect(within(screen.getByText('Probe 1017210').closest('li')!).getByRole('button', { name: 'Acompanhar esta probe' })).toBeInTheDocument()
 })

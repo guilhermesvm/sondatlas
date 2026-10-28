@@ -69,7 +69,7 @@ function YourData({ probeId, data, error, retry }: ReturnType<typeof useOwnMeasu
   const brazil = data.anchors.filter(anchor => anchor.country === 'BR').length
   const othersByType = byType(data.others)
   return <>
-    <Text size="sm">Neste momento, a sua probe faz parte de <strong>{count(total)} medições</strong> em andamento, e nenhuma delas foi criada por você.</Text>
+    <Text size="sm">Neste momento, a <strong>probe {probeId}</strong> faz parte de <strong>{count(total)} medições</strong> em andamento, e nenhuma delas foi criada por você.</Text>
     <dl className="lesson-numbers">
       <div>
         <dt>Do RIPE Atlas</dt>

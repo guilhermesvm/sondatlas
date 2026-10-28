@@ -48,7 +48,7 @@ function YourData({ probeId, days, error, latest, latestFailed }: ReturnType<typ
     {measured.length === 0
       ? <Text size="sm" mt="md">Ainda não há resultados nas últimas 24 horas. Os primeiros aparecem em poucos minutos depois de escolher a probe.</Text>
       : <>
-        <Text size="sm" mt="lg">Nas últimas 24 horas, a probe {probeId} mediu:</Text>
+        <Text size="sm" mt="lg">Nas últimas 24 horas, a <strong>probe {probeId}</strong> mediu:</Text>
         <dl className="lesson-numbers">
           {measured.map(day => <div key={day.name}>
             <dt>{day.name}</dt>

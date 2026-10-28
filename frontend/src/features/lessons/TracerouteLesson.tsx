@@ -36,7 +36,7 @@ function YourData({ data, root, onRoot }: { data: ReturnType<typeof useTracerout
     {data.loaded && !data.route && <Text size="sm" mt="md">O RIPE Atlas ainda não tem uma rota desta probe até o {root.name}. A medição roda a cada 30 minutos.</Text>}
     {data.route && <>
       {data.route.missing.length > 0 && <MissingSources missing={data.route.missing} onRetry={data.retry} />}
-      <Terminal route={data.route} destination={rootDestination(root)} caption={`Última rota da sua probe até o ${root.name}`} />
+      <Terminal route={data.route} destination={rootDestination(root)} caption={<>Última rota da <strong>probe {data.probeId}</strong> até o {root.name}</>} />
       <HopTable route={data.route} destination={rootDestination(root)} />
     </>}
   </>
