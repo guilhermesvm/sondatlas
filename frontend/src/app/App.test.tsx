@@ -55,7 +55,8 @@ function stubProbeBackend(ripe: () => Promise<Response>, saved: number | null = 
     return new Promise<Response>(() => {})
   })
   vi.stubGlobal('fetch', mock)
-  return () => mock.mock.calls.filter(([url]) => url.startsWith('https://atlas.ripe.net/')).length
+  // Counts the status checks only: Minha probe also asks RIPE Atlas where the probe is in the world.
+  return () => mock.mock.calls.filter(([url]) => url.startsWith('https://atlas.ripe.net/') && url.includes('fields=status')).length
 }
 
 it('shows the probe status in the menu as soon as the ID is saved', async () => {
