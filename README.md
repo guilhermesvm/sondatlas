@@ -87,7 +87,9 @@ password you chose then.
 Every port listens only on this computer.
 
 The password and token live in a Docker volume next to the database, so they
-are created and deleted together:
+are created and deleted together. **`docker compose down -v` deletes every
+measurement stored so far**, along with the secrets; `stop-kit` and
+`docker compose stop` keep everything.
 
 | You delete | Next `docker compose up` |
 |---|---|
