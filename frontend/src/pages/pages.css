@@ -42,8 +42,25 @@
 .install-steps > li:not(:last-child)::after { content: ''; position: absolute; left: 14px; top: 34px; bottom: 4px; width: 2px; background: var(--accent-line); }
 .install-step-title { font-weight: 600; margin-bottom: 4px; }
 .install code, .install-note code { font-size: 0.92em; }
+.install p code { white-space: nowrap; }
 .command { display: flex; align-items: center; gap: 4px; margin: 8px 0; max-width: 680px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); padding: 2px 4px 2px 12px; }
 .command pre { flex: 1; margin: 0; overflow-x: auto; padding: 8px 0; font-size: 14px; }
+.install-manual { margin-top: 12px; max-width: 680px; }
+.install-manual .install-manual-item { border: 0; background: none; }
+.install-manual-control { width: auto; gap: 6px; padding-inline-end: 0; color: var(--brand-text); }
+.install-manual-chevron { margin-inline-start: 0; }
+.install-manual-control:hover { background-color: transparent; }
+.install-manual-label { font-size: 14px; font-weight: 600; padding-top: 6px; padding-bottom: 6px; }
+.install-manual-control:hover .install-manual-label { text-decoration: underline; }
+.install-manual-content { margin-left: 7px; padding: 4px 0 4px 18px; border-left: 2px solid var(--accent-line); }
+.install-substeps { list-style: none; counter-reset: substep; padding: 0; margin: 0; }
+.install-substeps > li { counter-increment: substep; position: relative; padding: 0 0 8px 32px; }
+.install-substeps > li::before { content: counter(substep); position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--brand-text); background: var(--accent-bg); }
+.settings-rows.install-actions { max-width: 760px; }
+.settings-rows.install-actions > div { grid-template-columns: 190px minmax(0, 1fr); padding: 12px 0; align-items: start; }
+.settings-rows.install-actions dt { padding-top: 11px; }
+.install-actions .command { margin: 0; }
+.install-manual .settings-rows.install-actions { margin-top: 12px; }
 .install-note { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }
 .install-choice { margin-top: 16px; padding-left: 16px; border-left: 4px solid var(--accent-line); }
 .follow-box { margin-top: 28px; max-width: 720px; padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--mantine-radius-md); background: var(--surface); }
@@ -75,6 +92,8 @@
 }
 @media (max-width: 600px) {
   .settings-rows > div { grid-template-columns: minmax(0, 1fr); }
+  .settings-rows.install-actions > div { grid-template-columns: minmax(0, 1fr); }
+  .settings-rows.install-actions dt { padding-top: 0; }
 }
 .follow-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 32px; max-width: 900px; margin: 28px 0 0; }
 .follow-facts > div { border-left: 2px solid var(--mantine-primary-color-filled); padding-left: 14px; }
