@@ -182,8 +182,8 @@ export default function Install() {
   const problems = virtualMachine ? vmProblems.filter(problem => system === 'windows' || !problem.windowsOnly) : []
   return <div className="install">
     <Title order={1} size="h2">Instalar a probe</Title>
-    <Text size="lg" mt="sm" maw={680}>
-      A Sondatlas já está rodando no seu computador, e é por isso que você vê esta página. Falta instalar a probe: a software probe oficial do RIPE Atlas. Onde ela vai rodar?
+    <Text size="lg" mt="sm" maw={1000}>
+      A Sondatlas já está rodando no seu computador, e é por isso que você vê esta página. Falta instalar a software probe oficial do RIPE Atlas. Onde ela vai rodar?
     </Text>
     <SegmentedControl mt="lg" value={system} onChange={value => setSystem(value as System)} aria-label="Onde a probe vai rodar"
       data={[{ value: 'windows', label: 'Windows' }, { value: 'linux', label: 'Linux' }, { value: 'pi', label: 'Raspberry Pi' }]} />

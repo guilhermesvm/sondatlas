@@ -1,7 +1,8 @@
 import { Anchor, Breadcrumbs, Button, Group, Progress, Text, Title } from '@mantine/core'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Loading from '../../lib/Loading'
 import type { Lesson } from '../lessons/lessons'
+import { finishRound, saveRound, savedRound } from './progress'
 import { conceptQuestions } from './questions'
 import { useDataQuestions } from './useDataQuestions'
 import './exercises.css'
@@ -9,10 +10,20 @@ import './exercises.css'
 // One question at a time. Concept questions first, then the ones from the followed probe's data.
 export default function Exercises({ lesson }: { lesson: Lesson }) {
   const { probeId, questions: fromData } = useDataQuestions(lesson.id)
-  const [index, setIndex] = useState(0)
-  const [picked, setPicked] = useState<number | null>(null)
-  const [score, setScore] = useState(0)
+  // A reload or a visit later continues the round where it stopped.
+  const [saved] = useState(() => savedRound(lesson.id))
+  const [index, setIndex] = useState(saved?.index ?? 0)
+  const [picked, setPicked] = useState<number | null>(saved?.picked ?? null)
+  const [score, setScore] = useState(saved?.score ?? 0)
   const lessonHref = `#/aprender/${lesson.id}`
+  const total = fromData === null ? null : conceptQuestions[lesson.id].length + fromData.length
+  const finished = total !== null && index >= total
+
+  useEffect(() => {
+    if (total === null) return
+    if (finished) finishRound(lesson.id, score, total)
+    else saveRound(lesson.id, index > 0 || picked !== null ? { index, score, picked } : null)
+  }, [lesson.id, index, score, picked, total, finished])
 
   const header = <>
     <Breadcrumbs aria-label="Você está em" mb="xs">
@@ -25,9 +36,9 @@ export default function Exercises({ lesson }: { lesson: Lesson }) {
   if (fromData === null) return <div className="install">{header}<Loading mt="lg">Preparando as perguntas com os dados da sua probe…</Loading></div>
 
   const questions = [...conceptQuestions[lesson.id], ...fromData]
-  const restart = () => { setIndex(0); setPicked(null); setScore(0) }
+  const restart = () => { saveRound(lesson.id, null); setIndex(0); setPicked(null); setScore(0) }
 
-  if (index >= questions.length) return <div className="install">
+  if (finished) return <div className="install">
     {header}
     <section className="exercise-end" aria-live="polite">
       <Text className="exercise-score">{score} de {questions.length}</Text>
@@ -40,7 +51,7 @@ export default function Exercises({ lesson }: { lesson: Lesson }) {
   </div>
 
   const question = questions[index]
-  const answered = picked !== null
+  const answered = picked !== null && picked < question.options.length
   const choose = (option: number) => {
     if (answered) return
     setPicked(option)
@@ -56,7 +67,7 @@ export default function Exercises({ lesson }: { lesson: Lesson }) {
     </Text>
     <section className="exercise" aria-labelledby="exercise-prompt">
       <div className="exercise-progress">
-        <Text size="sm" c="dimmed">Pergunta {index + 1} de {questions.length}{question.fromData ? ', com os dados da sua probe' : ''}</Text>
+        <Text size="sm" c="dimmed">Pergunta {index + 1} de {questions.length}{question.fromData ? ', com os dados da sua probe' : ''}{score ? `. Acertos até agora: ${score}` : ''}</Text>
         <Progress value={(index + (answered ? 1 : 0)) / questions.length * 100} size="sm" aria-hidden="true" />
       </div>
       <Text className="exercise-prompt" id="exercise-prompt">{question.prompt}</Text>

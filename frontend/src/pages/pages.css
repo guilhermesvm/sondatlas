@@ -90,6 +90,6 @@
 .lesson-ready:hover { text-decoration: underline; }
 .lesson-ready:focus-visible { outline: 2px solid var(--available-text); outline-offset: 2px; }
 .lesson-badge { flex-shrink: 0; }
-.lesson-actions { display: flex; flex-shrink: 0; gap: 8px; justify-content: flex-end; }
-@media (max-width: 640px) { .lesson-row { flex-wrap: wrap; } .lesson-actions { justify-content: flex-start; } }
-.lesson-exercises { margin-top: 32px; max-width: 680px; padding-top: 16px; border-top: 1px solid var(--line); }
+.lesson-exercises { margin-top: 32px; max-width: 820px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 32px; }
+.lesson-exercises > div { flex: 1 1 360px; }
+.lesson-exercises-button { flex-shrink: 0; }

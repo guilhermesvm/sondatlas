@@ -5,23 +5,72 @@ import App from '../../app/App'
 import { catalog, history, ping } from '../../test/fixtures'
 import { mockApi } from '../../test/mock-api'
 import { render } from '../../test/render'
-import { busiestPeriodQuestion, fastestTargetQuestion, hopCountQuestion, nearestRootQuestion } from './questions'
+import { lessons } from '../lessons/lessons'
+import { busiestPeriodQuestion, exerciseLessons, fastestTargetQuestion, hopCountQuestion, nearestRootQuestion } from './questions'
 
-afterEach(() => { vi.unstubAllGlobals(); window.location.hash = '' })
+afterEach(() => { vi.unstubAllGlobals(); window.location.hash = ''; localStorage.clear() })
 
 const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)))
 
-it('offers the exercises from the index and from the end of the lessons that have them', async () => {
+it('offers the exercises only at the end of the lessons that have them', async () => {
   mockApi()
   window.location.hash = '#/aprender'
   const { unmount } = render(<App />)
-  expect(screen.getByRole('link', { name: 'Fazer os exercícios de Ping' })).toHaveAttribute('href', '#/aprender/ping/exercicios')
-  expect(screen.getByRole('link', { name: 'Fazer os exercícios de Traceroute' })).toHaveAttribute('href', '#/aprender/traceroute/exercicios')
-  expect(screen.queryByRole('link', { name: /exercícios de Créditos/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /exercícios/i })).not.toBeInTheDocument()
+  expect(screen.getByText('As lições de Fundamentos de redes terminam com exercícios, alguns com os dados da sua probe.')).toBeInTheDocument()
+  expect(lessons.filter(lesson => lesson.group === 'basics' && lesson.ready).every(lesson => exerciseLessons.includes(lesson.id))).toBe(true)
   unmount()
+  window.location.hash = '#/aprender/creditos'
+  const second = render(<App />)
+  expect(screen.queryByRole('region', { name: 'Exercícios' })).not.toBeInTheDocument()
+  second.unmount()
   window.location.hash = '#/aprender/ip'
   render(<App />)
   expect(within(screen.getByRole('region', { name: 'Exercícios' })).getByRole('link', { name: 'Fazer os exercícios' })).toHaveAttribute('href', '#/aprender/ip/exercicios')
+})
+
+it('remembers the round after a reload and shows the last result at the end of the lesson', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) => json(url === '/api/probe' ? { probe_id: null } : {})))
+  window.location.hash = '#/aprender/ip/exercicios'
+  const first = render(<App />)
+  await userEvent.click(await screen.findByRole('button', { name: '193.0.14.129' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Próxima pergunta' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Porque os endereços IPv4 acabaram' }))
+  first.unmount()
+
+  window.location.hash = '#/aprender/ip'
+  const lesson = render(<App />)
+  expect(within(screen.getByRole('region', { name: 'Exercícios' })).getByRole('link', { name: 'Continuar os exercícios' })).toBeInTheDocument()
+  lesson.unmount()
+
+  window.location.hash = '#/aprender/ip/exercicios'
+  const again = render(<App />)
+  expect(await screen.findByText('Pergunta 2 de 4. Acertos até agora: 2')).toBeInTheDocument()
+  expect(screen.getByText('Isso.')).toBeInTheDocument()
+  for (const answer of [/Dá um endereço público/, 'Não, cada endereço é único no mundo']) {
+    await userEvent.click(screen.getByRole('button', { name: /Próxima pergunta|Ver o resultado/ }))
+    await userEvent.click(screen.getByRole('button', { name: answer }))
+  }
+  await userEvent.click(screen.getByRole('button', { name: 'Ver o resultado' }))
+  expect(screen.getByText('2 de 4')).toBeInTheDocument()
+  again.unmount()
+
+  window.location.hash = '#/aprender/ip'
+  render(<App />)
+  const entry = within(screen.getByRole('region', { name: 'Exercícios' }))
+  expect(entry.getByText(/^Último resultado:/)).toHaveTextContent(`Último resultado: 2 de 4, em ${new Date().toLocaleDateString('pt-BR')}.`)
+  expect(entry.getByRole('link', { name: 'Refazer os exercícios' })).toBeInTheDocument()
+})
+
+it('keeps working when the browser blocks the storage', async () => {
+  vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+  vi.stubGlobal('fetch', vi.fn((url: string) => json(url === '/api/probe' ? { probe_id: null } : {})))
+  window.location.hash = '#/aprender/ip/exercicios'
+  render(<App />)
+  await userEvent.click(await screen.findByRole('button', { name: '193.0.14.129' }))
+  expect(screen.getByText('Isso.')).toBeInTheDocument()
+  vi.restoreAllMocks()
 })
 
 it('asks one question at a time, explains every answer and shows the score at the end, without a followed probe', async () => {

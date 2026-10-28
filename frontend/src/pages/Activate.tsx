@@ -55,7 +55,7 @@ export default function Activate() {
 
   return <div className="install">
     <Title order={1} size="h2">Ativar a probe</Title>
-    <Text size="lg" mt="sm" maw={680}>Falta cadastrar a probe no RIPE Atlas, pegar o ID dela, ligar a probe e conferir se ela está conectada.</Text>
+    <Text size="lg" mt="sm" maw={1000}>Falta cadastrar a probe no RIPE Atlas, pegar o ID dela, ligar a probe e conferir se ela está conectada.</Text>
 
     <ol className="install-steps">
       <Step title="Cadastre a probe no RIPE Atlas">
