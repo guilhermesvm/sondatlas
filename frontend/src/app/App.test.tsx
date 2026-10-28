@@ -20,13 +20,16 @@ it('opens the page named in the address and falls back to the home page', async 
   expect(screen.getByRole('link', { name: 'Já tenho uma probe' })).toHaveAttribute('href', '#/ativar')
 })
 
-it('keeps the journey in five phases that end in Aprender and sends the old Ir além address home', async () => {
+it('keeps the journey in six phases, from Aprender to Explorar at the end, and sends the old Ir além address home', async () => {
   mockApi()
   window.location.hash = '#/aprender'
   render(<App />)
   expect(screen.getByRole('heading', { name: 'Aprender' })).toBeInTheDocument()
   const phases = within(screen.getByRole('navigation', { name: 'Páginas do dashboard' })).getAllByRole('link', { name: /^\d\. / })
-  expect(phases.map(link => link.textContent)).toEqual(['1. Conhecer', '2. Instalar', '3. Ativar', '4. Acompanhar', '5. Aprender'])
+  expect(phases.map(link => link.textContent)).toEqual(['1. Conhecer', '2. Instalar', '3. Ativar', '4. Acompanhar', '5. Aprender', '6. Explorar'])
+  expect(screen.getByRole('link', { name: 'Próximo: Explorar' })).toHaveAttribute('href', '#/explorar')
+  window.location.hash = '#/explorar'
+  expect(await screen.findByRole('heading', { name: 'Explorar' })).toBeInTheDocument()
   expect(screen.queryByRole('link', { name: /^Próximo/ })).not.toBeInTheDocument()
   window.location.hash = '#/ir-alem'
   expect(await screen.findByRole('heading', { name: /Participe do RIPE Atlas/ })).toBeInTheDocument()

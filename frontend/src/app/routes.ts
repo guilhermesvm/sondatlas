@@ -12,6 +12,7 @@ export const routes: Route[] = [
   { id: 'ativar', label: 'Ativar', group: 'journey', summary: 'Cadastro da probe no site do RIPE Atlas e a pergunta principal: sua probe está conectada?' },
   { id: 'acompanhar', label: 'Acompanhar', group: 'journey', summary: 'Escolha a probe que a Sondatlas acompanha para guardar o histórico das medições dela.' },
   { id: 'aprender', label: 'Aprender', group: 'journey', summary: 'Lições curtas de redes e do RIPE Atlas, com os dados da sua probe e cursos gratuitos do RIPE NCC para ir mais fundo.' },
+  { id: 'explorar', label: 'Explorar', group: 'journey', summary: 'O que você já fez com a sua probe e por onde continuar no RIPE Atlas.' },
   { id: 'minha-probe', label: 'Minha probe', group: 'probe', summary: 'Histórico de ping da sua probe.' },
   { id: 'desafios', label: 'Desafios', group: 'probe', summary: 'Medições que você cria com os seus créditos, com o custo mostrado antes de confirmar.' },
   { id: 'conquistas', label: 'Conquistas', group: 'probe', summary: 'Marcos das suas probes no RIPE Atlas, como o primeiro contato e o tempo no ar.' },

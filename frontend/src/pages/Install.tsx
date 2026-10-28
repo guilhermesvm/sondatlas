@@ -98,7 +98,7 @@ function StartAndStop({ system, vm }: { system: System, vm: boolean }) {
   const noVm = !vm
   return <section className="install-path" aria-labelledby="start-and-stop">
     <Title order={2} id="start-and-stop" mb="xs">Ligar e desligar tudo</Title>
-    <Text maw={760}>
+    <Text maw={900}>
       {vm
         ? 'Depois da instalação, um comando liga a máquina virtual da probe e a Sondatlas juntas e abre o dashboard. Use sempre que ligar o computador de novo.'
         : 'A probe liga sozinha junto com o sistema. Para a Sondatlas, um comando liga a aplicação e abre o dashboard. Use sempre que ligar o computador de novo.'}

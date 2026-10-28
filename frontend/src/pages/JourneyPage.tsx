@@ -4,6 +4,7 @@ import { journey, type Route } from '../app/routes'
 import type { Lesson } from '../features/lessons/lessons'
 import Activate from './Activate'
 import Discover from './Discover'
+import Explore from './Explore'
 import Follow from './Follow'
 import Install from './Install'
 import Learn from './Learn'
@@ -21,7 +22,8 @@ export default function JourneyPage({ route, lesson = null, exercises = false }:
     {route.id === 'conhecer' ? <Discover understood={understood} onUnderstoodChange={setUnderstood} />
       : route.id === 'instalar' ? <Install />
       : route.id === 'ativar' ? <Activate />
-      : route.id === 'acompanhar' ? <Follow /> : <Learn lesson={lesson} exercises={exercises} />}
+      : route.id === 'acompanhar' ? <Follow />
+      : route.id === 'aprender' ? <Learn lesson={lesson} exercises={exercises} /> : <Explore />}
     {!lesson && <Group justify="space-between" mt="xl">
       {previous ? <Button component="a" href={`#/${previous.id}`} variant="default">Voltar: {previous.label}</Button> : <span />}
       {next && <Button component="a" href={`#/${next.id}`} variant={route.id === 'conhecer' && !understood ? 'default' : 'filled'}>Próximo: {next.label}</Button>}
