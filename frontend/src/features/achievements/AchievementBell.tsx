@@ -47,6 +47,13 @@ export default function AchievementBell() {
     }
   }, [settled, opened])
 
+  // A link in the list, such as "Ver as conquistas", changes the page, and the list closes with it.
+  useEffect(() => {
+    const close = () => setOpen(false)
+    window.addEventListener('hashchange', close)
+    return () => window.removeEventListener('hashchange', close)
+  }, [])
+
   // Opened while the badges were still being checked, the list counts as read once the check ends.
   useEffect(() => {
     if (open && settled) {

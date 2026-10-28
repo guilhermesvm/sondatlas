@@ -57,7 +57,7 @@ function Layout() {
             <a className="brand" href="#/inicio" aria-label="Sondatlas, início"><Logo /><span className="brand-name">Sondatlas</span></a>
           </Group>
           <Group gap="md" wrap="nowrap">
-            {look && <a className="header-status" href="#/minha-probe" aria-label={`Minha probe: ${look.label}`}><StatusLabel look={look} /></a>}ao
+            {look && <a className="header-status" href="#/minha-probe" aria-label={`Minha probe: ${look.label}`}><StatusLabel look={look} /></a>}
             <AchievementBell />
             <ColorSchemeToggle />
           </Group>

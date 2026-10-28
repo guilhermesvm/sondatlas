@@ -94,3 +94,13 @@ it('invites to link the account when there is none, and still works with blocked
   expect(screen.getByRole('link', { name: 'Ir para Configurações' })).toHaveAttribute('href', '#/configuracoes')
   expect(document.querySelector('.bell-dot')).toBeNull()
 })
+
+it('closes the list when a link in it opens another page', async () => {
+  stubBackend(linked)
+  renderBell()
+  await userEvent.click(await screen.findByRole('button', { name: 'Conquistas: nenhuma nova' }))
+  await userEvent.click(await screen.findByRole('link', { name: 'Ver as conquistas' }))
+  await vi.waitFor(() => expect(window.location.hash).toBe('#/conquistas'))
+  await vi.waitFor(() => expect(screen.queryByText('Conquistas recentes')).not.toBeInTheDocument())
+  window.location.hash = ''
+})
