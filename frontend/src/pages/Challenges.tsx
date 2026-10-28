@@ -1,9 +1,10 @@
 import { Alert, Anchor, Autocomplete, Button, Checkbox, Group, Modal, SegmentedControl, Select, Text, TextInput, Title } from '@mantine/core'
-import { Fragment, useEffect, useState, type MouseEvent, type SubmitEvent } from 'react'
-import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
+import { Fragment, useEffect, useRef, useState, type MouseEvent, type SubmitEvent } from 'react'
+import { fetchAccount, KeyRefusedError, type Account, type AccountProbe } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
-import { ChallengeError, createChallenge, createGroupPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, fetchTracerouteRoute, kinds, groupSizes, measurementFromHash, preparing, validTarget, type Challenge, type Kind, type Measurement, type PingResult } from '../features/challenges/challenge'
+import { ChallengeError, createChallenge, createGroupPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, fetchTracerouteRoute, kinds, groupSizes, measurementFromHash, preparing, validTarget, waiting, gaveUpStatuses, type Challenge, type Kind, type Measurement, type PingResult } from '../features/challenges/challenge'
 import GroupResult from '../features/challenges/GroupResult'
+import MeasurementFailed from '../features/challenges/MeasurementFailed'
 import { formatMetric } from '../features/ping-history/chart'
 import { HopTable, MissingSources, RouteStages, Terminal as RouteTerminal } from '../features/lessons/RouteReading'
 import type { Route } from '../features/lessons/useTraceroute'
@@ -19,7 +20,8 @@ const count = (value: number) => value.toLocaleString('pt-BR')
 const notes = new Map(destinations.flatMap(group => group.items.map(item => [item.value, item.note] as const)))
 const autoDescription = (kind: Kind, target: string) => `Sondatlas: ${kind} para ${target.trim().toLowerCase() || 'o destino'}`
 // A traceroute waits for every hop, so it takes longer than a ping.
-const polling: Record<Kind, { every: number, times: number }> = { ping: { every: 3000, times: 40 }, traceroute: { every: 5000, times: 60 } }
+// Up to 8 minutes: RIPE Atlas may take some minutes to say a measurement failed.
+const polling: Record<Kind, { every: number, times: number }> = { ping: { every: 3000, times: 160 }, traceroute: { every: 5000, times: 96 } }
 const titles: Record<Kind, string> = { ping: 'Ping', traceroute: 'Traceroute' }
 const preparingPolling = { every: 2000, times: 30 }
 
@@ -110,6 +112,19 @@ function PingExplained({ round, target, kRoot, resolvedOnProbe }: { round: PingR
   </dl>
 }
 
+// RIPE Atlas does not say how long a probe takes to receive measurements after connecting. The kit took about 30 minutes to its first one.
+const settling = 30
+
+function JustConnected({ probe }: { probe?: AccountProbe }) {
+  const since = probe?.status.id === 1 && probe.status.since ? Date.parse(probe.status.since) : NaN
+  if (!probe || Number.isNaN(since)) return null
+  const minutes = Math.floor((Date.now() - since) / 60000)
+  if (minutes >= settling) return null
+  return <Alert color="yellow" mt="md" maw={720} title={`A ${probe.id} conectou ${minutes < 1 ? 'agora há pouco' : `há ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`}`}>
+    Logo depois de conectar, a probe pode levar um tempo até receber medições. Se o desafio não trouxer resultado, tente de novo em alguns minutos.
+  </Alert>
+}
+
 const backToForm = () => { location.hash = '#/desafios' }
 const backIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <path d="M19 12H5M11 6l-6 6 6 6" />
@@ -148,16 +163,24 @@ function ToolLinks({ id, tools: chosen }: { id: number, tools: (keyof typeof too
 }
 
 // Asks RIPE Atlas for the result until it arrives, then stops. attempt asks again, for example when RIPEstat or PeeringDB failed.
-function useResult(id: number, kind: Kind | null, attempt: number) {
+// initial is the status read with the measurement, used for the first check instead of asking RIPE Atlas again.
+function useResult(id: number, kind: Kind | null, attempt: number, initial: Measurement['status'] | undefined) {
   const [ping, setPing] = useState<PingResult | null>(null)
   const [route, setRoute] = useState<Route | null>(null)
   const [gaveUp, setGaveUp] = useState(false)
+  // The status name when RIPE Atlas ended the measurement without a result, and the last status read while waiting.
+  const [ended, setEnded] = useState<string | null>(null)
+  const [status, setStatus] = useState<Measurement['status'] | null>(null)
+  const first = useRef(initial)
+  first.current = initial
 
   useEffect(() => {
     if (!kind) return
     const controller = new AbortController()
     const { every, times } = polling[kind]
     let tries = 0
+    let stopped = 0
+    let known = first.current
     let timer: ReturnType<typeof setTimeout>
     const again = () => {
       if (++tries >= times) setGaveUp(true)
@@ -166,8 +189,19 @@ function useResult(id: number, kind: Kind | null, attempt: number) {
     const read = (): Promise<boolean> => kind === 'ping'
       ? fetchPingResult(id, controller.signal).then(result => { if (result) setPing(result); return Boolean(result) })
       : fetchTracerouteRoute(id, controller.signal).then(result => { if (result) setRoute(result); return Boolean(result) })
+    // Without a result yet, the status says whether to keep waiting. A stopped one-off is read twice, because its result may still be on the way.
+    const status = () => fetchMeasurement(id, controller.signal).then(found => found && found !== preparing ? found.status : null, () => null)
     const poll = () => read()
-      .then(found => { if (!found) again() })
+      .then(async found => {
+        if (found) return
+        const now = known ?? await status()
+        known = undefined
+        if (controller.signal.aborted) return
+        if (now) setStatus(now)
+        stopped = now?.id === 4 ? stopped + 1 : 0
+        if (now && ((now.id !== null && gaveUpStatuses.includes(now.id)) || stopped >= 2)) return setEnded(now.name)
+        again()
+      })
       .catch(() => {
         if (controller.signal.aborted) return
         again()
@@ -176,7 +210,7 @@ function useResult(id: number, kind: Kind | null, attempt: number) {
     return () => { controller.abort(); clearTimeout(timer) }
   }, [id, kind, attempt])
 
-  return { ping, route, gaveUp }
+  return { ping, route, gaveUp, ended, status }
 }
 
 function Result({ id }: { id: number }) {
@@ -188,7 +222,7 @@ function Result({ id }: { id: number }) {
   const group = measurement?.group === true && measurement.type === 'ping'
   const kind = !measurement?.group && (measurement?.type === 'ping' || measurement?.type === 'traceroute') ? measurement.type : null
   const probeId = measurement?.probeId
-  const { ping, route, gaveUp } = useResult(id, kind, attempt)
+  const { ping, route, gaveUp, ended, status } = useResult(id, kind, attempt, measurement?.status)
 
   // The button clicked to get here is gone, and the browser may keep a caret on the text that took its place.
   useEffect(() => { getSelection()?.removeAllRanges() }, [])
@@ -218,7 +252,11 @@ function Result({ id }: { id: number }) {
   const page = `https://atlas.ripe.net/measurements/${id}/`
   const pageLink = (text: string) => <Anchor href={page} target="_blank" rel="noreferrer">{text}</Anchor>
   const done = kind === 'ping' ? ping : route
-  const measuring = Boolean(kind) && !done && !gaveUp
+  // The message follows the last status known, starting with the one read with the measurement: only Ongoing means the probe is measuring.
+  const current = status ?? measurement?.status ?? null
+  const phase = current?.id === 2 ? 'measuring' : current?.id != null && waiting.includes(current.id) ? 'sending' : 'reading'
+  const pending = Boolean(kind) && !done && !gaveUp && !ended
+  const measuring = pending && phase !== 'reading'
   const leave = () => measuring ? setLeaving(true) : backToForm()
   const again = <Button variant="default" mt="md" onClick={leave}>Fazer outro desafio</Button>
 
@@ -235,6 +273,7 @@ function Result({ id }: { id: number }) {
   else if (measurement === undefined) body = <section className="follow-box" aria-labelledby="challenge-result">
     <Text fw={600} id="challenge-result">Medição {id}</Text>
     <Loading mt="sm">{lookup === 'preparing' ? `O RIPE Atlas está preparando a medição ${id}…` : `Consultando a medição ${id}…`}</Loading>
+    {again}
   </section>
   else if (measurement === null) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
     Confira o número no endereço da página.
@@ -248,9 +287,14 @@ function Result({ id }: { id: number }) {
     {group
       ? <Title order={2} size="h4" id="challenge-result">Ping de {measurement.scheduled ? `${measurement.scheduled} probes` : 'várias probes'} até {measurement.target}</Title>
       : <Text fw={600} id="challenge-result">{titles[kind!]} {probeId ? `da probe ${probeId} ` : ''}até {measurement.target}</Text>}
-    {measuring && <Loading mt="sm">{kind === 'ping'
+    {pending && <Loading mt="sm">{phase === 'reading'
+      ? `Consultando a medição ${id}…`
+      : phase === 'sending'
+      ? 'O RIPE Atlas está enviando a medição para a probe…'
+      : kind === 'ping'
       ? 'A probe está medindo. O resultado costuma chegar em alguns segundos…'
       : 'A probe está descobrindo o caminho, salto por salto. Um traceroute pode levar alguns minutos…'}</Loading>}
+    {ended && <MeasurementFailed status={ended} />}
     {gaveUp && <Text size="sm" mt="sm">
       O resultado ainda não chegou. A medição foi criada, e você pode ver o resultado mais tarde na {pageLink('página dela no RIPE Atlas')}.
     </Text>}
@@ -374,6 +418,7 @@ function NewChallenge({ account }: { account: Account }) {
         <TextInput label="Descrição (opcional)" description="Aparece na página da medição no RIPE Atlas" inputWrapperOrder={['label', 'input', 'description']}
           placeholder={autoDescription(kind, target)} maxLength={100} w={380} maw="100%" value={description} onChange={event => setDescription(event.currentTarget.value)} />
       </Group>
+      <JustConnected probe={probes.find(probe => String(probe.id) === probeId)} />
       <Button type="submit" mt="md">Ver o custo</Button>
     </form>
     <Text size="sm" c="dimmed" mt="md">
@@ -487,6 +532,7 @@ function GroupChallenge({ account }: { account: Account }) {
             disabled: probe.status.id !== 1,
           }))} />}
       </Group>
+      {mine && <JustConnected probe={probes.find(probe => probe.id === mine)} />}
       <Button type="submit" mt="md">Ver o custo</Button>
     </form>
     {!confirming && errorText}

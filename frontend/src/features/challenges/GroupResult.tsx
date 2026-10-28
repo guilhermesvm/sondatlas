@@ -3,16 +3,17 @@ import { useEffect, useState } from 'react'
 import Loading from '../../lib/Loading'
 import { fetchAccount } from '../atlas-account/account'
 import { formatMetric } from '../ping-history/chart'
-import { fetchGroupResults, fetchMeasurement, preparing, type GroupRound, type Measurement } from './challenge'
+import { fetchGroupResults, fetchMeasurement, gaveUpStatuses, preparing, type GroupRound, type Measurement } from './challenge'
+import MeasurementFailed from './MeasurementFailed'
 import './group-result.css'
 
 const ms = (value: number) => `${formatMetric(value)} ms`
 const countries = new Intl.DisplayNames(['pt-BR'], { type: 'region' })
 const place = (round: GroupRound) => round.country ? countries.of(round.country) ?? round.country : 'País não informado'
 const isAddress = (target: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(target)
-// Each probe answers on its own time, so the results are read again until all arrive or 3 minutes pass.
+// Each probe answers on its own time, so the results are read again until all arrive, RIPE Atlas ends the measurement or 8 minutes pass.
 const every = 5000
-const times = 36
+const times = 96
 // Width of the slowest probe's bar. Every bar starts at zero, so the lengths compare the times.
 const longest = 220
 
@@ -20,6 +21,7 @@ export default function GroupResult({ id, measurement }: { id: number, measureme
   const [rounds, setRounds] = useState<GroupRound[] | null>(null)
   const [expected, setExpected] = useState(measurement.scheduled)
   const [gaveUp, setGaveUp] = useState(false)
+  const [ended, setEnded] = useState<string | null>(null)
   const [own, setOwn] = useState<number[]>([])
 
   useEffect(() => {
@@ -31,14 +33,23 @@ export default function GroupResult({ id, measurement }: { id: number, measureme
   useEffect(() => {
     const controller = new AbortController()
     let tries = 0
+    let stopped = 0
     let timer: ReturnType<typeof setTimeout>
     // Right after creation RIPE Atlas may not have scheduled the probes yet, so their number is read again with the results.
     const poll = () => Promise.all([fetchGroupResults(id, controller.signal), fetchMeasurement(id, controller.signal).catch(() => null)])
       .then(([found, latest]) => {
         setRounds(found)
         const total = latest && latest !== preparing ? latest.scheduled : 0
+        const status = latest && latest !== preparing ? latest.status : null
         setExpected(total)
         if (total && found.length >= total) return
+        // A stopped measurement is read twice, because its last results may still be on the way.
+        stopped = status?.id === 4 ? stopped + 1 : 0
+        if (status && ((status.id !== null && gaveUpStatuses.includes(status.id)) || stopped >= 2)) {
+          if (found.length) setGaveUp(true)
+          else setEnded(status.name)
+          return
+        }
         if (++tries >= times) setGaveUp(true)
         else timer = setTimeout(poll, every)
       })
@@ -51,6 +62,7 @@ export default function GroupResult({ id, measurement }: { id: number, measureme
     return () => { controller.abort(); clearTimeout(timer) }
   }, [id])
 
+  if (ended) return <MeasurementFailed status={ended} group />
   if (rounds === null) return <Loading mt="sm">Lendo os resultados…</Loading>
   const arrived = rounds.length
   const complete = expected > 0 && arrived >= expected

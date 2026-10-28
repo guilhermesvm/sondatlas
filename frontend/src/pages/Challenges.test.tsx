@@ -23,7 +23,7 @@ const round = {
   sent: 3, rcvd: 3, min: 14, avg: 15, max: 16, result: [{ rtt: 14 }, { rtt: 15 }, { rtt: 16 }],
 }
 
-const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }], resolve_on_probe: true }
+const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }], resolve_on_probe: true, status: { id: 2, name: 'Ongoing' } }
 
 const noChallenges = { count: 0, challenges: [] }
 
@@ -139,6 +139,7 @@ it('keeps the result card in place and says the probe is measuring before the fi
   vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => url.includes('/results/') ? new Promise(() => {}) : backend(url, init)))
   renderChallenges()
   expect(screen.getByText('Medição 123456789')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Fazer outro desafio' })).toBeInTheDocument()
   expect(getSelection()!.rangeCount).toBe(0)
   expect(await screen.findByText(/A probe está medindo/)).toBeInTheDocument()
   expect(screen.getByText('Ping da probe 1017210 até google.com')).toBeInTheDocument()
@@ -354,4 +355,68 @@ it('compares the probes of a group ping as they arrive, marks your probe and nev
   expect(screen.getByRole('link', { name: 'Ver no LatencyMON' })).toHaveAttribute('href', 'https://atlas.ripe.net/latencymon/123456789')
   expect(document.body).not.toHaveTextContent('198.51.100')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
+})
+
+it('says when RIPE Atlas is still sending the measurement, and warns in red when it ends without a result', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  window.location.hash = '#/desafios/123456789'
+  const scheduled = { ...detail, probes: [], status: { id: 1, name: 'Scheduled' } }
+  const mock = stubBackend({ connected: false }, [], [noChallenges], [scheduled, { ...scheduled, status: { id: 7, name: 'Failed' } }])
+  renderChallenges()
+  expect(await screen.findByText('O RIPE Atlas está enviando a medição para a probe…')).toBeInTheDocument()
+  await vi.advanceTimersByTimeAsync(3000)
+  const alert = await screen.findByRole('alert')
+  expect(alert).toHaveTextContent('O RIPE Atlas não conseguiu fazer esta medição')
+  expect(alert).toHaveTextContent('Ela terminou como "Failed", sem nenhum resultado.')
+  expect(alert).toHaveTextContent('Os créditos são cobrados por resultado, e esta medição não teve nenhum.')
+  expect(screen.queryByText(/A probe está medindo/)).not.toBeInTheDocument()
+  const reads = mock.mock.calls.length
+  await vi.advanceTimersByTimeAsync(9000)
+  expect(mock.mock.calls.length).toBe(reads)
+})
+
+it('ends a stopped measurement without a result only after reading it twice', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  window.location.hash = '#/desafios/123456789'
+  stubBackend({ connected: false }, [], [noChallenges], { ...detail, status: { id: 4, name: 'Stopped' } })
+  renderChallenges()
+  expect(await screen.findByText('Ping da probe 1017210 até google.com')).toBeInTheDocument()
+  expect(screen.getByText('Consultando a medição 123456789…')).toBeInTheDocument()
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  await vi.advanceTimersByTimeAsync(3000)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Ela terminou como "Stopped", sem nenhum resultado.')
+})
+
+it('warns in red when a group ping ends without any result', async () => {
+  window.location.hash = '#/desafios/123456789'
+  stubBackend(linked, [], [noChallenges], { ...detail, probes: [], tags: ['sondatlas', 'sondatlas-grupo'], participant_count: 0, status: { id: 6, name: 'No suitable probes' } })
+  renderChallenges()
+  const alert = await screen.findByRole('alert')
+  expect(alert).toHaveTextContent('Ela terminou como "No suitable probes", sem nenhum resultado. As probes escolhidas podem ter desconectado antes de medir.')
+})
+
+it('warns before creating when the chosen probe connected a few minutes ago', async () => {
+  const since = new Date(Date.now() - 3 * 60000).toISOString()
+  stubBackend({ ...linked, probes: [{ ...linked.probes[0], status: { id: 1, name: 'Connected', since } }, linked.probes[1]] })
+  renderChallenges()
+  expect(await (await single()).findByText('A 1017210 conectou há 3 minutos')).toBeInTheDocument()
+  const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
+  expect(group.getByText('A 1017210 conectou há 3 minutos')).toBeInTheDocument()
+  await userEvent.click(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' }))
+  expect(group.queryByText(/conectou há/)).not.toBeInTheDocument()
+})
+
+it('goes straight from reading to the red warning when the measurement already failed, never saying the probe is measuring', async () => {
+  window.location.hash = '#/desafios/123456789'
+  const mock = stubBackend({ connected: false }, [], [noChallenges], { ...detail, probes: [], status: { id: 7, name: 'Failed' } })
+  const seen: string[] = []
+  const observer = new MutationObserver(() => seen.push(document.body.textContent ?? ''))
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+  renderChallenges()
+  expect(await screen.findByRole('alert')).toHaveTextContent('Ela terminou como "Failed", sem nenhum resultado.')
+  observer.disconnect()
+  expect(seen.some(text => text.includes('A probe está medindo'))).toBe(false)
+  expect(seen.some(text => text.includes('Consultando a medição 123456789'))).toBe(true)
+  const lookups = mock.mock.calls.filter(([url]) => String(url).startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?'))
+  expect(lookups).toHaveLength(1)
 })

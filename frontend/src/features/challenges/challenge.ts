@@ -110,7 +110,12 @@ export interface Measurement {
   group: boolean
   // Probes that took part, 0 until RIPE Atlas schedules them.
   scheduled: number
+  status: { id: number | null, name: string }
 }
+
+// Measurement statuses from the OpenAPI: 0 Specified, 1 Scheduled, 2 Ongoing, 4 Stopped, 5 Forced to stop, 6 No suitable probes, 7 Failed.
+export const waiting = [0, 1]
+export const gaveUpStatuses = [5, 6, 7]
 
 export const preparing = 'preparing'
 
@@ -121,12 +126,13 @@ export async function fetchMeasurement(measurementId: number, signal: AbortSigna
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const { target, type, probes, resolve_on_probe, tags, participant_count, status } = await response.json() as {
-    target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean, tags?: string[], participant_count?: number | null, status?: { name?: string }
+    target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean, tags?: string[], participant_count?: number | null, status?: { id?: number | null, name?: string }
   }
   if (status?.name === 'synchronizing') return preparing
   return {
     target, type, probeId: probes?.[0]?.id ?? null, resolvedOnProbe: Boolean(resolve_on_probe),
     group: (tags ?? []).includes('sondatlas-grupo'), scheduled: participant_count ?? 0,
+    status: { id: status?.id ?? null, name: status?.name ?? '' },
   }
 }
 
