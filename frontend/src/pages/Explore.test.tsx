@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
+import { BadgesProvider } from '../features/achievements/BadgesProvider'
 import { finishRound } from '../features/exercises/progress'
 import { ProbeProvider } from '../features/probe-status/ProbeProvider'
 import { render } from '../test/render'
@@ -30,7 +31,7 @@ function stubBackend(account: unknown, followed: number | null = 1017210, challe
 }
 
 const milestone = (name: RegExp) => within(screen.getByText(name).closest('li')!)
-const renderExplore = () => render(<ProbeProvider><Explore /></ProbeProvider>)
+const renderExplore = () => render(<ProbeProvider><BadgesProvider><Explore /></BadgesProvider></ProbeProvider>)
 
 it('shows what the person already did with real data, and where to finish the rest', async () => {
   finishRound('ip', 4, 5)
@@ -47,7 +48,7 @@ it('shows what the person already did with real data, and where to finish the re
   expect(milestone(/^Conquistas/).getByRole('link', { name: 'Ver as conquistas' })).toHaveAttribute('href', '#/conquistas')
   unmount()
 
-  render(<Achievements />)
+  render(<BadgesProvider><Achievements /></BadgesProvider>)
   expect(await screen.findByText(earned)).toBeInTheDocument()
 })
 

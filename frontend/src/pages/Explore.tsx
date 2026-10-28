@@ -1,7 +1,7 @@
 import { Loader, Text, Title, VisuallyHidden } from '@mantine/core'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { checking } from '../features/achievements/achievements'
-import { useBadges } from '../features/achievements/useBadges'
+import { useBadges } from '../features/achievements/BadgesProvider'
 import { lastResult } from '../features/exercises/progress'
 import { exerciseLessons } from '../features/exercises/questions'
 import { useProbe } from '../features/probe-status/ProbeProvider'
@@ -82,7 +82,8 @@ function Mark({ state }: { state: State }) {
 }
 
 export default function Explore() {
-  const { account, refused, error, linked, badges, challenges } = useBadges()
+  const { account, refused, error, linked, badges, challenges, refresh } = useBadges()
+  useEffect(refresh, [refresh])
   const { probeId, loadError } = useProbe()
   const reading = !account && !refused && !error
   const unlinked = refused || account?.connected === false

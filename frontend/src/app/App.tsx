@@ -1,6 +1,8 @@
 import { AppShell, Burger, Group, NavLink, ScrollArea, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
+import AchievementBell from '../features/achievements/AchievementBell'
+import { BadgesProvider } from '../features/achievements/BadgesProvider'
 import PingExplorer from '../features/ping-history/PingExplorer'
 import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
 import { exercisesFromHash, lessonFromHash } from '../features/lessons/lessons'
@@ -30,7 +32,7 @@ const gearIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 </svg>
 
 export default function App() {
-  return <ProbeProvider><Layout /></ProbeProvider>
+  return <ProbeProvider><BadgesProvider><Layout /></BadgesProvider></ProbeProvider>
 }
 
 function Layout() {
@@ -56,6 +58,7 @@ function Layout() {
           <Group gap="md" wrap="nowrap">
             {look && <a className="header-status" href="#/minha-probe" aria-label={`Minha probe: ${look.label}`}><StatusLabel look={look} /></a>}
             <span className="header-label">RIPE Atlas · Projeto TCC</span>
+            <AchievementBell />
             <ColorSchemeToggle />
           </Group>
         </Group>

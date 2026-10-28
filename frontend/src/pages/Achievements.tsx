@@ -1,8 +1,9 @@
 import { Alert, Button, Loader, Progress, Text, Title } from '@mantine/core'
+import { useEffect } from 'react'
 import { checking, statusText, type Badge } from '../features/achievements/achievements'
 import BadgeMark from '../features/achievements/BadgeMark'
 import '../features/achievements/achievements.css'
-import { useBadges } from '../features/achievements/useBadges'
+import { useBadges } from '../features/achievements/BadgesProvider'
 import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
 import './pages.css'
@@ -27,7 +28,8 @@ function BadgeTile({ badge }: { badge: Badge }) {
 }
 
 export default function Achievements() {
-  const { account, refused, error, linked, badges } = useBadges()
+  const { account, refused, error, linked, badges, refresh } = useBadges()
+  useEffect(refresh, [refresh])
   const earned = badges.filter(badge => badge.earned).length
 
   return <div className="install">
