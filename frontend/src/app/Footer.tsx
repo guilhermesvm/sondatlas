@@ -20,7 +20,7 @@ export default function Footer() {
     </nav>
     <nav aria-label="Projeto">
       <h2>Projeto</h2>
-      <ul><li><a href="https://github.com/guilhermesvm/network-measurement-platform" target="_blank" rel="noreferrer">Código-fonte</a></li></ul>
+      <ul><li><a href="https://github.com/guilhermesvm/sondatlas" target="_blank" rel="noreferrer">Código-fonte</a></li></ul>
     </nav>
   </footer>
 }

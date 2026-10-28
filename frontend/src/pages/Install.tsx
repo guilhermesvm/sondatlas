@@ -4,7 +4,7 @@ import Command from './Command'
 import Step from './Step'
 import './pages.css'
 
-const repository = 'https://github.com/guilhermesvm/network-measurement-platform'
+const repository = 'https://github.com/guilhermesvm/sondatlas'
 
 type System = 'windows' | 'linux' | 'pi'
 type Option = 'probe' | 'app'
@@ -95,7 +95,7 @@ function Native({ system }: { system: 'linux' | 'pi' }) {
             <Text size="sm">Num terminal, na pasta principal do projeto, a mesma do <code>start-kit</code>:</Text>
             <Command>sudo bash lab/install-probe.sh</Command>
           </>
-          : <Command>sudo bash network-measurement-platform/lab/install-probe.sh</Command>}
+          : <Command>sudo bash sondatlas/lab/install-probe.sh</Command>}
         <Text size="sm">O script só instala a probe oficial: não atualiza o sistema nem altera a rede ou o SSH.</Text>
       </Step>
       <Step title="Guarde a chave">

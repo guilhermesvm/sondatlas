@@ -39,8 +39,8 @@ it('shows only commands that the kit READMEs also document, on every path', asyn
   for (const command of commands) {
     const documented = command
       .replace(/ (-Probe|-App|--probe|--app)$/, '')
-      .replace('https://github.com/guilhermesvm/network-measurement-platform.git', '<URL deste repositório>')
-      .replace('network-measurement-platform/', '<pasta do repositório>/')
+      .replace('https://github.com/guilhermesvm/sondatlas.git', '<URL deste repositório>')
+      .replace('sondatlas/', '<pasta do repositório>/')
       .replace(/^sudo bash lab\//, 'sudo bash <pasta do repositório>/lab/')
     expect(readme, command).toContain(documented)
   }
@@ -65,7 +65,7 @@ it('keeps each system to its own commands', async () => {
   // Whoever installs straight on Debian already has the project, since start-kit opened this page there. The Pi gets its own copy.
   expect(debian).toEqual(expect.arrayContaining(['sudo bash lab/install-probe.sh', 'bash start-kit.sh', 'bash stop-kit.sh']))
   expect(debian.some(command => command.startsWith('git'))).toBe(false)
-  expect(pi).toEqual(expect.arrayContaining(['sudo bash network-measurement-platform/lab/install-probe.sh', ps('start-kit'), 'bash stop-kit.sh']))
+  expect(pi).toEqual(expect.arrayContaining(['sudo bash sondatlas/lab/install-probe.sh', ps('start-kit'), 'bash stop-kit.sh']))
   for (const native of [debian, pi]) {
     expect(native.some(command => command.startsWith('vagrant') || command.startsWith('winget') || / (-Probe|-App|--probe|--app)$/.test(command))).toBe(false)
   }
