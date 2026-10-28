@@ -1,7 +1,7 @@
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-from ripe_atlas_tcc.shared.settings import INFLUXDB_MEASUREMENT
+from sondatlas.shared.settings import INFLUXDB_MEASUREMENT
 
 
 def check_influxdb_connection(url, token, org, bucket):

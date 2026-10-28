@@ -6,8 +6,8 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 
 import requests
 
-from ripe_atlas_tcc.api import probe_distribution
-from ripe_atlas_tcc.api.atlas_account import (
+from sondatlas.api import probe_distribution
+from sondatlas.api.atlas_account import (
     ACCOUNT_STATE_PATH,
     KeyRefusedError,
     MeasurementRejectedError,
@@ -24,14 +24,14 @@ from ripe_atlas_tcc.api.atlas_account import (
     save_key,
     valid_target,
 )
-from ripe_atlas_tcc.api.influxdb_queries import query_ping_results
-from ripe_atlas_tcc.shared.probe_state import (
+from sondatlas.api.influxdb_queries import query_ping_results
+from sondatlas.shared.probe_state import (
     clear_selected_probe,
     load_selected_probe,
     save_selected_probe,
 )
-from ripe_atlas_tcc.shared.ripe_atlas_client import fetch_probe
-from ripe_atlas_tcc.shared.settings import (
+from sondatlas.shared.ripe_atlas_client import fetch_probe
+from sondatlas.shared.settings import (
     PING_MEASUREMENTS,
     PROBE_STATE_PATH,
     load_influxdb_config,
@@ -80,7 +80,7 @@ def get_probe():
 @app.put(
     "/probe",
     summary="Check the probe in RIPE Atlas and save it as the selected probe",
-    description="Same check and file as python -m ripe_atlas_tcc --probe-id. A running --poll picks the new probe up on its next cycle. On any failure the previous selection is kept. is_public tells whether anonymous readers (this project) can see the probe's results.",
+    description="Same check and file as python -m sondatlas --probe-id. A running --poll picks the new probe up on its next cycle. On any failure the previous selection is kept. is_public tells whether anonymous readers (this project) can see the probe's results.",
     responses={
         404: {"description": "Probe does not exist in RIPE Atlas"},
         503: {"description": "RIPE Atlas unavailable or selection not saved; previous selection is kept"},

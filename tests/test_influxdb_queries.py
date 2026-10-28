@@ -5,7 +5,7 @@ import traceback
 from influxdb_client.client.flux_table import FluxRecord, FluxTable
 import pytest
 
-from ripe_atlas_tcc.api import influxdb_queries
+from sondatlas.api import influxdb_queries
 
 
 START = datetime(2026, 8, 26, tzinfo=timezone.utc)

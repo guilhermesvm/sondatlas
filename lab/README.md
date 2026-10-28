@@ -147,8 +147,12 @@ o mesmo erro acima. A aplicação da segunda cópia também precisa de outras po
 2. Na pasta `lab/`: `vagrant destroy -f`. Apaga a VM e a chave da probe.
 3. Opcional: `vagrant box remove bento/debian-13`, que apaga a imagem do Debian
    baixada pelo Vagrant.
-4. Apague a pasta do projeto.
-5. Se não usar para mais nada, desinstale o VirtualBox, o Vagrant e o Docker.
+4. Opcional: `docker builder prune`, que apaga o cache de build do Docker. Ele
+   guarda as imagens de base (Python e Node) e as versões antigas da aplicação
+   e pode passar de vários GB. Vale para todos os projetos Docker do
+   computador, que só ficam mais lentos no próximo build.
+5. Apague a pasta do projeto.
+6. Se não usar para mais nada, desinstale o VirtualBox, o Vagrant e o Docker.
 
 A probe continua na sua conta do RIPE, aparecendo como *Disconnected* e, depois
 de alguns meses, *Abandoned*. Para tirá-la da conta, use **Write off your probe**

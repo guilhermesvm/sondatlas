@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 import pytest
 import requests
 
-from ripe_atlas_tcc.api import app as api, atlas_account
-from ripe_atlas_tcc.shared.probe_state import save_selected_probe
+from sondatlas.api import app as api, atlas_account
+from sondatlas.shared.probe_state import save_selected_probe
 
 
 PARAMS = {

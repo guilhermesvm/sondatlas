@@ -2,8 +2,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from ripe_atlas_tcc.pipeline import runner as pipeline
-from ripe_atlas_tcc.shared import probe_state
+from sondatlas.pipeline import runner as pipeline
+from sondatlas.shared import probe_state
 
 
 PROBE_ID = 1017210
@@ -356,7 +356,7 @@ def test_main_help_shows_the_module_command(capsys):
     with pytest.raises(SystemExit):
         pipeline.main(["--help"])
 
-    assert capsys.readouterr().out.startswith("usage: python -m ripe_atlas_tcc ")
+    assert capsys.readouterr().out.startswith("usage: python -m sondatlas ")
 
 
 def test_run_polling_announces_wait_once_and_stops_cleanly(monkeypatch):

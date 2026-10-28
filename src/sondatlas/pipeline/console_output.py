@@ -51,7 +51,7 @@ def print_polling_probe(probe_id):
 def print_waiting_for_probe():
     print(
         "Nenhuma probe selecionada. Aguardando: "
-        "rode python -m ripe_atlas_tcc --probe-id <ID da sua probe>."
+        "rode python -m sondatlas --probe-id <ID da sua probe>."
     )
 
 

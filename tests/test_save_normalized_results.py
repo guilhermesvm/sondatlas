@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from ripe_atlas_tcc.pipeline.json_storage import save_normalized_results
+from sondatlas.pipeline.json_storage import save_normalized_results
 
 
 def test_save_normalized_results_creates_expected_json_file(tmp_path):

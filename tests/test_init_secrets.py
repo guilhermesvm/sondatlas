@@ -1,6 +1,6 @@
 import pytest
 
-from ripe_atlas_tcc.init_secrets import PASSWORD_FILE, TOKEN_FILE, prepare_secrets
+from sondatlas.init_secrets import PASSWORD_FILE, TOKEN_FILE, prepare_secrets
 
 
 def read_secrets(directory):

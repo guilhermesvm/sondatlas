@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from ripe_atlas_tcc.pipeline.collection_state import (
+from sondatlas.pipeline.collection_state import (
     calculate_collection_window,
     load_last_successful_stop,
     save_last_successful_stop,

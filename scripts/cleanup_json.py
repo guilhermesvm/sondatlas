@@ -2,7 +2,7 @@ from pathlib import Path
 import re
 import shutil
 
-from ripe_atlas_tcc.shared.execution_lock import execution_lock
+from sondatlas.shared.execution_lock import execution_lock
 
 
 DATA_DIRECTORIES = ("raw", "normalized")

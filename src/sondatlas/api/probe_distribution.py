@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from ripe_atlas_tcc.shared.execution_lock import execution_lock
+from sondatlas.shared.execution_lock import execution_lock
 
 
 PROBES_URL = "https://atlas.ripe.net/api/v2/probes/"
@@ -146,7 +146,7 @@ def _collect_summary(temporary, deadline):
 
 def _run_collection(temporary, deadline):
     process = subprocess.Popen(
-        [sys.executable, "-m", "ripe_atlas_tcc.api.probe_distribution", str(temporary), str(deadline)],
+        [sys.executable, "-m", "sondatlas.api.probe_distribution", str(temporary), str(deadline)],
         stdin=subprocess.DEVNULL,
     )
     try:

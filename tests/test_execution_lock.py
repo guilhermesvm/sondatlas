@@ -6,8 +6,8 @@ from unittest.mock import Mock
 
 import pytest
 
-import ripe_atlas_tcc.shared.execution_lock as locks
-from ripe_atlas_tcc.shared.execution_lock import execution_lock
+import sondatlas.shared.execution_lock as locks
+from sondatlas.shared.execution_lock import execution_lock
 
 
 def lock_owner(lock_path):
@@ -123,7 +123,7 @@ def test_recovers_lock_left_by_real_abrupt_process_exit(tmp_path):
     lock_path = tmp_path / "pipeline.lock"
     code = (
         "import os, sys; from pathlib import Path; "
-        "from ripe_atlas_tcc.shared.execution_lock import execution_lock; "
+        "from sondatlas.shared.execution_lock import execution_lock; "
         "\nwith execution_lock(Path(sys.argv[1])): os._exit(0)"
     )
     subprocess.run([sys.executable, "-c", code, str(lock_path)], check=True, timeout=10)
@@ -142,7 +142,7 @@ def test_two_processes_cannot_recover_same_stale_lock(tmp_path):
     lock_path.write_text(str(previous.pid), encoding="ascii")
     code = (
         "import os, sys; from pathlib import Path; "
-        "from ripe_atlas_tcc.shared.execution_lock import execution_lock; "
+        "from sondatlas.shared.execution_lock import execution_lock; "
         "\nsys.stdin.read(1)"
         "\ntry:"
         "\n    with execution_lock(Path(sys.argv[1])):"
