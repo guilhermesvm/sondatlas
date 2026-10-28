@@ -5,7 +5,7 @@ import { ProbeProvider } from '../features/probe-status/ProbeProvider'
 import { render } from '../test/render'
 import Challenges from './Challenges'
 
-afterEach(() => { vi.unstubAllGlobals(); window.location.hash = '' })
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); window.location.hash = '' })
 
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
 
@@ -27,7 +27,9 @@ const detail = { target: 'google.com', type: 'ping', probes: [{ id: 1017210 }], 
 
 const noChallenges = { count: 0, challenges: [] }
 
+// measurement may be a list of answers given in order, the last one repeating.
 function stubBackend(account: unknown, results: unknown[] = [round], challenges: [unknown, number?] = [noChallenges], measurement: unknown = detail) {
+  const answers = Array.isArray(measurement) ? [...measurement] : [measurement]
   const mock = vi.fn((url: string, init?: RequestInit) => {
     if (url === '/api/account') return json(account)
     if (url === '/api/challenges') return json(...challenges)
@@ -38,7 +40,7 @@ function stubBackend(account: unknown, results: unknown[] = [round], challenges:
     ] })
     if (url.startsWith('https://stat.ripe.net/data/network-info/')) return json({ data: { asns: url.includes('142.250.0.1') ? ['15169'] : ['64500'] } })
     if (url.startsWith('https://stat.ripe.net/data/as-overview/')) return json({ data: { holder: url.includes('AS15169') ? 'GOOGLE - Google LLC' : 'EXAMPLE - Provedor Exemplo' } })
-    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(measurement)
+    if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/?')) return json(answers.length > 1 ? answers.shift() : answers[0])
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/123456789/results/')) return json(results)
     if (url.startsWith('https://atlas.ripe.net/api/v2/measurements/1001/latest/?probe_ids=1017210')) return json([{ avg: 30, rcvd: 3 }])
     if (url === '/api/probe') return json({ probe_id: null })
@@ -261,7 +263,9 @@ it('creates a ping from probes on every continent, with the cost of each probe a
   renderChallenges()
   const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
   await userEvent.type(group.getByRole('combobox', { name: 'Destino' }), 'google.com')
+  expect(group.getByRole('img', { name: '1 probe em cada continente, mais a sua probe 1017210' })).toBeInTheDocument()
   await userEvent.click(within(group.getByRole('radiogroup', { name: 'Probes' })).getByRole('radio', { name: '10' }))
+  expect(group.getByRole('img', { name: '2 probes em cada continente, mais a sua probe 1017210' })).toBeInTheDocument()
   expect(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' })).toBeChecked()
   await userEvent.click(group.getByRole('button', { name: 'Ver o custo' }))
   let dialog = screen.getByRole('dialog', { name: 'Criar este ping de várias probes?' })
@@ -278,18 +282,53 @@ it('creates a ping from probes on every continent, with the cost of each probe a
   expect(window.location.hash).toBe('#/desafios/123456789')
 })
 
+it('warns in the group ping when no own probe is connected, and still pings from the continents', async () => {
+  const offline = { ...linked, probes: linked.probes.map(probe => ({ ...probe, status: { id: 2, name: 'Disconnected', since: null } })) }
+  const mock = stubBackend(offline)
+  renderChallenges()
+  const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
+  expect(group.getByText('Nenhuma probe sua está conectada agora')).toBeInTheDocument()
+  expect(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' })).not.toBeChecked()
+  expect(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' })).toBeDisabled()
+  expect(group.getByRole('img', { name: '1 probe em cada continente' })).toBeInTheDocument()
+  await userEvent.type(group.getByRole('combobox', { name: 'Destino' }), 'google.com')
+  await userEvent.click(group.getByRole('button', { name: 'Ver o custo' }))
+  await userEvent.click(within(screen.getByRole('dialog', { name: 'Criar este ping de várias probes?' })).getByRole('button', { name: 'Criar o ping' }))
+  const post = mock.mock.calls.find(([url]) => url === '/api/challenges/group-ping')
+  expect(post?.[1]?.body).toBe(JSON.stringify({ target: 'google.com', total: 5, probe_id: null, packets: 3 }))
+})
+
+it('waits while RIPE Atlas prepares a new measurement before choosing how to show it', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  window.location.hash = '#/desafios/123456789'
+  const synchronizing = { id: 123456789, type: 'ping', status: { id: null, name: 'synchronizing' } }
+  stubBackend(linked, groupRounds, [noChallenges], [synchronizing, { ...detail, tags: ['sondatlas', 'sondatlas-grupo'], participant_count: 4 }])
+  renderChallenges()
+  expect(await screen.findByText('O RIPE Atlas está preparando a medição 123456789…')).toBeInTheDocument()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(await screen.findByRole('heading', { name: 'Ping de 4 probes até google.com' })).toBeInTheDocument()
+  expect(document.body).not.toHaveTextContent('undefined')
+  expect(screen.queryByText(/enviados, .* recebidos/)).not.toBeInTheDocument()
+})
+
 it('compares the probes of a group ping as they arrive, marks your probe and never shows their addresses', async () => {
   window.location.hash = '#/desafios/123456789'
   const group = { ...detail, tags: ['sondatlas', 'sondatlas-grupo'], participant_count: 6 }
   stubBackend(linked, groupRounds, [noChallenges], group)
   renderChallenges()
-  expect(await screen.findByText('Ping de 6 probes até google.com')).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: 'Ping de 6 probes até google.com' })).toBeInTheDocument()
   expect(await screen.findByText('Chegaram 4 de 6 resultados. Cada probe mede no seu tempo…')).toBeInTheDocument()
   const rows = screen.getAllByRole('row').slice(1)
-  expect(rows.map(row => row.firstElementChild?.textContent)).toEqual(['6002', '1017210sua', '6001', '6003'])
-  expect(rows[0]).toHaveTextContent('Alemanha')
+  expect(rows.map(row => [...row.children].slice(0, 2).map(cell => cell.textContent))).toEqual([
+    ['1º', 'AlemanhaAS3320, probe 6002, recebeu 142.250.2.2'],
+    ['2º', 'BrasilsuaAS263077, probe 1017210, recebeu 172.217.172.46'],
+    ['3º', 'JapãoAS2516, probe 6001, recebeu 142.250.1.1'],
+    ['–', 'África do SulAS37100, probe 6003, recebeu 142.250.3.3'],
+  ])
   expect(rows[3]).toHaveTextContent('sem resposta')
+  expect(rows[3].querySelector('.group-rank-bar')).toBeNull()
   expect(screen.getByText('De 12,2 ms a 180,5 ms')).toBeInTheDocument()
+  expect(screen.getByText(/A 6002 \(Alemanha\) foi a mais rápida, com 12,2 ms. A 6001 \(Japão\) foi a mais lenta, com 180,5 ms./)).toBeInTheDocument()
   expect(screen.getByText(/As probes receberam 4 endereços diferentes para google.com/)).toBeInTheDocument()
   expect(screen.getByText(/A sua probe ficou em 2º lugar entre as que responderam/)).toBeInTheDocument()
   expect(document.body).not.toHaveTextContent('198.51.100')

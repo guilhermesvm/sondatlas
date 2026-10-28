@@ -1,9 +1,9 @@
-import { Badge, Text, Title } from '@mantine/core'
+import { Badge, Text, Title, VisuallyHidden } from '@mantine/core'
 import { useEffect, useState } from 'react'
 import Loading from '../../lib/Loading'
 import { fetchAccount } from '../atlas-account/account'
 import { formatMetric } from '../ping-history/chart'
-import { fetchGroupResults, fetchMeasurement, type GroupRound, type Measurement } from './challenge'
+import { fetchGroupResults, fetchMeasurement, preparing, type GroupRound, type Measurement } from './challenge'
 import './group-result.css'
 
 const ms = (value: number) => `${formatMetric(value)} ms`
@@ -13,6 +13,8 @@ const isAddress = (target: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(target)
 // Each probe answers on its own time, so the results are read again until all arrive or 3 minutes pass.
 const every = 5000
 const times = 36
+// Width of the slowest probe's bar. Every bar starts at zero, so the lengths compare the times.
+const longest = 220
 
 export default function GroupResult({ id, measurement }: { id: number, measurement: Measurement }) {
   const [rounds, setRounds] = useState<GroupRound[] | null>(null)
@@ -34,7 +36,7 @@ export default function GroupResult({ id, measurement }: { id: number, measureme
     const poll = () => Promise.all([fetchGroupResults(id, controller.signal), fetchMeasurement(id, controller.signal).catch(() => null)])
       .then(([found, latest]) => {
         setRounds(found)
-        const total = latest?.scheduled ?? 0
+        const total = latest && latest !== preparing ? latest.scheduled : 0
         setExpected(total)
         if (total && found.length >= total) return
         if (++tries >= times) setGaveUp(true)
@@ -54,9 +56,11 @@ export default function GroupResult({ id, measurement }: { id: number, measureme
   const complete = expected > 0 && arrived >= expected
   const ranked = [...rounds].sort((a, b) => (a.avg ?? Infinity) - (b.avg ?? Infinity))
   const answered = ranked.filter(round => round.avg !== null)
+  const slowest = answered.length ? answered[answered.length - 1].avg! : 0
   const named = !isAddress(measurement.target)
   const addresses = new Set(rounds.map(round => round.address).filter(Boolean))
   const yours = ranked.findIndex(round => own.includes(round.probeId))
+  const who = (round: GroupRound) => `A ${round.probeId} (${place(round)})`
 
   return <>
     {!complete && !gaveUp && <Loading mt="sm">{expected ? `Chegaram ${arrived} de ${expected} resultados.` : `Chegaram ${arrived} resultados.`} Cada probe mede no seu tempo…</Loading>}
@@ -64,32 +68,42 @@ export default function GroupResult({ id, measurement }: { id: number, measureme
       Chegaram {arrived}{expected ? ` de ${expected}` : ''} resultados. Alguma probe pode ter desconectado antes de medir. O resto pode aparecer mais tarde na página da medição no RIPE Atlas.
     </Text>}
     {arrived > 0 && <>
-      <div className="lesson-table-wrap">
-        <table className="group-table">
-          <caption>Tempo médio de cada probe até {measurement.target}, do mais rápido ao mais lento</caption>
-          <thead><tr>
-            <th scope="col">Probe</th><th scope="col">País</th><th scope="col">Rede</th>
-            {named && <th scope="col">Endereço recebido</th>}
-            <th scope="col">Tempo médio</th>
-          </tr></thead>
-          <tbody>
-            {ranked.map(round => <tr key={round.probeId} data-yours={own.includes(round.probeId)}>
-              <td>{round.probeId}{own.includes(round.probeId) && <Badge size="xs" variant="light" tt="none" ml={6}>sua</Badge>}</td>
-              <td>{place(round)}</td>
-              <td>{round.asn ? `AS${round.asn}` : '—'}</td>
-              {named && <td><code>{round.address ?? '—'}</code></td>}
-              <td>{round.avg === null ? 'sem resposta' : ms(round.avg)}</td>
-            </tr>)}
-          </tbody>
-        </table>
-      </div>
+      <table className="group-rank">
+        <caption>O mesmo ping até {measurement.target}, do lugar mais rápido ao mais lento.</caption>
+        <thead><tr>
+          <th scope="col"><span aria-hidden="true">#</span><VisuallyHidden>Posição</VisuallyHidden></th>
+          <th scope="col">Onde</th>
+          <th scope="col">Tempo médio</th>
+        </tr></thead>
+        <tbody>
+          {ranked.map((round, index) => {
+            const mine = own.includes(round.probeId)
+            return <tr key={round.probeId} data-yours={mine}>
+              <td className="group-rank-position">{round.avg === null ? '–' : `${index + 1}º`}</td>
+              <td>
+                <div className="group-rank-place">{place(round)}{mine && <Badge size="xs" variant="filled" tt="none" ml={8}>sua</Badge>}</div>
+                <div className="group-rank-detail">
+                  {round.asn ? `AS${round.asn}, ` : ''}probe {round.probeId}{named && round.address ? <>, recebeu <code>{round.address}</code></> : ''}
+                </div>
+              </td>
+              <td>{round.avg === null
+                ? <span className="group-rank-none">sem resposta</span>
+                : <div className="group-rank-time">
+                  <span className="group-rank-bar" aria-hidden="true" style={{ width: Math.max(2, Math.round(round.avg / slowest * longest)) }} />
+                  {ms(round.avg)}
+                </div>}
+              </td>
+            </tr>
+          })}
+        </tbody>
+      </table>
       <Title order={3} size="h5" mt="lg" mb="xs">O que o resultado quer dizer</Title>
       <dl className="lesson-reading">
         {answered.length > 1 && <div>
-          <dt>De {ms(answered[0].avg!)} a {ms(answered[answered.length - 1].avg!)}</dt>
+          <dt>De {ms(answered[0].avg!)} a {ms(slowest)}</dt>
           <dd>
-            A probe mais rápida, em {place(answered[0])}, levou {ms(answered[0].avg!)}. A mais lenta, em {place(answered[answered.length - 1])}, levou {ms(answered[answered.length - 1].avg!)}.
-            É o mesmo destino, e o tempo muda com a distância pela rede entre cada probe e o servidor que respondeu.
+            {who(answered[0])} foi a mais rápida, com {ms(answered[0].avg!)}. {who(answered[answered.length - 1])} foi a mais lenta, com {ms(slowest)}.
+            {' '}É o mesmo destino, e o tempo muda com a distância pela rede entre cada probe e o servidor que respondeu.
           </dd>
         </div>}
         {named && addresses.size > 0 && <div>

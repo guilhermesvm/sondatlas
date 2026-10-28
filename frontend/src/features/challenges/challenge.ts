@@ -112,14 +112,18 @@ export interface Measurement {
   scheduled: number
 }
 
+export const preparing = 'preparing'
+
 // Public details of any measurement, so a result opened from its own address does not need the account. Null when it does not exist.
-export async function fetchMeasurement(measurementId: number, signal: AbortSignal): Promise<Measurement | null> {
-  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes,resolve_on_probe,tags,participant_count&optional_fields=probes`, { signal })
+// Right after creation RIPE Atlas answers with only the type and the status "synchronizing" (seen on 2026-10-28, not in the OpenAPI), so the caller asks again.
+export async function fetchMeasurement(measurementId: number, signal: AbortSignal): Promise<Measurement | null | typeof preparing> {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes,resolve_on_probe,tags,participant_count,status&optional_fields=probes`, { signal })
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  const { target, type, probes, resolve_on_probe, tags, participant_count } = await response.json() as {
-    target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean, tags?: string[], participant_count?: number | null
+  const { target, type, probes, resolve_on_probe, tags, participant_count, status } = await response.json() as {
+    target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean, tags?: string[], participant_count?: number | null, status?: { name?: string }
   }
+  if (status?.name === 'synchronizing') return preparing
   return {
     target, type, probeId: probes?.[0]?.id ?? null, resolvedOnProbe: Boolean(resolve_on_probe),
     group: (tags ?? []).includes('sondatlas-grupo'), scheduled: participant_count ?? 0,

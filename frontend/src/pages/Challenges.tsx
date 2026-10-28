@@ -2,7 +2,7 @@ import { Alert, Anchor, Autocomplete, Button, Checkbox, Group, Modal, SegmentedC
 import { Fragment, useEffect, useState, type MouseEvent, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
-import { ChallengeError, createChallenge, createGroupPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, fetchTracerouteRoute, kinds, groupSizes, measurementFromHash, validTarget, type Challenge, type Kind, type Measurement, type PingResult } from '../features/challenges/challenge'
+import { ChallengeError, createChallenge, createGroupPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, fetchTracerouteRoute, kinds, groupSizes, measurementFromHash, preparing, validTarget, type Challenge, type Kind, type Measurement, type PingResult } from '../features/challenges/challenge'
 import GroupResult from '../features/challenges/GroupResult'
 import { formatMetric } from '../features/ping-history/chart'
 import { HopTable, MissingSources, RouteStages, Terminal as RouteTerminal } from '../features/lessons/RouteReading'
@@ -20,6 +20,7 @@ const autoDescription = (kind: Kind, target: string) => `Sondatlas: ${kind} para
 // A traceroute waits for every hop, so it takes longer than a ping.
 const polling: Record<Kind, { every: number, times: number }> = { ping: { every: 3000, times: 40 }, traceroute: { every: 5000, times: 60 } }
 const titles: Record<Kind, string> = { ping: 'Ping', traceroute: 'Traceroute' }
+const preparingPolling = { every: 2000, times: 30 }
 
 const MineLink = () => <Anchor href="https://atlas.ripe.net/measurements/mine" target="_blank" rel="noreferrer">lista das suas medições</Anchor>
 
@@ -167,7 +168,7 @@ function useResult(id: number, kind: Kind | null, attempt: number) {
 
 function Result({ id }: { id: number }) {
   const [measurement, setMeasurement] = useState<Measurement | null>()
-  const [lookupError, setLookupError] = useState(false)
+  const [lookup, setLookup] = useState<'reading' | 'preparing' | 'slow' | 'failed'>('reading')
   const [kRoot, setKRoot] = useState<number | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -176,10 +177,19 @@ function Result({ id }: { id: number }) {
   const probeId = measurement?.probeId
   const { ping, route, polled, gaveUp } = useResult(id, kind, attempt)
 
+  // Nothing is shown about the measurement until RIPE Atlas has its full details: a new one is still being prepared for a few seconds.
   useEffect(() => {
     const controller = new AbortController()
-    fetchMeasurement(id, controller.signal).then(setMeasurement, () => { if (!controller.signal.aborted) setLookupError(true) })
-    return () => controller.abort()
+    let tries = 0
+    let timer: ReturnType<typeof setTimeout>
+    const look = () => fetchMeasurement(id, controller.signal).then(found => {
+      if (found !== preparing) return setMeasurement(found)
+      if (++tries >= preparingPolling.times) return setLookup('slow')
+      setLookup('preparing')
+      timer = setTimeout(look, preparingPolling.every)
+    }, () => { if (!controller.signal.aborted) setLookup('failed') })
+    look()
+    return () => { controller.abort(); clearTimeout(timer) }
   }, [id])
 
   useEffect(() => {
@@ -197,11 +207,17 @@ function Result({ id }: { id: number }) {
   const again = <Button variant="default" mt="md" onClick={leave}>Fazer outro desafio</Button>
 
   let body
-  if (lookupError) body = <>
+  if (lookup === 'failed') body = <>
     <SystemError title="Não foi possível consultar a medição">O RIPE Atlas não respondeu agora. Recarregue a página em instantes.</SystemError>
     {again}
   </>
-  else if (measurement === undefined || (kind && !polled)) body = <Loading mt="lg">Consultando a medição {id}…</Loading>
+  else if (lookup === 'slow') body = <>
+    <SystemError title="A medição ainda não está pronta">O RIPE Atlas ainda está preparando a medição {id}. Recarregue a página em instantes.</SystemError>
+    {again}
+  </>
+  else if (measurement === undefined || (kind && !polled)) body = <Loading mt="lg">
+    {lookup === 'preparing' ? `O RIPE Atlas está preparando a medição ${id}…` : `Consultando a medição ${id}…`}
+  </Loading>
   else if (measurement === null) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
     Confira o número no endereço da página.
     <div>{again}</div>
@@ -211,7 +227,9 @@ function Result({ id }: { id: number }) {
     <div>{again}</div>
   </Alert>
   else body = <section className="follow-box" aria-labelledby="challenge-result">
-    <Text fw={600} id="challenge-result">{group ? `Ping de ${measurement.scheduled ? `${measurement.scheduled} probes` : 'várias probes'} até ${measurement.target}` : `${titles[kind!]} ${probeId ? `da probe ${probeId} ` : ''}até ${measurement.target}`}</Text>
+    {group
+      ? <Title order={2} size="h4" id="challenge-result">Ping de {measurement.scheduled ? `${measurement.scheduled} probes` : 'várias probes'} até {measurement.target}</Title>
+      : <Text fw={600} id="challenge-result">{titles[kind!]} {probeId ? `da probe ${probeId} ` : ''}até {measurement.target}</Text>}
     {measuring && <Loading mt="sm">{kind === 'ping'
       ? 'A probe está medindo. O resultado costuma chegar em alguns segundos…'
       : 'A probe está descobrindo o caminho, salto por salto. Um traceroute pode levar alguns minutos…'}</Loading>}
@@ -360,8 +378,21 @@ function NewChallenge({ account }: { account: Account }) {
   </section>
 }
 
+const continents = ['África', 'Américas', 'Ásia', 'Europa', 'Oceania']
+
+// How the probes are split, redrawn as the size changes. A picture with one sentence for screen readers.
+function ContinentStrip({ each, mine }: { each: number, mine: number | null }) {
+  const dots = (amount: number) => <div className="continent-dots">{Array.from({ length: amount }, (_, index) => <span key={index} />)}</div>
+  return <div className="continent-strip" role="img"
+    aria-label={`${each === 1 ? '1 probe' : `${each} probes`} em cada continente${mine ? `, mais a sua probe ${mine}` : ''}`}>
+    {continents.map(name => <div key={name}><div className="continent-name">{name}</div>{dots(each)}</div>)}
+    <div className="continent-own" data-off={!mine}><div className="continent-name">{mine ? `Sua probe ${mine}` : 'Sem a sua probe'}</div>{dots(1)}</div>
+  </div>
+}
+
 function GroupChallenge({ account }: { account: Account }) {
-  const connected = (account.probes ?? []).filter(probe => probe.status.id === 1)
+  const probes = account.probes ?? []
+  const connected = probes.filter(probe => probe.status.id === 1)
   const [target, setTarget] = useState('')
   const [total, setTotal] = useState(String(groupSizes[0]))
   const [withMine, setWithMine] = useState(connected.length > 0)
@@ -373,7 +404,7 @@ function GroupChallenge({ account }: { account: Account }) {
   const [error, setError] = useState<ChallengeError | null>(null)
   const [suggesting, setSuggesting] = useState(false)
   const mine = withMine && probeId ? Number(probeId) : null
-  const probes = Number(total) + (mine ? 1 : 0)
+  const sources = Number(total) + (mine ? 1 : 0)
 
   function review(event: SubmitEvent) {
     event.preventDefault()
@@ -405,9 +436,12 @@ function GroupChallenge({ account }: { account: Account }) {
       As probes públicas do RIPE Atlas não medem só para os donos. Com créditos, você mede a partir de probes de outras pessoas, em qualquer lugar do mundo.
       Aqui, o mesmo ping sai de probes nos cinco continentes, e você compara o tempo de cada lugar até o mesmo destino.
     </Text>
+    {!connected.length && <Alert color="yellow" mt="md" title="Nenhuma probe sua está conectada agora">
+      O ping sai só das probes dos cinco continentes. Para incluir a sua, veja o que fazer em <Anchor href="#/minha-probe">Minha probe</Anchor>.
+    </Alert>}
     <form onSubmit={review}>
       <Group align="flex-start" gap="md" mt="md">
-        <Autocomplete label="Destino" placeholder="google.com" description="Um nome ou um endereço IPv4 público" inputWrapperOrder={['label', 'input', 'description', 'error']} w={300} maw="100%" value={target}
+        <Autocomplete label="Destino" placeholder="google.com" description="Um nome ou um endereço IPv4 público" inputWrapperOrder={['label', 'input', 'description', 'error']} w={260} maw="100%" value={target}
           onChange={value => { setTarget(value); setTargetError('') }} error={targetError}
           data={destinations.map(group => ({ group: group.group, items: group.items.map(item => item.value) }))}
           renderOption={({ option }) => <div><Text size="sm">{option.value}</Text><Text size="xs" c="dimmed">{notes.get(option.value)}</Text></div>}
@@ -416,7 +450,6 @@ function GroupChallenge({ account }: { account: Account }) {
           <Text size="sm" fw={500} id="group-size">Probes</Text>
           <SegmentedControl mt={4} value={total} onChange={setTotal} aria-labelledby="group-size"
             data={groupSizes.map(size => ({ value: String(size), label: String(size) }))} />
-          <Text size="xs" c="dimmed" mt={4} maw={280}>Divididas igualmente entre África, Américas, Ásia, Europa e Oceania. O RIPE Atlas escolhe quais.</Text>
         </div>
         <div>
           <Text size="sm" fw={500} id="group-packets">Pacotes</Text>
@@ -424,12 +457,17 @@ function GroupChallenge({ account }: { account: Account }) {
             data={kinds.ping.packets.map(choice => ({ value: String(choice), label: String(choice) }))} />
         </div>
       </Group>
+      <ContinentStrip each={Number(total) / continents.length} mine={mine} />
+      <Text size="xs" c="dimmed" mt={6}>O RIPE Atlas escolhe quais probes entram em cada continente.</Text>
       <Group align="center" gap="md" mt="md">
         <Checkbox label="Incluir a minha probe, para comparar" checked={withMine} disabled={!connected.length} onChange={event => setWithMine(event.currentTarget.checked)} />
-        {withMine && connected.length > 1 && <Select aria-label="Qual das suas probes" w={260} value={probeId} onChange={setProbeId}
-          data={connected.map(probe => ({ value: String(probe.id), label: `${probe.id}${probe.description ? `, ${probe.description}` : ''}` }))} />}
+        {withMine && probes.length > 1 && <Select aria-label="Qual das suas probes" styles={{ input: { textOverflow: 'ellipsis' } }} w={300} value={probeId} onChange={setProbeId}
+          data={probes.map(probe => ({
+            value: String(probe.id),
+            label: `${probe.id}${probe.description ? `, ${probe.description}` : ''}${probe.status.id === 1 ? '' : ' (desconectada)'}`,
+            disabled: probe.status.id !== 1,
+          }))} />}
       </Group>
-      {!connected.length && <Text size="xs" c="dimmed" mt={4}>Nenhuma probe sua está conectada agora, então o ping sai só das outras.</Text>}
       <Button type="submit" mt="md">Ver o custo</Button>
     </form>
     {!confirming && errorText}
@@ -438,7 +476,7 @@ function GroupChallenge({ account }: { account: Account }) {
         De <strong>{total} probes</strong>, divididas entre os cinco continentes{mine ? <>, e da sua probe <strong>{mine}</strong></> : ''}, até <strong>{target.trim().toLowerCase()}</strong>, com {packets} pacotes cada.
       </Text>
       <Text size="sm" mt="xs">
-        Custa cerca de <strong>{kinds.ping.cost(Number(packets)) * probes} créditos</strong>, {kinds.ping.cost(Number(packets))} por probe, cobrados nas próximas 4 a 6 horas.{account.credits ? ` Seu saldo: ${count(account.credits.current_balance)}.` : ''}
+        Custa cerca de <strong>{kinds.ping.cost(Number(packets)) * sources} créditos</strong>, {kinds.ping.cost(Number(packets))} por probe, cobrados nas próximas 4 a 6 horas.{account.credits ? ` Seu saldo: ${count(account.credits.current_balance)}.` : ''}
       </Text>
       <Text size="sm" mt="xs">O RIPE Atlas escolhe quais probes entram em cada continente. Se faltar probe conectada em algum, vêm menos resultados.</Text>
       <Text size="sm" mt="xs">A medição fica pública no RIPE Atlas e leva a etiqueta <code>sondatlas</code>.</Text>
