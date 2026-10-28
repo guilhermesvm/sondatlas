@@ -40,16 +40,22 @@ command, checking the requirements first and opening the dashboard at the end:
 | Git Bash (Windows) or Linux | `bash start-kit.sh` | `bash stop-kit.sh` |
 
 On the first run there is no VM yet, so only the application starts and the
-dashboard's Install phase explains how to install the probe. To create the kit
-VM, or to start only the probe, add `-Probe` (PowerShell) or `--probe` (bash):
-it checks virtualization, VirtualBox and Vagrant, runs `vagrant up` and shows
-the probe's public key, without touching the application. Without Vagrant or
-without the kit VM (probe installed directly on Debian or Raspberry Pi OS), both
-scripts handle only the application. `-ExecutionPolicy Bypass` applies only to that run:
+dashboard's Install phase explains how to install the probe. To handle only one
+part, add an option (`-Probe` or `-App` in PowerShell, `--probe` or `--app` in
+bash):
+
+| Option | `start-kit` | `stop-kit` |
+|---|---|---|
+| `--probe` | Checks virtualization, VirtualBox and Vagrant, creates or starts the VM and shows the probe's public key | Stops only the VM |
+| `--app` | Starts only the application | Stops only the application; the probe keeps measuring and earning credits |
+
+Without an option and without Vagrant or the kit VM (probe installed directly on
+Debian or Raspberry Pi OS), both scripts handle only the application. While the
+application is off, the probe's results stay on RIPE Atlas, and the pipeline
+collects the gap on the next start. `-ExecutionPolicy Bypass` applies only to that run:
 Windows client computers block scripts by default (**Restricted**). Running
 either script again is safe; `stop-kit` keeps all data. The commands below still
-work on their own, to start only the application (or only the probe, with
-`vagrant up` in `lab/`).
+work on their own.
 
 ```bash
 docker compose up -d --build
@@ -180,7 +186,7 @@ src/ripe_atlas_tcc/
 The pipeline runs with `python -m ripe_atlas_tcc` (the package's
 `__main__.py`). The root `start-kit` and `stop-kit` scripts (`.ps1` and
 `.sh`) start and stop the application and, when it exists, the kit probe VM;
-`start-kit --probe` creates or starts only the VM.
+`--probe` and `--app` handle only the VM or only the application.
 
 ## Prerequisites
 

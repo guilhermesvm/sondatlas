@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # Liga a aplicação e, se existir, a VM da probe do kit, e abre o dashboard.
-# Uso: bash start-kit.sh [--probe]
+# Uso: bash start-kit.sh [--probe | --app]
 # --probe: só a probe. Confere os requisitos, cria a VM na primeira vez (ou a
 # liga) e mostra a chave pública. Não mexe na aplicação.
+# --app: só a aplicação, sem mexer na VM.
 # Pode ser rodado de novo a qualquer momento: o que já está ligado continua igual.
 set -uo pipefail
 
 RAIZ=$(cd "$(dirname "$0")" && pwd)
 COMPOSE=(docker compose -f "$RAIZ/compose.yaml")
 KEY=/etc/ripe-atlas/probe_key.pub
-PROBE=0
+[ $# -le 1 ] || { echo "Uso: bash start-kit.sh [--probe | --app]" >&2; exit 2; }
 case "${1:-}" in
-  "") ;;
-  --probe) PROBE=1 ;;
-  *) echo "Uso: bash start-kit.sh [--probe]" >&2; exit 2 ;;
+  "") MODO=tudo ;;
+  --probe) MODO=probe ;;
+  --app) MODO=app ;;
+  *) echo "Uso: bash start-kit.sh [--probe | --app]" >&2; exit 2 ;;
 esac
 
 case "$(uname -s)" in
@@ -75,7 +77,7 @@ ligar_vm() {
 }
 
 passo "Conferindo os pré-requisitos"
-if [ "$PROBE" = 1 ]; then
+if [ "$MODO" = probe ]; then
   motivo=$(motivo_sem_vm)
   [ -z "$motivo" ] || erro "$motivo"
   if virtualizacao_desligada; then
@@ -102,16 +104,18 @@ if [ -z "$versao" ] || [ "$(printf '%s\n' 2.24.0 "$versao" | sort -V | head -n 1
 fi
 command -v curl >/dev/null || erro "curl não encontrado. Instale com: sudo apt install curl"
 
-motivo=$(motivo_sem_vm)
-if [ -n "$motivo" ]; then
-  echo "$motivo"
-  passo "Ligando só a aplicação. Se a sua probe usa a VM do kit, resolva isso e rode este comando de novo"
-else
-  estado=$(estado_da_vm)
-  if [ "$estado" = not_created ]; then
-    passo "A VM da probe ainda não existe. Para instalar a probe, siga a fase Instalar do dashboard"
+if [ "$MODO" = tudo ]; then
+  motivo=$(motivo_sem_vm)
+  if [ -n "$motivo" ]; then
+    echo "$motivo"
+    passo "Ligando só a aplicação. Se a sua probe usa a VM do kit, resolva isso e rode este comando de novo"
   else
-    ligar_vm
+    estado=$(estado_da_vm)
+    if [ "$estado" = not_created ]; then
+      passo "A VM da probe ainda não existe. Para instalar a probe, siga a fase Instalar do dashboard"
+    else
+      ligar_vm
+    fi
   fi
 fi
 
@@ -142,4 +146,4 @@ elif command -v xdg-open >/dev/null && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]
 else
   passo "Pronto. Abra o dashboard no navegador: $endereco"
 fi
-echo "Para desligar tudo: bash stop-kit.sh"
+echo "Para desligar tudo: bash stop-kit.sh. Só a aplicação, deixando a probe ganhar créditos: bash stop-kit.sh --app"

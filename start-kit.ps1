@@ -1,9 +1,12 @@
 ﻿# Liga a aplicação e, se existir, a VM da probe do kit, e abre o dashboard.
-# Uso: powershell -ExecutionPolicy Bypass -File .\start-kit.ps1 [-Probe]
+# Uso: powershell -ExecutionPolicy Bypass -File .\start-kit.ps1 [-Probe | -App]
 # -Probe: só a probe. Confere os requisitos, cria a VM na primeira vez (ou a
 # liga) e mostra a chave pública. Não mexe na aplicação.
+# -App: só a aplicação, sem mexer na VM.
 # Pode ser rodado de novo a qualquer momento: o que já está ligado continua igual.
-param([switch]$Probe)
+param([switch]$Probe, [switch]$App)
+
+if ($Probe -and $App) { Write-Host 'Use -Probe ou -App, não os dois.' -ForegroundColor Red; exit 2 }
 
 $arquivoCompose = Join-Path $PSScriptRoot 'compose.yaml'
 $pastaLab = Join-Path $PSScriptRoot 'lab'
@@ -102,16 +105,18 @@ if (-not $versaoCompose -or [version]$versaoCompose -lt [version]'2.24.0') {
     Erro 'O kit precisa do Docker Compose 2.24.0 ou mais novo. Atualize o Docker Desktop.'
 }
 
-$motivo = MotivoSemVM
-if ($motivo) {
-    Write-Host $motivo
-    Passo 'Ligando só a aplicação. Se a sua probe usa a VM do kit, resolva isso e rode este comando de novo'
-} else {
-    $estado = EstadoDaVM
-    if ($estado -eq 'not_created') {
-        Passo 'A VM da probe ainda não existe. Para instalar a probe, siga a fase Instalar do dashboard'
+if (-not $App) {
+    $motivo = MotivoSemVM
+    if ($motivo) {
+        Write-Host $motivo
+        Passo 'Ligando só a aplicação. Se a sua probe usa a VM do kit, resolva isso e rode este comando de novo'
     } else {
-        LigarVM $estado
+        $estado = EstadoDaVM
+        if ($estado -eq 'not_created') {
+            Passo 'A VM da probe ainda não existe. Para instalar a probe, siga a fase Instalar do dashboard'
+        } else {
+            LigarVM $estado
+        }
     }
 }
 
@@ -136,4 +141,4 @@ if (-not $webPronto) { Erro 'O dashboard não respondeu em 2 minutos. Veja o mot
 $endereco = "http://$web/"
 Passo "Pronto. Abrindo o dashboard em $endereco"
 Start-Process $endereco
-Write-Host 'Para desligar tudo: powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1'
+Write-Host 'Para desligar tudo: powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1. Só a aplicação, deixando a probe ganhar créditos: acrescente -App no fim.'
