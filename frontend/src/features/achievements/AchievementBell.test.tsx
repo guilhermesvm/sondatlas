@@ -19,8 +19,10 @@ const linked = {
 }
 
 // The first challenge was created a minute ago, so "Primeira sondagem" is the only badge with a recent date.
-function stubBackend(account: unknown) {
+// pending holds back the answers whose address starts with it, to show what the bell does before they arrive.
+function stubBackend(account: unknown, pending?: string) {
   vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (pending && url.startsWith(pending)) return new Promise<Response>(() => {})
     if (url === '/api/account') return json(account)
     if (url === '/api/challenges?oldest=true&made=true') return json({ count: 1, challenges: [{ id: 228700000, type: 'ping', target: 'google.com', created: now - 60, probe_id: 1017210 }] })
     if (url.startsWith('/api/challenges')) return json({ count: 0, challenges: [] })
@@ -31,31 +33,53 @@ function stubBackend(account: unknown) {
 }
 
 const renderBell = () => render(<BadgesProvider><AchievementBell /></BadgesProvider>)
+const row = (name: string) => screen.getByText(name).closest('li')!
 
-it('lights up for a badge unlocked after the bell was last opened, and opening it shows the badge and turns the light off', async () => {
+it('lists a badge unlocked after the last opening as new, and shows it read the next time', async () => {
   localStorage.setItem(key, String((now - 3600) * 1000))
   stubBackend(linked)
   renderBell()
   const bell = await screen.findByRole('button', { name: 'Conquistas: 1 nova' })
   expect(bell.querySelector('.bell-dot')).not.toBeNull()
   await userEvent.click(bell)
-  expect(await screen.findByText('Conquistas novas')).toBeInTheDocument()
-  expect(screen.getByText('Primeira sondagem')).toBeInTheDocument()
+  expect(await screen.findByText('Conquistas recentes')).toBeInTheDocument()
+  expect(row('Primeira sondagem')).toHaveAttribute('data-read', 'false')
+  expect(row('Primeira sondagem')).toHaveTextContent('nova')
+  expect(row('Primeiro contato')).toHaveAttribute('data-read', 'true')
   expect(screen.getByRole('link', { name: 'Ver as conquistas' })).toHaveAttribute('href', '#/conquistas')
+  await vi.waitFor(() => expect(Number(localStorage.getItem(key))).toBeGreaterThan((now - 3600) * 1000))
+
+  await userEvent.click(screen.getByRole('button', { name: 'Conquistas: nenhuma nova' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Conquistas: nenhuma nova' }))
   expect(screen.getByRole('button', { name: 'Conquistas: nenhuma nova' }).querySelector('.bell-dot')).toBeNull()
-  expect(Number(localStorage.getItem(key))).toBeGreaterThan((now - 3600) * 1000)
+  expect(row('Primeira sondagem')).toHaveAttribute('data-read', 'true')
+  expect(row('Primeira sondagem')).not.toHaveTextContent('nova')
 })
 
-it('stays quiet on the first use, counting from then on', async () => {
+it('shows the bell while the account is read, saying the badges are being checked', async () => {
+  stubBackend(linked, '/api/account')
+  renderBell()
+  await userEvent.click(screen.getByRole('button', { name: 'Conquistas: conferindo' }))
+  expect(await screen.findByText('Conferindo as suas conquistas…')).toBeInTheDocument()
+})
+
+it('lights up as soon as the new badge is known, without waiting for the slowest source', async () => {
+  localStorage.setItem(key, String((now - 3600) * 1000))
+  stubBackend(linked, 'https://atlas.ripe.net/api/v2/probes/?asn_v4=')
+  renderBell()
+  expect(await screen.findByRole('button', { name: 'Conquistas: 1 nova' })).toBeInTheDocument()
+})
+
+it('stays quiet on the first use, listing the badges already earned as read', async () => {
   stubBackend(linked)
   renderBell()
-  expect(await screen.findByRole('button', { name: 'Conquistas: nenhuma nova' })).toBeInTheDocument()
+  await userEvent.click(await screen.findByRole('button', { name: 'Conquistas: nenhuma nova' }))
   await vi.waitFor(() => expect(localStorage.getItem(key)).not.toBeNull())
-  await userEvent.click(screen.getByRole('button', { name: 'Conquistas: nenhuma nova' }))
-  expect(await screen.findByText('Nenhuma conquista nova desde a última vez')).toBeInTheDocument()
+  expect(row('Primeira sondagem')).toHaveAttribute('data-read', 'true')
+  expect(screen.queryByText('nova')).not.toBeInTheDocument()
 })
 
-it('still works with blocked storage and hides without a linked account', async () => {
+it('invites to link the account when there is none, and still works with blocked storage', async () => {
   vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
   stubBackend(linked)
@@ -65,6 +89,8 @@ it('still works with blocked storage and hides without a linked account', async 
 
   stubBackend({ connected: false })
   renderBell()
-  await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/account', expect.anything()))
-  expect(screen.queryByRole('button', { name: /^Conquistas/ })).not.toBeInTheDocument()
+  await userEvent.click(await screen.findByRole('button', { name: 'Conquistas' }))
+  expect(await screen.findByText('Vincule a sua conta do RIPE Atlas para ver as suas conquistas.')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ir para Configurações' })).toHaveAttribute('href', '#/configuracoes')
+  expect(document.querySelector('.bell-dot')).toBeNull()
 })
