@@ -132,7 +132,7 @@ export default function PingLesson() {
         <li><Text size="sm">Ping não mede a velocidade da sua Internet, como a de download ou de upload.</Text></li>
         <li><Text size="sm">Ele não diz onde está o atraso nem por que um pacote se perdeu.</Text></li>
         <li><Text size="sm">Uma rodada com 100% de perda não prova que a sua Internet caiu. O servidor ou um equipamento no caminho pode ter ignorado o ping.</Text></li>
-        <li><Text size="sm">O K-root não é um servidor só. São vários, espalhados pelo mundo, e responde o mais próximo pela rede. Por isso o tempo não diz onde fica "o" K-root.</Text></li>
+        <li><Text size="sm">O K-root tem cópias pelo mundo com o mesmo endereço (anycast), e responde a mais próxima. Por isso o tempo não diz onde ele fica. A lição <Anchor href="#/aprender/medicoes-automaticas">O que a sua probe mede sozinha</Anchor> explica.</Text></li>
         <li><Text size="sm">Falta de resultados não é perda. Pode ser que a probe estava desligada naquele período.</Text></li>
       </ul>,
     },

@@ -168,7 +168,7 @@ export function nearestRootQuestion(roots: { name: string, avg: number }[]): Que
     id: 'nearest-root', fromData: true,
     prompt: 'Qual destes servidores raiz está mais perto da sua probe, pela rede?',
     options: options.map(root => root.name), answer: options.indexOf(nearest),
-    explanation: `No último ping automático da sua probe, o ${nearest.name} respondeu em ${ms(nearest.avg)}. Do mais perto ao mais longe: ${ranked.map(root => `${root.name} ${ms(root.avg)}`).join(', ')}. Cada servidor raiz tem cópias pelo mundo, e quem responde é a cópia que a rede alcança primeiro.`,
+    explanation: `No último ping automático da sua probe, o ${nearest.name} respondeu em ${ms(nearest.avg)}. Do mais perto ao mais longe: ${ranked.map(root => `${root.name} ${ms(root.avg)}`).join(', ')}.`,
   }
 }
 

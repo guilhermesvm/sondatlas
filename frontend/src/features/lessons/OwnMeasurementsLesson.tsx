@@ -177,7 +177,7 @@ export default function OwnMeasurementsLesson() {
           Para abrir um site, o seu computador precisa trocar o nome, como <code>ripe.net</code>, por um endereço IP. Quem faz isso é o DNS, em etapas. A primeira é perguntar a um servidor raiz: ele não sabe o endereço final, mas sabe quem cuida de <code>.br</code>, <code>.com</code> e dos outros finais de nome.
         </Text>
         <Text size="sm" mt="sm">
-          São 13 servidores raiz, com nomes de A a M, mantidos por 12 organizações. Cada um tem cópias espalhadas pelo mundo, mais de 2 mil no total, e todas as cópias de um servidor usam o mesmo endereço. Quem responde é a cópia mais próxima pela rede, como a <Anchor href="#/aprender/traceroute">lição de traceroute</Anchor> mostra.
+          São 13 servidores raiz, com nomes de A a M, mantidos por 12 organizações. Cada um tem cópias espalhadas pelo mundo, mais de 2 mil no total, e todas as cópias de um servidor usam o mesmo endereço. Isso se chama anycast. Quem responde é a cópia mais próxima pela rede, como a <Anchor href="#/aprender/traceroute">lição de traceroute</Anchor> pode mostrar na rota da sua probe.
         </Text>
         <ul className="root-list" aria-label="Os 13 servidores raiz e quem mantém cada um">
           {roots.map(root => <li key={root.name}><strong>{root.name}</strong><span>{root.operator}</span></li>)}

@@ -32,7 +32,7 @@ function ExercisesEntry({ lesson }: { lesson: Lesson }) {
   return <section className="lesson-exercises" aria-labelledby="lesson-exercises">
     <div>
       <Title order={2} size="h4" id="lesson-exercises">Exercícios</Title>
-      <Text size="sm" mt={4}>Perguntas sobre esta lição, e algumas com os dados da sua probe. Responda e veja na hora se acertou.</Text>
+      <Text size="sm" mt={4}>Perguntas sobre esta lição, e algumas com os dados da sua probe. Responda e veja se acertou.</Text>
       {last && <Text size="sm" mt={4}>Último resultado: <strong>{last.score} de {last.total}</strong>, em {new Date(last.at).toLocaleDateString('pt-BR')}.</Text>}
     </div>
     <Button component="a" href={`#/aprender/${lesson.id}/exercicios`} className="lesson-exercises-button">

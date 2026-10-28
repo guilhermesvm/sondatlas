@@ -196,7 +196,7 @@ function StageText({ stage, route, destination, jump, firstExchange, nearCopy }:
       const end = stage.hops.find(hop => hop.address === route.destination)
       return <>
         O {called(destination)}, <code>{route.destination}</code>, respondeu em cerca de {ms(median(end?.rtts ?? []) ?? 0)}.{rise}
-        {nearCopy ? <> Foi uma cópia perto de <strong>{nearCopy}</strong>: o último ponto de troca é a entrada da rede do próprio {destination.name}. O endereço é o mesmo no mundo todo, e quem responde é a cópia mais próxima pela rede.</> : ''}
+        {nearCopy ? <> Foi uma cópia perto de <strong>{nearCopy}</strong> (anycast): o último ponto de troca é a entrada da rede do próprio {destination.name}.</> : ''}
       </>
     }
     case 'lost': {

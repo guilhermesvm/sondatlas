@@ -61,7 +61,7 @@ function Address({ address, target, resolvedOnProbe }: { address: string, target
       {resolvedOnProbe
         ? `É o endereço de ${target} que a probe recebeu ao perguntar ao DNS da rede dela, antes de medir.`
         : `É o endereço de ${target} que o RIPE Atlas encontrou nos servidores dele e mandou para a probe.`}
-      {' '}Serviços grandes costumam ter servidores em vários lugares do mundo e responder com um perto de quem pergunta, para diminuir o tempo de resposta. Por isso o mesmo nome pode ter outro endereço em outro país.
+      {' '}Serviços grandes costumam ter servidores em vários lugares do mundo e usar o DNS para indicar um perto de quem pergunta, para diminuir o tempo de resposta. Por isso o mesmo nome pode ter outro endereço em outro país. Nos servidores raiz é diferente: o endereço é o mesmo em todo lugar, e a rede leva cada pacote à cópia mais próxima (anycast).
       {resolvedOnProbe ? '' : ' Como quem perguntou foi o RIPE Atlas, este endereço pode não ser o mais perto da sua probe. Os desafios novos deixam a própria probe perguntar.'}
     </dd>
   </div>
