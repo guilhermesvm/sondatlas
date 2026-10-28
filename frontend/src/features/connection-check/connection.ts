@@ -31,7 +31,8 @@ export async function checkConnection(signal: AbortSignal, known: Promise<number
   if (!asns.length) throw new Error('No ASN for this address')
   const asn = Number(asns[0])
   const family = ip.includes(':') ? 6 : 4
-  const connected = `https://atlas.ripe.net/api/v2/probes/?asn_v${family}=${asn}&status=1`
+  // Without is_public the list also counts non-public probes (about 1,100 in the world, checked on 2026-10-27).
+  const connected = `https://atlas.ripe.net/api/v2/probes/?asn_v${family}=${asn}&status=1&is_public=true`
   const [holder, probes, found] = await Promise.all([
     fetchHolder(asn, signal),
     readJson<{ count: number }>(`${connected}&page_size=1&fields=id`, signal),

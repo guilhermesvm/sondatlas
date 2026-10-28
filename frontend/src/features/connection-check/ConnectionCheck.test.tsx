@@ -31,7 +31,7 @@ it('shows the provider and its public probes without showing the IP', async () =
   expect(screen.queryByText(/203\.0\.113\.7/)).not.toBeInTheDocument()
   const urls = mock.mock.calls.map(([url]) => url)
   expect(urls.filter(url => url.startsWith('https://stat.ripe.net/')).every(url => url.includes('sourceapp=sondatlas'))).toBe(true)
-  expect(urls).toContain('https://atlas.ripe.net/api/v2/probes/?asn_v4=263077&status=1&page_size=1&fields=id')
+  expect(urls).toContain('https://atlas.ripe.net/api/v2/probes/?asn_v4=263077&status=1&is_public=true&page_size=1&fields=id')
   expect(urls.some(url => url.includes('id__in='))).toBe(false)
   expect(document.querySelector('.probe-dot.yours')).toBeInTheDocument()
 })
@@ -41,7 +41,7 @@ it('counts probes by the IPv6 network when the connection uses IPv6', async () =
   render(<ConnectionCheck />)
   await userEvent.click(screen.getByRole('button', { name: 'Verificar minha conexão' }))
   expect(await screen.findByText(/Já existem 3 probes públicas conectadas/)).toBeInTheDocument()
-  expect(mock.mock.calls.map(([url]) => url)).toContain('https://atlas.ripe.net/api/v2/probes/?asn_v6=263077&status=1&page_size=1&fields=id')
+  expect(mock.mock.calls.map(([url]) => url)).toContain('https://atlas.ripe.net/api/v2/probes/?asn_v6=263077&status=1&is_public=true&page_size=1&fields=id')
 })
 
 it('explains the failure instead of showing a count when a query fails', async () => {
@@ -58,7 +58,7 @@ it('calls yours only the probes of the linked account and names a followed probe
   const { unmount } = render(<ConnectionCheck />)
   await userEvent.click(screen.getByRole('button', { name: 'Verificar minha conexão' }))
   expect(await screen.findByText(/^A única probe pública conectada nessa rede é a sua\. Outra probe aqui mediria a partir da mesma rede/)).toBeInTheDocument()
-  expect(mock.mock.calls.map(([url]) => url)).toContain('https://atlas.ripe.net/api/v2/probes/?asn_v4=263077&status=1&id__in=1017210,1018246&page_size=100&fields=id')
+  expect(mock.mock.calls.map(([url]) => url)).toContain('https://atlas.ripe.net/api/v2/probes/?asn_v4=263077&status=1&is_public=true&id__in=1017210,1018246&page_size=100&fields=id')
   expect(document.querySelectorAll('.probe-dot.mine')).toHaveLength(1)
   expect(document.querySelector('.probe-dot.yours')).not.toBeInTheDocument()
   unmount()
