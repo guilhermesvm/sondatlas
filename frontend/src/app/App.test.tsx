@@ -35,6 +35,16 @@ it('keeps the journey in six phases, from Aprender to Explorar at the end, and s
   expect(await screen.findByRole('heading', { name: /Participe do RIPE Atlas/ })).toBeInTheDocument()
 })
 
+it('opens the next page at the top, even when the previous one was read to the end', async () => {
+  mockApi()
+  window.location.hash = '#/conhecer'
+  render(<App />)
+  vi.mocked(window.scrollTo).mockClear()
+  window.location.hash = '#/instalar'
+  expect(await screen.findByRole('heading', { name: 'Instalar a probe' })).toBeInTheDocument()
+  expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
+})
+
 it('switches between light and dark themes from the header', async () => {
   mockApi()
   render(<App />)

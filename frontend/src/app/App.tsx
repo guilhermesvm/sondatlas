@@ -41,7 +41,8 @@ function Layout() {
   const [hash, setHash] = useState(location.hash)
   const [menuOpen, menu] = useDisclosure()
   useEffect(() => {
-    const update = () => { setHash(location.hash); menu.close() }
+    // Pages change by the address hash without reloading, so the browser would keep the scroll of the previous page.
+    const update = () => { setHash(location.hash); menu.close(); window.scrollTo(0, 0) }
     window.addEventListener('hashchange', update)
     return () => window.removeEventListener('hashchange', update)
   }, [menu])
