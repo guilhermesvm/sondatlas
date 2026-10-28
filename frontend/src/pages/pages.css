@@ -99,9 +99,10 @@
 .explore-mark { margin-top: 3px; }
 .explore-mark[data-state='done'] { color: var(--status-connected); }
 .explore-mark[data-state='pending'] { color: var(--bar-axis); }
-.explore-badge { flex-shrink: 0; cursor: pointer; }
-.explore-badge:hover { text-decoration: underline; }
-.explore-badge:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.link-badge { flex-shrink: 0; cursor: pointer; }
+.link-badge:hover { text-decoration: underline; }
+.link-badge:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.tool-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
 .explore-tracks { margin-top: 16px; border-top: 1px solid var(--line); }
 .explore-track { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 8px 32px; padding: 20px 0; border-bottom: 1px solid var(--line); }
 .explore-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }

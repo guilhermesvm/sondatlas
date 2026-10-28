@@ -8,6 +8,7 @@ import { formatMetric } from '../features/ping-history/chart'
 import { HopTable, MissingSources, RouteStages, Terminal as RouteTerminal } from '../features/lessons/RouteReading'
 import type { Route } from '../features/lessons/useTraceroute'
 import '../features/lessons/lessons.css'
+import LinkBadge from '../lib/LinkBadge'
 import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
 import { formatLocal } from '../lib/time'
@@ -132,6 +133,20 @@ function TracerouteExplained({ route, measurement, onRetry }: { route: Route, me
   </>
 }
 
+// RIPE NCC tools that open the same measurement, by the routes of the RIPE Atlas site (/khipu/<id>/<ip|asn|country> and /latencymon/<id>).
+const tools = {
+  'khipu-asn': { label: 'Ver no Khipu', path: (id: number) => `khipu/${id}/asn` },
+  'khipu-country': { label: 'Ver no Khipu', path: (id: number) => `khipu/${id}/country` },
+  latencymon: { label: 'Ver no LatencyMON', path: (id: number) => `latencymon/${id}` },
+}
+
+function ToolLinks({ id, tools: chosen }: { id: number, tools: (keyof typeof tools)[] }) {
+  return <div className="tool-links">
+    <Text size="sm">Veja também nas ferramentas do RIPE NCC, em inglês:</Text>
+    {chosen.map(tool => <LinkBadge key={tool} href={`https://atlas.ripe.net/${tools[tool].path(id)}`}>{tools[tool].label}</LinkBadge>)}
+  </div>
+}
+
 // Asks RIPE Atlas for the result until it arrives, then stops. attempt asks again, for example when RIPEstat or PeeringDB failed.
 function useResult(id: number, kind: Kind | null, attempt: number) {
   const [ping, setPing] = useState<PingResult | null>(null)
@@ -246,6 +261,7 @@ function Result({ id }: { id: number }) {
     {(done || group) && <Text size="sm" mt="md">
       Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a {pageLink('página dela')} quando quiser.
     </Text>}
+    {(done || group) && <ToolLinks id={id} tools={group ? ['khipu-country', 'latencymon'] : kind === 'traceroute' ? ['khipu-asn'] : ['latencymon']} />}
     {again}
   </section>
 

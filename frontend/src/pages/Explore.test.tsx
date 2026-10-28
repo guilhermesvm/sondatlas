@@ -74,6 +74,6 @@ it('groups what comes next by intent, with the Path Analysis of the own probe, w
   expect(ahead.getByRole('link', { name: 'Ir para Desafios' })).toHaveAttribute('href', '#/desafios')
   expect(ahead.getByRole('link', { name: 'Abrir Anchors' })).toHaveAttribute('href', 'https://atlas.ripe.net/docs/howtos/anchors/')
   expect(await ahead.findByText(/Está na página da 1017210 no RIPE Atlas, na aba Results/)).toBeInTheDocument()
-  expect(ahead.getByRole('link', { name: 'Abrir Path Analysis' })).toHaveAttribute('href', 'https://atlas.ripe.net/probes/1017210/')
+  expect(ahead.getByRole('link', { name: 'Abrir Path Analysis' })).toHaveAttribute('href', 'https://atlas.ripe.net/probes/1017210/results')
   expect(document.body).not.toHaveTextContent(/medem a sua probe/)
 })

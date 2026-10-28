@@ -1,10 +1,11 @@
-import { Badge, Loader, Text, Title, VisuallyHidden } from '@mantine/core'
+import { Loader, Text, Title, VisuallyHidden } from '@mantine/core'
 import type { ReactNode } from 'react'
 import { checking } from '../features/achievements/achievements'
 import { useBadges } from '../features/achievements/useBadges'
 import { lastResult } from '../features/exercises/progress'
 import { exerciseLessons } from '../features/exercises/questions'
 import { useProbe } from '../features/probe-status/ProbeProvider'
+import LinkBadge from '../lib/LinkBadge'
 import './pages.css'
 
 type State = 'done' | 'pending' | 'loading'
@@ -48,7 +49,7 @@ function tracks(probeId: number | null): { title: string, text: string, items: I
         { title: 'LatencyMON', text: 'Gráficos de latência de ping, traceroute e DNS, para comparar probes lado a lado.', href: 'https://atlas.ripe.net/docs/tools-and-code/latencymon/' },
         { title: 'Khipu', text: 'O caminho dos traceroutes desenhado como uma árvore, por endereço, rede ou país.', href: 'https://atlas.ripe.net/docs/tools-and-code/khipu/' },
         probeId
-          ? { title: 'Path Analysis', text: `Compara os traceroutes ao longo do tempo e marca as mudanças de rota. Está na página da ${probeId} no RIPE Atlas, na aba Results.`, href: `https://atlas.ripe.net/probes/${probeId}/` }
+          ? { title: 'Path Analysis', text: `Compara os traceroutes ao longo do tempo e marca as mudanças de rota. Está na página da ${probeId} no RIPE Atlas, na aba Results.`, href: `https://atlas.ripe.net/probes/${probeId}/results` }
           : { title: 'Path Analysis', text: 'Compara os traceroutes ao longo do tempo e marca as mudanças de rota.', href: 'https://atlas.ripe.net/pathanalysis' },
       ],
     },
@@ -70,17 +71,6 @@ function tracks(probeId: number | null): { title: string, text: string, items: I
       ],
     },
   ]
-}
-
-const externalIcon = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-</svg>
-
-// The same link badge as "Ler lição" in Aprender, in the light blue of the theme.
-function LinkBadge({ href, children, label }: { href: string, children: string, label?: string }) {
-  const external = !href.startsWith('#')
-  return <Badge component="a" href={href} size="lg" variant="light" tt="none" className="explore-badge" aria-label={label}
-    rightSection={external ? externalIcon : undefined} {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}>{children}</Badge>
 }
 
 function Mark({ state }: { state: State }) {

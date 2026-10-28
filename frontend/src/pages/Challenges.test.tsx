@@ -81,6 +81,8 @@ it('creates a ping from a connected probe after showing the cost, and explains t
   expect(screen.queryByText(/pode não ser o mais perto da sua probe/)).not.toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'página dela' })).toHaveAttribute('href', 'https://atlas.ripe.net/measurements/123456789/')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
+  expect(screen.getByRole('link', { name: 'Ver no LatencyMON' })).toHaveAttribute('href', 'https://atlas.ripe.net/latencymon/123456789')
+  expect(screen.queryByRole('link', { name: 'Ver no Khipu' })).not.toBeInTheDocument()
 })
 
 it('checks the destination before showing the cost', async () => {
@@ -217,6 +219,7 @@ it('creates a traceroute with the cost of the packets per hop and reads the rout
   expect(screen.getByText(/É o endereço de google.com que a probe recebeu ao perguntar ao DNS da rede dela/)).toBeInTheDocument()
   expect(screen.queryByText(/cópia perto/)).not.toBeInTheDocument()
   expect(mock.mock.calls.some(([url]) => String(url).includes('/measurements/1001/'))).toBe(false)
+  expect(screen.getByRole('link', { name: 'Ver no Khipu' })).toHaveAttribute('href', 'https://atlas.ripe.net/khipu/123456789/asn')
 })
 
 it('explains a traceroute that did not reach the destination or could not resolve the name', async () => {
@@ -331,6 +334,8 @@ it('compares the probes of a group ping as they arrive, marks your probe and nev
   expect(screen.getByText(/A 6002 \(Alemanha\) foi a mais rápida, com 12,2 ms. A 6001 \(Japão\) foi a mais lenta, com 180,5 ms./)).toBeInTheDocument()
   expect(screen.getByText(/As probes receberam 4 endereços diferentes para google.com/)).toBeInTheDocument()
   expect(screen.getByText(/A sua probe ficou em 2º lugar entre as que responderam/)).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ver no Khipu' })).toHaveAttribute('href', 'https://atlas.ripe.net/khipu/123456789/country')
+  expect(screen.getByRole('link', { name: 'Ver no LatencyMON' })).toHaveAttribute('href', 'https://atlas.ripe.net/latencymon/123456789')
   expect(document.body).not.toHaveTextContent('198.51.100')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
 })
