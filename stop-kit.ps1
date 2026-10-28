@@ -1,7 +1,5 @@
-﻿# Desliga a aplicação e a probe (VM do kit). Os dados ficam guardados.
-# Uso: powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1 [-NoVM]
-# -NoVM: desliga só a aplicação.
-param([switch]$NoVM)
+﻿# Desliga a aplicação e, se existir, a VM da probe do kit. Os dados ficam guardados.
+# Uso: powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1
 
 $arquivoCompose = Join-Path $PSScriptRoot 'compose.yaml'
 $pastaLab = Join-Path $PSScriptRoot 'lab'
@@ -22,24 +20,25 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     }
 }
 
-if (-not $NoVM) {
-    if (-not (Get-Command vagrant -ErrorAction SilentlyContinue)) {
-        Erro 'Vagrant não encontrado. Se a sua probe não usa a VM do kit, rode de novo com -NoVM no fim.'
-    }
+if (-not (Get-Command vagrant -ErrorAction SilentlyContinue)) {
+    Passo 'Vagrant não encontrado, então não há VM do kit para desligar'
+} else {
     Push-Location $pastaLab
     $linha = vagrant status --machine-readable | Select-String ',state,' | Select-Object -First 1
     $estado = if ($linha) { $linha.ToString().Split(',')[3] }
-    if ($estado -eq 'running') {
+    $codigo = 0
+    if ($estado -eq 'not_created') {
+        Passo 'Não há VM do kit para desligar'
+    } elseif ($estado -eq 'running') {
         Passo 'Desligando a VM da probe'
         vagrant halt
         $codigo = $LASTEXITCODE
+        if ($codigo -eq 0) { Write-Host 'Com a VM desligada, a probe aparece como Disconnected no RIPE Atlas e não ganha créditos até você ligar de novo.' }
     } else {
         Passo 'A VM da probe já estava desligada'
-        $codigo = 0
     }
     Pop-Location
     if ($codigo -ne 0) { Erro 'A VM da probe não desligou. Veja a mensagem acima.' }
-    Write-Host 'Com a VM desligada, a probe aparece como Disconnected no RIPE Atlas e não ganha créditos até você ligar de novo.'
 }
 
 Passo 'Pronto. Para ligar de novo: powershell -ExecutionPolicy Bypass -File .\start-kit.ps1'

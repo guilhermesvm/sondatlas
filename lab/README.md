@@ -46,9 +46,11 @@ Escolheu a placa errada? Rode `vagrant halt`. No VirtualBox, abra
 
 No fim, aparecem a **chave pública** e o link de cadastro.
 
-Para ligar a VM e a aplicação (dashboard) juntas, use o `start-kit` da pasta
-principal do projeto; para desligar as duas, o `stop-kit`. Os comandos estão no
-`README.md` principal, em *Quick start*.
+Em vez de `vagrant up`, você pode usar o `start-kit` da pasta principal com
+`--probe` (`-Probe` no PowerShell). Ele confere a virtualização, o VirtualBox e o
+Vagrant antes, cria a VM e mostra a chave no fim. No dia a dia, o `start-kit`
+sem opção liga a VM e a aplicação (dashboard) juntas, e o `stop-kit` desliga as
+duas. Os comandos estão no `README.md` principal, em *Quick start*.
 
 ## Ativar a probe
 

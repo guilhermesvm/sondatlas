@@ -31,16 +31,21 @@ Requirements: Docker Desktop, or Docker Engine with the Compose plugin
 the optional `.env`). No Python and no `.env` are needed. Your probe runs
 separately (see `lab/README.md`).
 
-To start the probe VM and the application with one command, checking the
-requirements first and opening the dashboard at the end:
+To start the application, and the kit probe VM when it exists, with one
+command, checking the requirements first and opening the dashboard at the end:
 
 | Terminal | Start | Stop |
 |---|---|---|
 | PowerShell (Windows) | `powershell -ExecutionPolicy Bypass -File .\start-kit.ps1` | `powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1` |
 | Git Bash (Windows) or Linux | `bash start-kit.sh` | `bash stop-kit.sh` |
 
-Add `-NoVM` (PowerShell) or `--no-vm` (bash) at the end when your probe does
-not use the kit VM. `-ExecutionPolicy Bypass` applies only to that run:
+On the first run there is no VM yet, so only the application starts and the
+dashboard's Install phase explains how to install the probe. To create the kit
+VM, or to start only the probe, add `-Probe` (PowerShell) or `--probe` (bash):
+it checks virtualization, VirtualBox and Vagrant, runs `vagrant up` and shows
+the probe's public key, without touching the application. Without Vagrant or
+without the kit VM (probe installed directly on Debian or Raspberry Pi OS), both
+scripts handle only the application. `-ExecutionPolicy Bypass` applies only to that run:
 Windows client computers block scripts by default (**Restricted**). Running
 either script again is safe; `stop-kit` keeps all data. The commands below still
 work on their own, to start only the application (or only the probe, with
@@ -174,7 +179,8 @@ src/ripe_atlas_tcc/
 
 The pipeline runs with `python -m ripe_atlas_tcc` (the package's
 `__main__.py`). The root `start-kit` and `stop-kit` scripts (`.ps1` and
-`.sh`) start and stop the probe VM and the application together.
+`.sh`) start and stop the application and, when it exists, the kit probe VM;
+`start-kit --probe` creates or starts only the VM.
 
 ## Prerequisites
 
