@@ -151,7 +151,6 @@ function ToolLinks({ id, tools: chosen }: { id: number, tools: (keyof typeof too
 function useResult(id: number, kind: Kind | null, attempt: number) {
   const [ping, setPing] = useState<PingResult | null>(null)
   const [route, setRoute] = useState<Route | null>(null)
-  const [polled, setPolled] = useState(false)
   const [gaveUp, setGaveUp] = useState(false)
 
   useEffect(() => {
@@ -168,17 +167,16 @@ function useResult(id: number, kind: Kind | null, attempt: number) {
       ? fetchPingResult(id, controller.signal).then(result => { if (result) setPing(result); return Boolean(result) })
       : fetchTracerouteRoute(id, controller.signal).then(result => { if (result) setRoute(result); return Boolean(result) })
     const poll = () => read()
-      .then(found => { setPolled(true); if (!found) again() })
+      .then(found => { if (!found) again() })
       .catch(() => {
         if (controller.signal.aborted) return
-        setPolled(true)
         again()
       })
     poll()
     return () => { controller.abort(); clearTimeout(timer) }
   }, [id, kind, attempt])
 
-  return { ping, route, polled, gaveUp }
+  return { ping, route, gaveUp }
 }
 
 function Result({ id }: { id: number }) {
@@ -190,7 +188,10 @@ function Result({ id }: { id: number }) {
   const group = measurement?.group === true && measurement.type === 'ping'
   const kind = !measurement?.group && (measurement?.type === 'ping' || measurement?.type === 'traceroute') ? measurement.type : null
   const probeId = measurement?.probeId
-  const { ping, route, polled, gaveUp } = useResult(id, kind, attempt)
+  const { ping, route, gaveUp } = useResult(id, kind, attempt)
+
+  // The button clicked to get here is gone, and the browser may keep a caret on the text that took its place.
+  useEffect(() => { getSelection()?.removeAllRanges() }, [])
 
   // Nothing is shown about the measurement until RIPE Atlas has its full details: a new one is still being prepared for a few seconds.
   useEffect(() => {
@@ -217,7 +218,7 @@ function Result({ id }: { id: number }) {
   const page = `https://atlas.ripe.net/measurements/${id}/`
   const pageLink = (text: string) => <Anchor href={page} target="_blank" rel="noreferrer">{text}</Anchor>
   const done = kind === 'ping' ? ping : route
-  const measuring = Boolean(kind) && polled && !done && !gaveUp
+  const measuring = Boolean(kind) && !done && !gaveUp
   const leave = () => measuring ? setLeaving(true) : backToForm()
   const again = <Button variant="default" mt="md" onClick={leave}>Fazer outro desafio</Button>
 
@@ -230,9 +231,11 @@ function Result({ id }: { id: number }) {
     <SystemError title="A medição ainda não está pronta">O RIPE Atlas ainda está preparando a medição {id}. Recarregue a página em instantes.</SystemError>
     {again}
   </>
-  else if (measurement === undefined || (kind && !polled)) body = <Loading mt="lg">
-    {lookup === 'preparing' ? `O RIPE Atlas está preparando a medição ${id}…` : `Consultando a medição ${id}…`}
-  </Loading>
+  // The card stays in place from the start, and only the line under the title changes while the measurement is read.
+  else if (measurement === undefined) body = <section className="follow-box" aria-labelledby="challenge-result">
+    <Text fw={600} id="challenge-result">Medição {id}</Text>
+    <Loading mt="sm">{lookup === 'preparing' ? `O RIPE Atlas está preparando a medição ${id}…` : `Consultando a medição ${id}…`}</Loading>
+  </section>
   else if (measurement === null) body = <Alert color="yellow" mt="lg" maw={720} title={`A medição ${id} não existe no RIPE Atlas`}>
     Confira o número no endereço da página.
     <div>{again}</div>

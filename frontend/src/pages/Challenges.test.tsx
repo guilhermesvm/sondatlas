@@ -130,6 +130,22 @@ it('opens a result from its own address and confirms before leaving while the pr
   expect(await screen.findByText('Vincule a sua conta do RIPE Atlas')).toBeInTheDocument()
 })
 
+it('keeps the result card in place and says the probe is measuring before the first result is read, without a leftover caret', async () => {
+  const leftover = document.body.appendChild(document.createElement('p'))
+  leftover.textContent = 'Criar o ping'
+  getSelection()!.collapse(leftover.firstChild, 0)
+  window.location.hash = '#/desafios/123456789'
+  const backend = stubBackend({ connected: false }, [])
+  vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => url.includes('/results/') ? new Promise(() => {}) : backend(url, init)))
+  renderChallenges()
+  expect(screen.getByText('Medição 123456789')).toBeInTheDocument()
+  expect(getSelection()!.rangeCount).toBe(0)
+  expect(await screen.findByText(/A probe está medindo/)).toBeInTheDocument()
+  expect(screen.getByText('Ping da probe 1017210 até google.com')).toBeInTheDocument()
+  expect(screen.queryByText(/Consultando a medição/)).not.toBeInTheDocument()
+  leftover.remove()
+})
+
 it('lists the challenges of the account, each opening its result, or says what the key lacks', async () => {
   stubBackend(linked, [round], [{ count: 61, challenges: [
     { id: 228260804, type: 'ping', target: 'github.com', created: 1793110783, probe_id: 1017210 },
