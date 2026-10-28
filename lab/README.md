@@ -142,15 +142,19 @@ o mesmo erro acima. A aplicação da segunda cópia também precisa de outras po
 
 **Desinstalar tudo**, nesta ordem:
 
-1. Na pasta principal: `docker compose down -v`. Apaga a aplicação e **todo o
-   histórico de medições**.
+1. Na pasta principal: `docker compose down -v --rmi all`. Apaga a aplicação,
+   as imagens baixadas e construídas por ela e **todo o histórico de medições**.
 2. Na pasta `lab/`: `vagrant destroy -f`. Apaga a VM e a chave da probe.
 3. Opcional: `vagrant box remove bento/debian-13`, que apaga a imagem do Debian
    baixada pelo Vagrant.
 4. Apague a pasta do projeto.
 5. Se não usar para mais nada, desinstale o VirtualBox, o Vagrant e o Docker.
 
-A probe continua na sua conta do RIPE, aparecendo como *Disconnected*.
+A probe continua na sua conta do RIPE, aparecendo como *Disconnected* e, depois
+de alguns meses, *Abandoned*. Para tirá-la da conta, use **Write off your probe**
+na página da probe em atlas.ripe.net. O RIPE não apaga a probe de vez, porque o
+histórico dela é usado pelas medições antigas. Fazer nada também não causa
+problema.
 
 ## Observações
 
