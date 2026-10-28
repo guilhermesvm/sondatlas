@@ -1,7 +1,7 @@
 ﻿# Liga a aplicação e, se existir, a VM da probe do kit, e abre o dashboard.
 # Uso: powershell -ExecutionPolicy Bypass -File .\start-kit.ps1 [-Probe | -App]
 # -Probe: só a probe. Confere os requisitos, cria a VM na primeira vez (ou a
-# liga) e mostra a chave pública. Não mexe na aplicação.
+# liga). Na criação, a instalação mostra a chave pública. Não mexe na aplicação.
 # -App: só a aplicação, sem mexer na VM.
 # Pode ser rodado de novo a qualquer momento: o que já está ligado continua igual.
 param([switch]$Probe, [switch]$App)
@@ -10,7 +10,6 @@ if ($Probe -and $App) { Write-Host 'Use -Probe ou -App, não os dois.' -Foregrou
 
 $arquivoCompose = Join-Path $PSScriptRoot 'compose.yaml'
 $pastaLab = Join-Path $PSScriptRoot 'lab'
-$chave = '/etc/ripe-atlas/probe_key.pub'
 
 function Passo($texto) { Write-Host "==> $texto" }
 function Erro($texto) { Write-Host "ERRO: $texto" -ForegroundColor Red; exit 1 }
@@ -83,13 +82,7 @@ if ($Probe) {
         Erro 'A virtualização está desligada na BIOS ou o processador não tem suporte. Ative a opção Intel VT-x ou AMD-V (às vezes chamada SVM) na configuração da BIOS e rode este comando de novo.'
     }
     LigarVM (EstadoDaVM)
-    Passo 'Chave pública da probe'
-    Push-Location $pastaLab
-    vagrant ssh -c "sudo cat $chave"
-    $codigo = $LASTEXITCODE
-    Pop-Location
-    if ($codigo -ne 0) { Erro 'Não foi possível ler a chave. Veja a mensagem acima.' }
-    Write-Host 'Cadastre esta chave em https://atlas.ripe.net/register/swprobe e siga a fase Ativar do dashboard.'
+    Passo 'Pronto. A VM da probe está ligada'
     exit 0
 }
 
@@ -141,4 +134,12 @@ if (-not $webPronto) { Erro 'O dashboard não respondeu em 2 minutos. Veja o mot
 $endereco = "http://$web/"
 Passo "Pronto. Abrindo o dashboard em $endereco"
 Start-Process $endereco
-Write-Host 'Para desligar tudo: powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1. Só a aplicação, deixando a probe ganhar créditos: acrescente -App no fim.'
+$parar = 'powershell -ExecutionPolicy Bypass -File .\stop-kit.ps1'
+if ($App) {
+    Write-Host "Para desligar a aplicação: $parar -App"
+} else {
+    Write-Host "Para desligar: $parar"
+    if ($estado -and $estado -ne 'not_created') {
+        Write-Host "Se quiser deixar a probe ligada ganhando créditos, desligue só a aplicação: $parar -App"
+    }
+}

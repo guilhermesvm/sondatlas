@@ -48,7 +48,7 @@ No fim, aparecem a **chave pública** e o link de cadastro.
 
 Em vez de `vagrant up`, você pode usar o `start-kit` da pasta principal com
 `--probe` (`-Probe` no PowerShell). Ele confere a virtualização, o VirtualBox e o
-Vagrant antes, cria a VM e mostra a chave no fim. No dia a dia, o `start-kit`
+Vagrant antes e cria a VM, com a chave no fim, como o `vagrant up`. No dia a dia, o `start-kit`
 sem opção liga a VM e a aplicação (dashboard) juntas, e o `stop-kit` desliga as
 duas. Com `--probe` ou `--app`, cada um cuida só de uma parte: por exemplo,
 `stop-kit --app` desliga só a aplicação e deixa a probe ganhando créditos. Os

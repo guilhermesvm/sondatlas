@@ -2,14 +2,13 @@
 # Liga a aplicação e, se existir, a VM da probe do kit, e abre o dashboard.
 # Uso: bash start-kit.sh [--probe | --app]
 # --probe: só a probe. Confere os requisitos, cria a VM na primeira vez (ou a
-# liga) e mostra a chave pública. Não mexe na aplicação.
+# liga). Na criação, a instalação mostra a chave pública. Não mexe na aplicação.
 # --app: só a aplicação, sem mexer na VM.
 # Pode ser rodado de novo a qualquer momento: o que já está ligado continua igual.
 set -uo pipefail
 
 RAIZ=$(cd "$(dirname "$0")" && pwd)
 COMPOSE=(docker compose -f "$RAIZ/compose.yaml")
-KEY=/etc/ripe-atlas/probe_key.pub
 [ $# -le 1 ] || { echo "Uso: bash start-kit.sh [--probe | --app]" >&2; exit 2; }
 case "${1:-}" in
   "") MODO=tudo ;;
@@ -85,9 +84,7 @@ if [ "$MODO" = probe ]; then
   fi
   estado=$(estado_da_vm)
   ligar_vm
-  passo "Chave pública da probe"
-  (cd "$RAIZ/lab" && vagrant ssh -c "sudo cat $KEY") || erro "Não foi possível ler a chave. Veja a mensagem acima."
-  echo "Cadastre esta chave em https://atlas.ripe.net/register/swprobe e siga a fase Ativar do dashboard."
+  passo "Pronto. A VM da probe está ligada"
   exit 0
 fi
 
@@ -146,4 +143,12 @@ elif command -v xdg-open >/dev/null && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]
 else
   passo "Pronto. Abra o dashboard no navegador: $endereco"
 fi
-echo "Para desligar tudo: bash stop-kit.sh. Só a aplicação, deixando a probe ganhar créditos: bash stop-kit.sh --app"
+if [ "$MODO" = app ]; then
+  echo "Para desligar a aplicação: bash stop-kit.sh --app"
+else
+  echo "Para desligar: bash stop-kit.sh"
+  case "${estado:-}" in
+    ""|not_created) ;;
+    *) echo "Se quiser deixar a probe ligada ganhando créditos, desligue só a aplicação: bash stop-kit.sh --app" ;;
+  esac
+fi

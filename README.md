@@ -46,7 +46,7 @@ bash):
 
 | Option | `start-kit` | `stop-kit` |
 |---|---|---|
-| `--probe` | Checks virtualization, VirtualBox and Vagrant, creates or starts the VM and shows the probe's public key | Stops only the VM |
+| `--probe` | Checks virtualization, VirtualBox and Vagrant, creates or starts the VM (on creation, the installation shows the probe's public key) | Stops only the VM |
 | `--app` | Starts only the application | Stops only the application; the probe keeps measuring and earning credits |
 
 Without an option and without Vagrant or the kit VM (probe installed directly on
