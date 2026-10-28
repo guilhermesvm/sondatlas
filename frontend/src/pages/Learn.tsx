@@ -1,5 +1,7 @@
 import { Anchor, Badge, Breadcrumbs, Button, Text, Title } from '@mantine/core'
 import type { ComponentType } from 'react'
+import Exercises from '../features/exercises/Exercises'
+import { exerciseLessons } from '../features/exercises/questions'
 import { lessons, type Lesson } from '../features/lessons/lessons'
 import CreditsLesson from '../features/lessons/CreditsLesson'
 import IpLesson from '../features/lessons/IpLesson'
@@ -27,11 +29,17 @@ function LessonPage({ lesson }: { lesson: Lesson }) {
     <Title order={1} size="h2">{lesson.title}</Title>
     <Text size="lg" mt="sm" maw={680}>{lesson.text}</Text>
     <Content />
+    {exerciseLessons.includes(lesson.id) && <section className="lesson-exercises" aria-labelledby="lesson-exercises">
+      <Title order={2} size="h4" id="lesson-exercises">Exercícios</Title>
+      <Text size="sm" mt={4}>Perguntas sobre esta lição, e algumas com os dados da sua probe. Responda e veja na hora se acertou.</Text>
+      <Button component="a" href={`#/aprender/${lesson.id}/exercicios`} mt="sm">Fazer os exercícios</Button>
+    </section>}
     <Button component="a" href="#/aprender" variant="default" mt="xl">Voltar ao índice</Button>
   </div>
 }
 
-export default function Learn({ lesson }: { lesson?: Lesson | null }) {
+export default function Learn({ lesson, exercises = false }: { lesson?: Lesson | null, exercises?: boolean }) {
+  if (lesson && exercises && exerciseLessons.includes(lesson.id)) return <Exercises key={lesson.id} lesson={lesson} />
   if (lesson) return <LessonPage lesson={lesson} />
   return <div className="install">
     <Title order={1} size="h2">Aprender</Title>
@@ -44,7 +52,10 @@ export default function Learn({ lesson }: { lesson?: Lesson | null }) {
           <div className="lesson-row">
             <div><Text fw={600}>{item.title}</Text><Text size="sm">{item.text}</Text></div>
             {item.ready
-              ? <Badge component="a" href={`#/aprender/${item.id}`} size="lg" tt="none" className="lesson-badge lesson-ready" aria-label={`Ler a lição ${item.title}`}>Ler lição</Badge>
+              ? <div className="lesson-actions">
+                <Badge component="a" href={`#/aprender/${item.id}`} size="lg" tt="none" className="lesson-badge lesson-ready" aria-label={`Ler a lição ${item.title}`}>Ler lição</Badge>
+                {exerciseLessons.includes(item.id) && <Badge component="a" href={`#/aprender/${item.id}/exercicios`} size="lg" variant="light" tt="none" className="lesson-badge" aria-label={`Fazer os exercícios de ${item.title}`}>Exercícios</Badge>}
+              </div>
               : <Badge size="lg" variant="light" color="gray" tt="none" className="lesson-badge">Em breve</Badge>}
           </div>
         </li>)}

@@ -15,6 +15,11 @@ export const lessons: Lesson[] = [
   { id: 'creditos', title: 'Créditos e medições próprias', text: 'Como a probe ligada gera créditos e como usar esses créditos nas suas próprias medições.', group: 'atlas', ready: true },
 ]
 
+// #/aprender/ping/exercicios opens the exercises of a lesson that has them.
+export function exercisesFromHash(hash: string) {
+  return hash.replace(/^#\/?/, '').split('/')[2] === 'exercicios'
+}
+
 export function lessonFromHash(hash: string) {
   const id = hash.replace(/^#\/?/, '').split('/')[1]
   return lessons.find(lesson => lesson.id === id && lesson.ready) ?? null

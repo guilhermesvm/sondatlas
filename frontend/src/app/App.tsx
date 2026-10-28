@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
 import PingExplorer from '../features/ping-history/PingExplorer'
 import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
-import { lessonFromHash } from '../features/lessons/lessons'
+import { exercisesFromHash, lessonFromHash } from '../features/lessons/lessons'
 import { ProbeProvider, useProbe } from '../features/probe-status/ProbeProvider'
 import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
 import Achievements from '../pages/Achievements'
@@ -81,7 +81,7 @@ function Layout() {
       <AppShell.Main className="main">
         <div className="page">
           {route.id === 'inicio' && <Home />}
-          {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} />}
+          {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} exercises={exercisesFromHash(hash)} />}
           {route.id === 'desafios' && <Challenges />}
           {route.id === 'conquistas' && <Achievements />}
           {route.id === 'minha-probe' && <MyProbe />}
