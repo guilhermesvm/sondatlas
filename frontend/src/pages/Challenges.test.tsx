@@ -81,8 +81,8 @@ it('creates a ping from a connected probe after showing the cost, and explains t
   expect(screen.queryByText(/pode não ser o mais perto da sua probe/)).not.toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'página dela' })).toHaveAttribute('href', 'https://atlas.ripe.net/measurements/123456789/')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
-  expect(screen.getByRole('link', { name: 'Ver no LatencyMON' })).toHaveAttribute('href', 'https://atlas.ripe.net/latencymon/123456789')
-  expect(screen.queryByRole('link', { name: 'Ver no Khipu' })).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ver no Khipu' })).toHaveAttribute('href', 'https://atlas.ripe.net/khipu/123456789')
+  expect(screen.queryByRole('link', { name: 'Ver no LatencyMON' })).not.toBeInTheDocument()
 })
 
 it('checks the destination before showing the cost', async () => {
@@ -151,12 +151,14 @@ it('lists the challenges of the account, each opening its result, or says what t
   stubBackend(linked, [round], [{ count: 61, challenges: [
     { id: 228260804, type: 'ping', target: 'github.com', created: 1793110783, probe_id: 1017210 },
     { id: 228255791, type: 'ping', target: '1.1.1.1', created: 1793107000, probe_id: 1017210 },
+    { id: 228739189, type: 'ping', target: 'google.com', created: 1793200375, probe_id: null, status: { id: 7, name: 'Failed' } },
   ] }])
   const { unmount } = renderChallenges()
   const list = await screen.findByRole('region', { name: 'Seus desafios' })
-  expect(await within(list).findByText(/Você criou 61 desafios pela Sondatlas. Aqui estão os 2 mais recentes./)).toBeInTheDocument()
+  expect(await within(list).findByText(/Você criou 61 desafios pela Sondatlas. Aqui estão os 3 mais recentes./)).toBeInTheDocument()
   expect(within(list).getByRole('link', { name: 'Ping até github.com' })).toHaveAttribute('href', '#/desafios/228260804')
   expect(within(list).getAllByText('Da probe 1017210')).toHaveLength(2)
+  expect(within(list).getByText('Não foi feita: o RIPE Atlas marcou como Failed')).toHaveClass('challenge-failed')
   unmount()
 
   stubBackend(linked)
@@ -352,7 +354,7 @@ it('compares the probes of a group ping as they arrive, marks your probe and nev
   expect(screen.getByText(/As probes receberam 4 endereços diferentes para google.com/)).toBeInTheDocument()
   expect(screen.getByText(/A sua probe ficou em 2º lugar entre as que responderam/)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Ver no Khipu' })).toHaveAttribute('href', 'https://atlas.ripe.net/khipu/123456789/country')
-  expect(screen.getByRole('link', { name: 'Ver no LatencyMON' })).toHaveAttribute('href', 'https://atlas.ripe.net/latencymon/123456789')
+  expect(screen.queryByRole('link', { name: 'Ver no LatencyMON' })).not.toBeInTheDocument()
   expect(document.body).not.toHaveTextContent('198.51.100')
   expect(document.body).not.toHaveTextContent('203.0.113.77')
 })

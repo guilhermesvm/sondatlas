@@ -573,6 +573,10 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
             return {"count": 61, "results": [{
                 "id": 228260804, "type": "ping", "target": "github.com", "creation_time": 1793110783,
                 "probes": [{"id": 1017210, "url": "https://atlas.ripe.net/api/v2/probes/1017210/"}], "tags": ["sondatlas"], "participant_count": 1,
+                "status": {"id": 4, "name": "Stopped", "when": 1793110800},
+            }, {
+                "id": 228739189, "type": "ping", "target": "google.com", "creation_time": 1793200375,
+                "probes": [], "tags": ["sondatlas"], "participant_count": 0, "status": {"id": 7, "name": "Failed", "when": 1793200680},
             }]}
 
         def raise_for_status(self):
@@ -586,11 +590,14 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
     response = client.get("/challenges")
     assert response.status_code == 200
     assert response.json() == {"count": 61, "challenges": [
-        {"id": 228260804, "type": "ping", "target": "github.com", "created": 1793110783, "probe_id": 1017210, "group": False, "probes": 1},
+        {"id": 228260804, "type": "ping", "target": "github.com", "created": 1793110783, "probe_id": 1017210, "group": False, "probes": 1,
+         "status": {"id": 4, "name": "Stopped"}},
+        {"id": 228739189, "type": "ping", "target": "google.com", "created": 1793200375, "probe_id": None, "group": False, "probes": 0,
+         "status": {"id": 7, "name": "Failed"}},
     ]}
     assert "good-key" not in response.text
     assert asked == [("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=-id&page_size=50"
-                      "&fields=id,type,target,creation_time,probes,tags,participant_count&optional_fields=probes", "Key good-key")]
+                      "&fields=id,type,target,creation_time,probes,tags,participant_count,status&optional_fields=probes", "Key good-key")]
     assert created == []
     client.get("/challenges", params={"oldest": True})
     assert asked[1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&fields=")

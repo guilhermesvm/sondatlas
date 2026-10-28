@@ -137,10 +137,11 @@ def can_list(key):
 def fetch_challenges(key, oldest=False, kind=None, group=False):
     """The 50 newest (or oldest) measurements the key owner created through Sondatlas (tag sondatlas), with the total.
     kind keeps only one type, such as traceroute; group keeps only the pings from several probes (tag sondatlas-grupo).
-    probes_requested comes as 0 for one-off measurements, so the group is told by its tag and its size by participant_count."""
+    probes_requested comes as 0 for one-off measurements, so the group is told by its tag and its size by participant_count.
+    status tells the ones RIPE Atlas ended without measuring, such as Failed, whose probes come empty."""
     response = requests.get(
         f"{MY_MEASUREMENTS_URL}?tags={GROUP_TAG if group else 'sondatlas'}&sort={'id' if oldest else '-id'}&page_size=50{f'&type={kind}' if kind else ''}"
-        "&fields=id,type,target,creation_time,probes,tags,participant_count&optional_fields=probes",
+        "&fields=id,type,target,creation_time,probes,tags,participant_count,status&optional_fields=probes",
         headers={"Authorization": f"Key {key}"},
         timeout=30,
     )
@@ -159,6 +160,7 @@ def fetch_challenges(key, oldest=False, kind=None, group=False):
                 "probe_id": (measurement.get("probes") or [{}])[0].get("id"),
                 "group": GROUP_TAG in (measurement.get("tags") or []),
                 "probes": measurement.get("participant_count"),
+                "status": {"id": (measurement.get("status") or {}).get("id"), "name": (measurement.get("status") or {}).get("name")},
             }
             for measurement in page["results"]
         ],

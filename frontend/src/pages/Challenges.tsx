@@ -148,11 +148,12 @@ function TracerouteExplained({ route, measurement, onRetry }: { route: Route, me
   </>
 }
 
-// RIPE NCC tools that open the same measurement, by the routes of the RIPE Atlas site (/khipu/<id>/<ip|asn|country> and /latencymon/<id>).
+// RIPE NCC tools that open the same measurement, by the routes of the RIPE Atlas site (/khipu/<id>/<ip|asn|country>).
+// LatencyMON is left out: it draws trends over time and shows no data for a one-off measurement (checked on 2026-10-28).
 const tools = {
+  khipu: { label: 'Ver no Khipu', path: (id: number) => `khipu/${id}` },
   'khipu-asn': { label: 'Ver no Khipu', path: (id: number) => `khipu/${id}/asn` },
   'khipu-country': { label: 'Ver no Khipu', path: (id: number) => `khipu/${id}/country` },
-  latencymon: { label: 'Ver no LatencyMON', path: (id: number) => `latencymon/${id}` },
 }
 
 function ToolLinks({ id, tools: chosen }: { id: number, tools: (keyof typeof tools)[] }) {
@@ -308,7 +309,7 @@ function Result({ id }: { id: number }) {
     {(done || group) && <Text size="sm" mt="md">
       Esta medição é pública e fica guardada no RIPE Atlas. Você pode abrir a {pageLink('página dela')} quando quiser.
     </Text>}
-    {(done || group) && <ToolLinks id={id} tools={group ? ['khipu-country', 'latencymon'] : kind === 'traceroute' ? ['khipu-asn'] : ['latencymon']} />}
+    {(done || group) && <ToolLinks id={id} tools={group ? ['khipu-country'] : kind === 'traceroute' ? ['khipu-asn'] : ['khipu']} />}
     {again}
   </section>
 
@@ -586,7 +587,9 @@ function ChallengeList({ account }: { account: Account }) {
         {list.challenges.map(challenge => <li key={challenge.id}>
           <div>
             <Anchor href={`#/desafios/${challenge.id}`} fw={600}>{challenge.group ? 'Ping de várias probes' : titles[challenge.type as Kind] ?? challenge.type} até {challenge.target}</Anchor>
-            {challenge.group
+            {challenge.status?.id != null && gaveUpStatuses.includes(challenge.status.id)
+              ? <Text size="xs" className="challenge-failed">Não foi feita. O RIPE Atlas marcou como {challenge.status.name}</Text>
+              : challenge.group
               ? <Text size="xs" c="dimmed">{challenge.probes ? `De ${challenge.probes} probes` : 'De várias probes'}</Text>
               : challenge.probe_id && <Text size="xs" c="dimmed">Da probe {challenge.probe_id}</Text>}
           </div>

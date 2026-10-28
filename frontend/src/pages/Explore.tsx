@@ -46,7 +46,7 @@ function tracks(probeId: number | null): { title: string, text: string, items: I
       title: 'Quer ver os dados de outro jeito?',
       text: 'Ferramentas do RIPE NCC que desenham as medições.',
       items: [
-        { title: 'LatencyMON', text: 'Gráficos de latência de ping, traceroute e DNS, para comparar probes lado a lado.', href: 'https://atlas.ripe.net/docs/tools-and-code/latencymon/' },
+        { title: 'LatencyMON', text: 'Gráficos da latência ao longo do tempo, para comparar probes lado a lado em medições periódicas.', href: 'https://atlas.ripe.net/docs/tools-and-code/latencymon/' },
         { title: 'Khipu', text: 'O caminho dos traceroutes desenhado como uma árvore, por endereço, rede ou país.', href: 'https://atlas.ripe.net/docs/tools-and-code/khipu/' },
         probeId
           ? { title: 'Path Analysis', text: `Compara os traceroutes ao longo do tempo e marca as mudanças de rota. Está na página da ${probeId} no RIPE Atlas, na aba Results.`, href: `https://atlas.ripe.net/probes/${probeId}/results` }

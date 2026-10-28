@@ -144,6 +144,7 @@ export interface Challenge {
   probe_id: number | null
   group?: boolean
   probes?: number | null
+  status?: { id: number | null, name: string | null }
 }
 
 export async function fetchChallenges(signal: AbortSignal, oldest = false, kind?: Kind, group = false) {
