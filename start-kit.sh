@@ -84,7 +84,11 @@ if [ "$MODO" = probe ]; then
   fi
   estado=$(estado_da_vm)
   ligar_vm
-  passo "Pronto. A VM da probe está ligada"
+  if [ "$estado" = not_created ]; then
+    passo "A VM da probe está ligada. Falta cadastrar e ativar a probe, como nos passos acima"
+  else
+    passo "Pronto. A VM da probe está ligada"
+  fi
   exit 0
 fi
 

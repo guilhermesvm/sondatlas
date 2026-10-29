@@ -81,8 +81,13 @@ if ($Probe) {
     if (VirtualizacaoDesligada) {
         Erro 'A virtualização está desligada na BIOS ou o processador não tem suporte. Ative a opção Intel VT-x ou AMD-V (às vezes chamada SVM) na configuração da BIOS e rode este comando de novo.'
     }
-    LigarVM (EstadoDaVM)
-    Passo 'Pronto. A VM da probe está ligada'
+    $estado = EstadoDaVM
+    LigarVM $estado
+    if ($estado -eq 'not_created') {
+        Passo 'A VM da probe está ligada. Falta cadastrar e ativar a probe, como nos passos acima'
+    } else {
+        Passo 'Pronto. A VM da probe está ligada'
+    }
     exit 0
 }
 
