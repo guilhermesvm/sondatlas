@@ -27,8 +27,13 @@ end
 Vagrant.configure("2") do |config|
   # Não há box oficial do Debian para VirtualBox; o Bento a constrói a partir da
   # ISO oficial. Versão fixada para que todos partam do mesmo disco.
-  config.vm.box = "bento/debian-13"
-  config.vm.box_version = "202510.26.0"
+  # A box não publica checksum: o SHA-256 abaixo é o da cópia testada, e o
+  # Vagrant recusa um download diferente. Um endereço direto não aceita
+  # box_version, então a versão fica no nome e no endereço.
+  config.vm.box = "sondatlas/bento-debian-13-202510.26.0"
+  config.vm.box_url = "https://vagrantcloud.com/bento/boxes/debian-13/versions/202510.26.0/providers/virtualbox/amd64/vagrant.box"
+  config.vm.box_download_checksum_type = "sha256"
+  config.vm.box_download_checksum = "495517cc17a77b1fe35d4f62dcd81fb86514648d5a867f7e989491c6bb648d48"
   config.vm.box_check_update = false
 
   config.vm.hostname = VM_NAME
@@ -48,6 +53,10 @@ Vagrant.configure("2") do |config|
     vb.cpus = 1
     # A box liga a tela remota (VRDE); a probe não precisa dela.
     vb.customize ["modifyvm", :id, "--vrde", "off"]
+    # Pela placa NAT, a VM alcançaria os serviços do computador em 127.0.0.1
+    # (10.0.2.2), como a API da Sondatlas. O SSH do Vagrant vai no sentido
+    # contrário e continua funcionando.
+    vb.customize ["modifyvm", :id, "--nat-localhostreachable1", "off"]
   end
 
   # Rodam nesta ordem: preparar a VM e depois instalar a probe.

@@ -45,3 +45,4 @@ data/evidence/
 # Estado local do Vagrant (contém a chave SSH privada da VM)
 .vagrant/
 CLAUDE.md
+.claude/
