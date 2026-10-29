@@ -1,4 +1,5 @@
 import { Alert, Button, Text } from '@mantine/core'
+import type { ReactNode } from 'react'
 import { formatLocal } from '../../lib/time'
 import { formatMetric } from '../ping-history/chart'
 import { median, type Hop, type HopNetwork, type Route, type Source } from './useTraceroute'
@@ -44,7 +45,7 @@ function NetworkName({ hop, route, destination }: { hop: Hop, route: Route, dest
 }
 
 // A root server keeps the lesson's line (address, then name). Any other destination reads like a real traceroute: name, then address.
-export function Terminal({ route, destination, caption }: { route: Route, destination: Destination, caption: string }) {
+export function Terminal({ route, destination, caption }: { route: Route, destination: Destination, caption: ReactNode }) {
   const named = destination.root ? `${route.destination} (${destination.name})`
     : route.destination && route.destination !== destination.name ? `${destination.name} (${route.destination})` : destination.name
   const lines = route.failure ? [`traceroute ${destination.name}`, `traceroute: ${route.failure}`] : [
@@ -195,7 +196,7 @@ function StageText({ stage, route, destination, jump, firstExchange, nearCopy }:
       const end = stage.hops.find(hop => hop.address === route.destination)
       return <>
         O {called(destination)}, <code>{route.destination}</code>, respondeu em cerca de {ms(median(end?.rtts ?? []) ?? 0)}.{rise}
-        {nearCopy ? <> Foi uma cópia perto de <strong>{nearCopy}</strong>: o último ponto de troca é a entrada da rede do próprio {destination.name}. O endereço é o mesmo no mundo todo, e quem responde é a cópia mais próxima pela rede.</> : ''}
+        {nearCopy ? <> Foi uma cópia perto de <strong>{nearCopy}</strong> (anycast): o último ponto de troca é a entrada da rede do próprio {destination.name}.</> : ''}
       </>
     }
     case 'lost': {

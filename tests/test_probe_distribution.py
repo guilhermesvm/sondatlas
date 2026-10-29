@@ -1,8 +1,15 @@
 import json
+from pathlib import Path
 
 import pytest
 
-from ripe_atlas_tcc import probe_distribution as study
+from sondatlas.api import probe_distribution as study
+
+
+def test_output_dir_is_the_project_data_folder():
+    project_root = Path(__file__).resolve().parents[1]
+
+    assert study.OUTPUT_DIR == project_root / "data/probe-distribution"
 
 
 @pytest.fixture
@@ -179,7 +186,7 @@ def test_deadline_interrupts_live_download_preserves_saved_data_and_allows_retry
     import time
 
     from fastapi.testclient import TestClient
-    from ripe_atlas_tcc import api
+    from sondatlas.api import app as api
 
     data = snapshot({"count": 1, "next": None, "results": [probe(1)]})
     with monkeypatch.context() as seed:
@@ -221,7 +228,7 @@ def test_deadline_interrupts_live_download_preserves_saved_data_and_allows_retry
     bootstrap = (
         "import requests,runpy; original=requests.Session.get; "
         f"requests.Session.get=lambda self,url,**kwargs: original(self,{local_url!r},**kwargs); "
-        "runpy.run_module('ripe_atlas_tcc.probe_distribution',run_name='__main__')"
+        "runpy.run_module('sondatlas.api.probe_distribution',run_name='__main__')"
     )
 
     def launch(command, **kwargs):

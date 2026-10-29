@@ -61,12 +61,22 @@ export class ChallengeError extends Error {
   }
 }
 
-export async function createChallenge(kind: Kind, probeId: number, target: string, packets: number, description: string) {
+export function createChallenge(kind: Kind, probeId: number, target: string, packets: number, description: string) {
+  return postChallenge(kind, kinds[kind].noun, { probe_id: probeId, target: target.trim().toLowerCase(), packets, description: description.trim() || null })
+}
+
+export const groupSizes = [5, 10, 20]
+
+// Probes on the five inhabited continents, chosen by RIPE Atlas, plus one of the account probes when probeId is given.
+export function createGroupPing(target: string, total: number, probeId: number | null, packets: number) {
+  return postChallenge('group-ping', 'o ping de várias probes', { target: target.trim().toLowerCase(), total, probe_id: probeId, packets })
+}
+
+async function postChallenge(path: string, noun: string, body: object) {
   let response: Response
   try {
-    response = await fetch(`/api/challenges/${kind}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ probe_id: probeId, target: target.trim().toLowerCase(), packets, description: description.trim() || null }),
+    response = await fetch(`/api/challenges/${path}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
   } catch {
     throw new ChallengeError(localApiDown)
@@ -74,7 +84,7 @@ export async function createChallenge(kind: Kind, probeId: number, target: strin
   if (response.ok) return (await response.json() as { measurement_id: number }).measurement_id
   const { detail } = await response.json().catch(() => ({})) as { detail?: string | { missing_permissions?: string[], ripe_error?: string } }
   if (typeof detail === 'object' && detail.missing_permissions) throw new ChallengeError('A chave não tem a permissão para criar medições.', detail.missing_permissions)
-  if (typeof detail === 'object' && detail.ripe_error) throw new ChallengeError(`O RIPE Atlas recusou ${kinds[kind].noun}: ${detail.ripe_error}`)
+  if (typeof detail === 'object' && detail.ripe_error) throw new ChallengeError(`O RIPE Atlas recusou ${noun}: ${detail.ripe_error}`)
   const messages: Record<number, string> = {
     404: oldApi,
     405: oldApi,
@@ -83,7 +93,7 @@ export async function createChallenge(kind: Kind, probeId: number, target: strin
     [proxyDown]: localApiDown,
     503: 'O RIPE Atlas não respondeu agora. Nada foi criado. Tente de novo em instantes.',
   }
-  throw new ChallengeError(messages[response.status] ?? `Não foi possível criar ${kinds[kind].noun}. Tente de novo.`)
+  throw new ChallengeError(messages[response.status] ?? `Não foi possível criar ${noun}. Tente de novo.`)
 }
 
 export function measurementFromHash(hash: string) {
@@ -96,15 +106,34 @@ export interface Measurement {
   type: string
   probeId: number | null
   resolvedOnProbe: boolean
+  // The group ping, told by its tag (probes_requested comes as 0 for one-off measurements).
+  group: boolean
+  // Probes that took part, 0 until RIPE Atlas schedules them.
+  scheduled: number
+  status: { id: number | null, name: string }
 }
 
+// Measurement statuses from the OpenAPI: 0 Specified, 1 Scheduled, 2 Ongoing, 4 Stopped, 5 Forced to stop, 6 No suitable probes, 7 Failed.
+export const waiting = [0, 1]
+export const gaveUpStatuses = [5, 6, 7]
+
+export const preparing = 'preparing'
+
 // Public details of any measurement, so a result opened from its own address does not need the account. Null when it does not exist.
-export async function fetchMeasurement(measurementId: number, signal: AbortSignal): Promise<Measurement | null> {
-  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes,resolve_on_probe&optional_fields=probes`, { signal })
+// Right after creation RIPE Atlas answers with only the type and the status "synchronizing" (seen on 2026-10-28, not in the OpenAPI), so the caller asks again.
+export async function fetchMeasurement(measurementId: number, signal: AbortSignal): Promise<Measurement | null | typeof preparing> {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/?fields=target,type,probes,resolve_on_probe,tags,participant_count,status&optional_fields=probes`, { signal })
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  const { target, type, probes, resolve_on_probe } = await response.json() as { target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean }
-  return { target, type, probeId: probes?.[0]?.id ?? null, resolvedOnProbe: Boolean(resolve_on_probe) }
+  const { target, type, probes, resolve_on_probe, tags, participant_count, status } = await response.json() as {
+    target: string, type: string, probes?: { id: number }[], resolve_on_probe?: boolean, tags?: string[], participant_count?: number | null, status?: { id?: number | null, name?: string }
+  }
+  if (status?.name === 'synchronizing') return preparing
+  return {
+    target, type, probeId: probes?.[0]?.id ?? null, resolvedOnProbe: Boolean(resolve_on_probe),
+    group: (tags ?? []).includes('sondatlas-grupo'), scheduled: participant_count ?? 0,
+    status: { id: status?.id ?? null, name: status?.name ?? '' },
+  }
 }
 
 export interface Challenge {
@@ -113,12 +142,16 @@ export interface Challenge {
   target: string
   created: number
   probe_id: number | null
+  group?: boolean
+  probes?: number | null
+  status?: { id: number | null, name: string | null }
 }
 
-export async function fetchChallenges(signal: AbortSignal, oldest = false, kind?: Kind) {
+// made leaves out the measurements RIPE Atlas ended without measuring, as the badges count.
+export async function fetchChallenges(signal: AbortSignal, oldest = false, kind?: Kind, group = false, made = false) {
   let response: Response
   try {
-    const query = new URLSearchParams({ ...(oldest ? { oldest: 'true' } : {}), ...(kind ? { type: kind } : {}) }).toString()
+    const query = new URLSearchParams({ ...(oldest ? { oldest: 'true' } : {}), ...(kind ? { type: kind } : {}), ...(group ? { group: 'true' } : {}), ...(made ? { made: 'true' } : {}) }).toString()
     response = await fetch(query ? `/api/challenges?${query}` : '/api/challenges', { signal })
   } catch (error) {
     if (signal.aborted) throw error
@@ -163,4 +196,34 @@ export async function fetchTracerouteRoute(measurementId: number, signal: AbortS
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const [round] = await response.json() as RawRound[]
   return round ? describeRoute(round, signal) : null
+}
+
+export interface GroupRound {
+  probeId: number
+  avg: number | null
+  sent: number
+  rcvd: number
+  address: string | null
+  country: string | null
+  asn: number | null
+}
+
+// One round per probe as they arrive. The probes' public addresses (from) are never read. Country and network come from the public probe list.
+export async function fetchGroupResults(measurementId: number, signal: AbortSignal): Promise<GroupRound[]> {
+  const response = await fetch(`https://atlas.ripe.net/api/v2/measurements/${measurementId}/results/`, { signal })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const rounds = await response.json() as { prb_id: number, avg: number, sent: number, rcvd: number, dst_addr?: string }[]
+  if (!rounds.length) return []
+  const info = await fetch(`https://atlas.ripe.net/api/v2/probes/?id__in=${rounds.map(round => round.prb_id).join(',')}&fields=id,country_code,asn_v4&page_size=100`, { signal })
+    .then(reply => reply.ok ? reply.json() as Promise<{ results: { id: number, country_code: string | null, asn_v4: number | null }[] }> : { results: [] })
+    .catch(() => ({ results: [] }))
+  const byId = new Map(info.results.map(probe => [probe.id, probe]))
+  return rounds.map(round => ({
+    probeId: round.prb_id,
+    avg: round.rcvd > 0 && round.avg > 0 ? round.avg : null,
+    sent: round.sent, rcvd: round.rcvd,
+    address: round.dst_addr ?? null,
+    country: byId.get(round.prb_id)?.country_code ?? null,
+    asn: byId.get(round.prb_id)?.asn_v4 ?? null,
+  }))
 }

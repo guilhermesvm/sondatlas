@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# Liga a probe (VM do kit) e a aplicação e abre o dashboard.
-# Uso: bash start-kit.sh [--no-vm]
-# --no-vm: para quem instalou a probe direto num Debian ou Raspberry Pi.
+# Liga a aplicação e, se existir, a VM da probe do kit, e abre o dashboard.
+# Uso: bash start-kit.sh [--probe | --app]
+# --probe: só a probe. Confere os requisitos, cria a VM na primeira vez (ou a
+# liga). Na criação, a instalação mostra a chave pública. Não mexe na aplicação.
+# --app: só a aplicação, sem mexer na VM.
 # Pode ser rodado de novo a qualquer momento: o que já está ligado continua igual.
 set -uo pipefail
 
 RAIZ=$(cd "$(dirname "$0")" && pwd)
 COMPOSE=(docker compose -f "$RAIZ/compose.yaml")
-NO_VM=0
+[ $# -le 1 ] || { echo "Uso: bash start-kit.sh [--probe | --app]" >&2; exit 2; }
 case "${1:-}" in
-  "") ;;
-  --no-vm) NO_VM=1 ;;
-  *) echo "Uso: bash start-kit.sh [--no-vm]" >&2; exit 2 ;;
+  "") MODO=tudo ;;
+  --probe) MODO=probe ;;
+  --app) MODO=app ;;
+  *) echo "Uso: bash start-kit.sh [--probe | --app]" >&2; exit 2 ;;
 esac
 
 case "$(uname -s)" in
@@ -30,7 +33,61 @@ responde() {
   curl -s -o /dev/null --max-time 5 "$1"
 }
 
+# Vazio se a VM do kit pode ser usada deste terminal; senão, o motivo.
+motivo_sem_vm() {
+  if grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "Este terminal está no Linux do WSL, que não enxerga o Vagrant do Windows. No PowerShell, use: powershell -ExecutionPolicy Bypass -File .\\start-kit.ps1"
+  elif ! command -v vagrant >/dev/null; then
+    echo "Vagrant não encontrado. Veja como instalar em lab/README.md, na seção Pré-requisitos."
+  elif [ "$WINDOWS" = 1 ] && [ ! -f "$(cygpath -u "${VBOX_MSI_INSTALL_PATH:-.}")/VBoxManage.exe" ]; then
+    echo "VirtualBox não encontrado. Veja como instalar em lab/README.md, na seção Pré-requisitos."
+  elif [ "$WINDOWS" = 0 ] && ! command -v VBoxManage >/dev/null; then
+    echo "VirtualBox não encontrado. Veja como instalar em lab/README.md, na seção Pré-requisitos."
+  fi
+}
+
+# Com o Hyper-V ligado (Docker Desktop, WSL2), o Windows informa a virtualização
+# do firmware como desligada; o hipervisor presente já prova que ela está ativa.
+# No Linux, o kernel tira a flag vmx dos processadores Intel quando a BIOS
+# bloqueia; nos AMD a flag svm não muda, então não há como saber antes.
+virtualizacao_desligada() {
+  if [ "$WINDOWS" = 1 ]; then
+    [ "$(powershell.exe -NoProfile -Command '(Get-CimInstance Win32_ComputerSystem).HypervisorPresent -or [bool](Get-CimInstance Win32_Processor | Where-Object VirtualizationFirmwareEnabled)' 2>/dev/null | tr -d '\r')" = False ]
+  else
+    grep -q GenuineIntel /proc/cpuinfo && ! grep -qw vmx /proc/cpuinfo
+  fi
+}
+
+ligar_vm() {
+  if [ "$estado" = running ]; then
+    passo "A VM da probe já está ligada"
+    return
+  fi
+  if [ "$estado" = not_created ]; then
+    passo "Criando a VM da probe pela primeira vez (leva uns 6 minutos)"
+    echo "O Vagrant vai perguntar qual placa de rede usar. Escolha a que você usa para acessar a internet (Wi-Fi ou cabo)."
+  else
+    passo "Ligando a VM da probe"
+  fi
+  (cd "$RAIZ/lab" && vagrant up) || erro "A VM da probe não ligou. Veja a mensagem acima. Se ela fala em VT-x, AMD-V ou virtualização, ative a virtualização na BIOS. Mais dicas em lab/README.md."
+  if [ "$estado" = saved ]; then
+    echo "A VM estava com o estado salvo. Se a probe não aparecer como conectada em alguns minutos, rode vagrant reload na pasta lab."
+  fi
+}
+
 passo "Conferindo os pré-requisitos"
+if [ "$MODO" = probe ]; then
+  motivo=$(motivo_sem_vm)
+  [ -z "$motivo" ] || erro "$motivo"
+  if virtualizacao_desligada; then
+    erro "A virtualização está desligada na BIOS ou o processador não tem suporte. Ative a opção Intel VT-x ou AMD-V (às vezes chamada SVM) na configuração da BIOS e rode este comando de novo."
+  fi
+  estado=$(estado_da_vm)
+  ligar_vm
+  passo "Pronto. A VM da probe está ligada"
+  exit 0
+fi
+
 command -v docker >/dev/null || erro "Docker não encontrado. Veja como instalar: https://docs.docker.com/engine/install/"
 if ! saida=$(docker info 2>&1); then
   case "$saida" in
@@ -43,39 +100,26 @@ if [ -z "$versao" ] || [ "$(printf '%s\n' 2.24.0 "$versao" | sort -V | head -n 1
   erro "O kit precisa do Docker Compose 2.24.0 ou mais novo. Veja: https://docs.docker.com/compose/install/"
 fi
 command -v curl >/dev/null || erro "curl não encontrado. Instale com: sudo apt install curl"
-if [ "$NO_VM" = 0 ]; then
-  if grep -qi microsoft /proc/version 2>/dev/null; then
-    erro "Este terminal está no Linux do WSL, que não enxerga o Vagrant do Windows. No PowerShell, use: powershell -ExecutionPolicy Bypass -File .\\start-kit.ps1"
-  fi
-  command -v vagrant >/dev/null || erro "Vagrant não encontrado. Veja como instalar em lab/README.md, na seção Pré-requisitos. Se a sua probe não usa a VM do kit, rode de novo com --no-vm."
-  if [ "$WINDOWS" = 1 ]; then
-    [ -f "$(cygpath -u "${VBOX_MSI_INSTALL_PATH:-.}")/VBoxManage.exe" ] || erro "VirtualBox não encontrado. Veja como instalar em lab/README.md, na seção Pré-requisitos."
-  else
-    command -v VBoxManage >/dev/null || erro "VirtualBox não encontrado. Veja como instalar em lab/README.md, na seção Pré-requisitos."
-  fi
-fi
 
-if [ "$NO_VM" = 0 ]; then
-  estado=$(estado_da_vm)
-  if [ "$estado" = running ]; then
-    passo "A VM da probe já está ligada"
+if [ "$MODO" = tudo ]; then
+  motivo=$(motivo_sem_vm)
+  if grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "$motivo"
+    passo "Ligando só a aplicação. Para ligar também a VM da probe, use o PowerShell"
+  elif [ -n "$motivo" ]; then
+    passo "Ligando só a aplicação, porque este computador não tem Vagrant ou VirtualBox. Isso é normal se a sua probe roda direto num Debian ou Raspberry Pi"
   else
+    estado=$(estado_da_vm)
     if [ "$estado" = not_created ]; then
-      passo "Criando a VM da probe pela primeira vez (leva uns 6 minutos)"
-      echo "O Vagrant vai perguntar qual placa de rede usar. Escolha a que você usa para acessar a internet (Wi-Fi ou cabo)."
-      echo "No fim aparecem a chave pública e o link de cadastro. Guarde os dois para ativar a probe."
+      passo "A VM da probe ainda não existe. Para instalar a probe, siga a fase Instalar do dashboard"
     else
-      passo "Ligando a VM da probe"
-    fi
-    (cd "$RAIZ/lab" && vagrant up) || erro "A VM da probe não ligou. Veja a mensagem acima e as dicas em lab/README.md."
-    if [ "$estado" = saved ]; then
-      echo "A VM estava com o estado salvo. Se a probe não aparecer como conectada em alguns minutos, rode vagrant reload na pasta lab."
+      ligar_vm
     fi
   fi
 fi
 
 passo "Ligando a aplicação (banco, coleta, API e dashboard)"
-"${COMPOSE[@]}" up -d --build || erro "A aplicação não subiu. Veja a mensagem acima."
+"${COMPOSE[@]}" up -d --build || erro "A aplicação não subiu. Veja a mensagem acima. Se ela fala em \"port is already allocated\", outro programa ou outra cópia do projeto já usa a porta. Veja como trocar no README, em Quick start."
 
 passo "Esperando a API e o dashboard responderem"
 api=$("${COMPOSE[@]}" port api 8000)
@@ -101,4 +145,12 @@ elif command -v xdg-open >/dev/null && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]
 else
   passo "Pronto. Abra o dashboard no navegador: $endereco"
 fi
-echo "Para desligar tudo: bash stop-kit.sh"
+if [ "$MODO" = app ]; then
+  echo "Para desligar a aplicação: bash stop-kit.sh --app"
+else
+  echo "Para desligar: bash stop-kit.sh"
+  case "${estado:-}" in
+    ""|not_created) ;;
+    *) echo "Se quiser deixar a probe ligada ganhando créditos, desligue só a aplicação: bash stop-kit.sh --app" ;;
+  esac
+fi

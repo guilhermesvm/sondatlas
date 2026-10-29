@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from influxdb_client import InfluxDBClient
 
-from ripe_atlas_tcc.influxdb_storage import INFLUXDB_MEASUREMENT
+from sondatlas.shared.settings import INFLUXDB_MEASUREMENT
 
 
 PING_HISTORY_QUERY = """

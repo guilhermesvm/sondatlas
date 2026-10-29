@@ -1,9 +1,11 @@
 import { AppShell, Burger, Group, NavLink, ScrollArea, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
+import AchievementBell from '../features/achievements/AchievementBell'
+import { BadgesProvider } from '../features/achievements/BadgesProvider'
 import PingExplorer from '../features/ping-history/PingExplorer'
 import ProbeDistribution from '../features/probe-distribution/ProbeDistribution'
-import { lessonFromHash } from '../features/lessons/lessons'
+import { exercisesFromHash, lessonFromHash } from '../features/lessons/lessons'
 import { ProbeProvider, useProbe } from '../features/probe-status/ProbeProvider'
 import StatusLabel, { useStatusLook } from '../features/probe-status/StatusLabel'
 import Achievements from '../pages/Achievements'
@@ -30,7 +32,7 @@ const gearIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 </svg>
 
 export default function App() {
-  return <ProbeProvider><Layout /></ProbeProvider>
+  return <ProbeProvider><BadgesProvider><Layout /></BadgesProvider></ProbeProvider>
 }
 
 function Layout() {
@@ -39,7 +41,8 @@ function Layout() {
   const [hash, setHash] = useState(location.hash)
   const [menuOpen, menu] = useDisclosure()
   useEffect(() => {
-    const update = () => { setHash(location.hash); menu.close() }
+    // Pages change by the address hash without reloading, so the browser would keep the scroll of the previous page.
+    const update = () => { setHash(location.hash); menu.close(); window.scrollTo(0, 0) }
     window.addEventListener('hashchange', update)
     return () => window.removeEventListener('hashchange', update)
   }, [menu])
@@ -55,7 +58,7 @@ function Layout() {
           </Group>
           <Group gap="md" wrap="nowrap">
             {look && <a className="header-status" href="#/minha-probe" aria-label={`Minha probe: ${look.label}`}><StatusLabel look={look} /></a>}
-            <span className="header-label">RIPE Atlas · Projeto TCC</span>
+            <AchievementBell />
             <ColorSchemeToggle />
           </Group>
         </Group>
@@ -81,7 +84,7 @@ function Layout() {
       <AppShell.Main className="main">
         <div className="page">
           {route.id === 'inicio' && <Home />}
-          {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} />}
+          {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} exercises={exercisesFromHash(hash)} />}
           {route.id === 'desafios' && <Challenges />}
           {route.id === 'conquistas' && <Achievements />}
           {route.id === 'minha-probe' && <MyProbe />}

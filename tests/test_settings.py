@@ -1,6 +1,6 @@
 import pytest
 
-from ripe_atlas_tcc import settings
+from sondatlas.shared import settings
 
 
 def test_ping_measurement_catalog_identifies_targets():

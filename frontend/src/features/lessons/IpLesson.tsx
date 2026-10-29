@@ -7,11 +7,11 @@ import './lessons.css'
 
 const date = (timestamp: number) => new Date(timestamp * 1000).toLocaleDateString('pt-BR')
 
-function Path({ addresses }: { addresses: Addresses }) {
+function Path({ addresses, probeId }: { addresses: Addresses, probeId: number }) {
   return <figure className="lesson-figure">
-    <Text size="sm" component="figcaption">O caminho de uma medição da sua probe até o K-root:</Text>
+    <Text size="sm" component="figcaption">O caminho de uma medição da <strong>probe {probeId}</strong> até o K-root:</Text>
     <ol className="address-path" aria-label="Caminho da probe até o K-root">
-      <li><strong>Sua probe</strong><span>{addresses.privateAddress ? <code>{addresses.privateAddress}</code> : 'endereço da probe'}</span></li>
+      <li><strong>Probe {probeId}</strong><span>{addresses.privateAddress ? <code>{addresses.privateAddress}</code> : 'endereço da probe'}</span></li>
       <li><strong>Seu roteador</strong><span>{addresses.behindNat ? 'troca pelo endereço público (NAT)' : 'leva para fora da casa'}</span></li>
       <li><strong>Seu provedor</strong><span>{addresses.asn ? <code>AS{addresses.asn}</code> : null} {addresses.holder}</span></li>
       <li><strong>Outras redes</strong><span>a <Anchor href="#/aprender/traceroute" size="sm">lição de traceroute</Anchor> mostra quais são</span></li>
@@ -43,9 +43,9 @@ function YourData({ probeId, addresses, error }: ReturnType<typeof useAddresses>
     <Button component="a" href="#/acompanhar" variant="light" size="sm" mt="sm">Ir para Acompanhar</Button>
   </>
   if (error) return <SystemError title="Não foi possível ler os dados da sua probe" mt="0">{error}</SystemError>
-  if (!addresses) return <Loading>Lendo os dados da sua probe…</Loading>
+  if (!addresses || !probeId) return <Loading>Lendo os dados da sua probe…</Loading>
   return <>
-    <Path addresses={addresses} />
+    <Path addresses={addresses} probeId={probeId} />
     <dl className="lesson-numbers">
       <div>
         <dt>Dentro da sua rede</dt>

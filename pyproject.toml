@@ -3,9 +3,10 @@ requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ripe-atlas-tcc"
+name = "sondatlas"
 version = "0.1.0"
-description = "Data ingestion pipeline for results from a selected RIPE Atlas probe"
+description = "Educational kit to host a RIPE Atlas probe and follow its measurements"
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

@@ -11,9 +11,10 @@ export function mockApi(result = history(), google = result) {
     const data = id === 1001 ? result : google
     return json({ ...data, measurement_id: id, start: params.get('start'), stop: params.get('stop') })
   })
-  // The probe status shown in the menu stays out of `mock`, so tests count only the page's own requests.
+  // The probe status shown in the menu and the account read for the badges bell stay out of `mock`, so tests count only the page's own requests.
   vi.stubGlobal('fetch', (path: string, init?: RequestInit) => {
     if (path === '/api/probe') return json({ probe_id: catalog.probe_id })
+    if (path === '/api/account') return json({ connected: false })
     if (path.startsWith('https://atlas.ripe.net/api/v2/measurements/')) return json(latestPing)
     if (path.startsWith('https://atlas.ripe.net/')) return json(probeStatus)
     return mock(path, init)

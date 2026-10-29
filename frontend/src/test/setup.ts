@@ -18,3 +18,6 @@ class ResizeObserver {
   disconnect() {}
 }
 window.ResizeObserver = ResizeObserver
+
+// jsdom does not scroll, and the dashboard scrolls to the top on every page change.
+window.scrollTo = vi.fn() as typeof window.scrollTo

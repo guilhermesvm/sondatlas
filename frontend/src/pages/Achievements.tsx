@@ -1,11 +1,9 @@
 import { Alert, Button, Loader, Progress, Text, Title } from '@mantine/core'
-import { useEffect, useState } from 'react'
-import { checking, computeBadges, findPioneers, statusText, uptimeGoals, type Badge, type ChallengeHistory, type Pioneers } from '../features/achievements/achievements'
-import { findHistories, type Histories } from '../features/achievements/connections'
+import { useEffect } from 'react'
+import { checking, statusText, type Badge } from '../features/achievements/achievements'
 import BadgeMark from '../features/achievements/BadgeMark'
 import '../features/achievements/achievements.css'
-import { fetchAccount, KeyRefusedError, type Account } from '../features/atlas-account/account'
-import { ChallengeError, fetchChallenges } from '../features/challenges/challenge'
+import { useBadges } from '../features/achievements/BadgesProvider'
 import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
 import './pages.css'
@@ -15,7 +13,7 @@ const groups = [
   { id: 'uptime', title: 'Tempo no ar', text: 'Somando todo o tempo conectada, mesmo com quedas no meio.' },
   { id: 'history', title: 'Histórico de conexão', text: 'Calculadas pelos registros de conexão e queda que o RIPE Atlas guarda de cada probe.' },
   { id: 'credits', title: 'Créditos', text: 'Os créditos ficam na sua conta e somam todas as suas probes. Cada probe rende 15 por minuto conectada e 1 por resultado de medição. Estes badges olham o saldo atual.' },
-  { id: 'challenges', title: 'Desafios', text: 'Medições que você criou pela Sondatlas, com os seus créditos. Contam todas, mesmo as que não trouxeram resposta.' },
+  { id: 'challenges', title: 'Desafios', text: 'Medições que você criou pela Sondatlas, com os seus créditos. Contam as que o RIPE Atlas fez, mesmo sem resposta do destino.' },
 ] as const
 
 function BadgeTile({ badge }: { badge: Badge }) {
@@ -30,45 +28,8 @@ function BadgeTile({ badge }: { badge: Badge }) {
 }
 
 export default function Achievements() {
-  const [account, setAccount] = useState<Account | null>(null)
-  const [refused, setRefused] = useState(false)
-  const [error, setError] = useState('')
-  const [pioneers, setPioneers] = useState<Pioneers>('checking')
-  const [histories, setHistories] = useState<Histories>('checking')
-  const [challenges, setChallenges] = useState<ChallengeHistory>('checking')
-  const [traceroutes, setTraceroutes] = useState<ChallengeHistory>('checking')
-
-  useEffect(() => {
-    const controller = new AbortController()
-    fetchAccount(controller.signal)
-      .then(result => {
-        setAccount(result)
-        const probes = result.probes ?? []
-        findHistories(probes, uptimeGoals, controller.signal).then(setHistories, () => {
-          if (!controller.signal.aborted) setHistories('failed')
-        })
-        const history = (set: typeof setChallenges, kind?: 'traceroute') => {
-          if (result.missing_permissions?.includes('my_measurements')) set('missing')
-          else if (result.connected) fetchChallenges(controller.signal, true, kind).then(list => set({ count: list.count, oldest: list.challenges }), (reason: Error) => {
-            if (!controller.signal.aborted) set(reason instanceof ChallengeError && reason.missing.length ? 'missing' : 'failed')
-          })
-        }
-        history(setChallenges)
-        history(setTraceroutes, 'traceroute')
-        return findPioneers(probes, controller.signal).then(setPioneers, () => {
-          if (!controller.signal.aborted) setPioneers('failed')
-        })
-      })
-      .catch((reason: Error) => {
-        if (controller.signal.aborted) return
-        if (reason instanceof KeyRefusedError) setRefused(true)
-        else setError(reason.message)
-      })
-    return () => controller.abort()
-  }, [])
-
-  const linked = account?.connected === true
-  const badges = computeBadges(linked ? account.probes ?? [] : [], pioneers, linked ? account.credits ?? null : undefined, histories, linked ? challenges : undefined, linked ? traceroutes : undefined)
+  const { account, refused, error, linked, badges, refresh } = useBadges()
+  useEffect(refresh, [refresh])
   const earned = badges.filter(badge => badge.earned).length
 
   return <div className="install">
@@ -76,7 +37,7 @@ export default function Achievements() {
     <Text size="lg" mt="sm" maw={680}>Marcos das suas probes no RIPE Atlas, calculados com os dados do próprio RIPE.</Text>
     {linked && <Text fw={600} mt="md">{earned} de {badges.length} conquistadas</Text>}
 
-    {linked && (account.missing_permissions ?? []).some(permission => ['probes', 'credits', 'my_measurements'].includes(permission)) && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
+    {linked && (account?.missing_permissions ?? []).some(permission => ['probes', 'credits', 'my_measurements'].includes(permission)) && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
       Algumas conquistas precisam de uma permissão que a chave não tem. Veja o que falta em Configurações.
       <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
     </Alert>}

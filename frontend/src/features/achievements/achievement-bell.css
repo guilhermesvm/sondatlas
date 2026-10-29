@@ -1,0 +1,14 @@
+.bell { position: relative; }
+.bell-dot { position: absolute; top: 5px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--mantine-color-red-6); box-shadow: 0 0 0 2px white; }
+.bell-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.bell-list > li { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 10px; }
+.bell-mark .badge-mark { width: 40px; height: 40px; border: 2px solid var(--badge-line); background: var(--badge-bg); color: var(--badge-text); }
+.bell-mark .badge-mark svg { width: 22px; height: 22px; }
+.bell-mark .badge-number { font-size: 13px; }
+.bell-mark .badge-number small { margin-top: 1px; font-size: 8px; }
+.bell-more { margin-top: 12px; }
+.bell-title { display: flex; align-items: center; gap: 6px; }
+.bell-new { padding: 0 6px; border-radius: 999px; background: var(--badge-bg); color: var(--badge-text); border: 1px solid var(--badge-line); font-size: 11px; font-weight: 600; line-height: 16px; }
+.bell-status { color: var(--muted); }
+.bell-list > li[data-read='true'] .bell-title { color: var(--muted); font-weight: 500; }
+.bell-list > li[data-read='true'] .badge-mark { border: 1px dashed var(--line); background: var(--surface); color: var(--muted); }

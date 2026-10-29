@@ -134,12 +134,19 @@ def can_list(key):
     return True
 
 
-def fetch_challenges(key, oldest=False, kind=None):
+# Measurement statuses from the OpenAPI, all but 5 Forced to stop, 6 No suitable probes and 7 Failed. There is no filter to leave statuses out.
+MADE_STATUSES = "0,1,2,4,8"
+
+
+def fetch_challenges(key, oldest=False, kind=None, group=False, made=False):
     """The 50 newest (or oldest) measurements the key owner created through Sondatlas (tag sondatlas), with the total.
-    kind keeps only one type, such as traceroute."""
+    kind keeps only one type, such as traceroute; group keeps only the pings from several probes (tag sondatlas-grupo).
+    probes_requested comes as 0 for one-off measurements, so the group is told by its tag and its size by participant_count.
+    status tells the ones RIPE Atlas ended without measuring, such as Failed, whose probes come empty, and made leaves them out."""
     response = requests.get(
-        f"{MY_MEASUREMENTS_URL}?tags=sondatlas&sort={'id' if oldest else '-id'}&page_size=50{f'&type={kind}' if kind else ''}"
-        "&fields=id,type,target,creation_time,probes&optional_fields=probes",
+        f"{MY_MEASUREMENTS_URL}?tags={GROUP_TAG if group else 'sondatlas'}&sort={'id' if oldest else '-id'}&page_size=50{f'&type={kind}' if kind else ''}"
+        f"{f'&status__in={MADE_STATUSES}' if made else ''}"
+        "&fields=id,type,target,creation_time,probes,tags,participant_count,status&optional_fields=probes",
         headers={"Authorization": f"Key {key}"},
         timeout=30,
     )
@@ -156,6 +163,9 @@ def fetch_challenges(key, oldest=False, kind=None):
                 "target": measurement["target"],
                 "created": measurement["creation_time"],
                 "probe_id": (measurement.get("probes") or [{}])[0].get("id"),
+                "group": GROUP_TAG in (measurement.get("tags") or []),
+                "probes": measurement.get("participant_count"),
+                "status": {"id": (measurement.get("status") or {}).get("id"), "name": (measurement.get("status") or {}).get("name")},
             }
             for measurement in page["results"]
         ],
@@ -218,8 +228,23 @@ def is_address(target):
         return False
 
 
-def create_measurement(key, probe_id, kind, target, packets, description):
-    """One-off IPv4 ping or traceroute from one probe, public by RIPE Atlas default and tagged sondatlas,
+GROUP_TAG = "sondatlas-grupo"
+
+# The five inhabited continents, from the "region" probe selector of the RIPE Atlas API.
+CONTINENTS = ("africa", "americas", "asia", "europe", "oceania")
+
+
+def from_probe(probe_id):
+    return {"type": "probes", "value": str(probe_id), "requested": 1}
+
+
+def from_continents(total):
+    """Splits the probes evenly among the continents; RIPE Atlas chooses which probes in each."""
+    return [{"type": "region", "value": region, "requested": total // len(CONTINENTS)} for region in CONTINENTS]
+
+
+def create_measurement(key, sources, kind, target, packets, description, tags=("sondatlas",)):
+    """One-off IPv4 ping or traceroute from the given probe sources, public by RIPE Atlas default and tagged sondatlas,
     so anyone can count the measurements made through Sondatlas. Returns the measurement ID.
     A name is resolved by the probe's own DNS, like a computer on that network would:
     resolved centrally, a service with servers around the world may answer with one far from the probe."""
@@ -229,7 +254,7 @@ def create_measurement(key, probe_id, kind, target, packets, description):
         "target": target,
         "packets": packets,
         "description": description,
-        "tags": ["sondatlas"],
+        "tags": list(tags),
     }
     if not is_address(target):
         definition["resolve_on_probe"] = True
@@ -238,7 +263,7 @@ def create_measurement(key, probe_id, kind, target, packets, description):
         headers={"Authorization": f"Key {key}"},
         json={
             "definitions": [definition],
-            "probes": [{"type": "probes", "value": str(probe_id), "requested": 1}],
+            "probes": sources,
             "is_oneoff": True,
         },
         timeout=30,

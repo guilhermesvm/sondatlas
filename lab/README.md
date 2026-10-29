@@ -46,9 +46,13 @@ Escolheu a placa errada? Rode `vagrant halt`. No VirtualBox, abra
 
 No fim, aparecem a **chave pública** e o link de cadastro.
 
-Para ligar a VM e a aplicação (dashboard) juntas, use o `start-kit` da pasta
-principal do projeto; para desligar as duas, o `stop-kit`. Os comandos estão no
-`README.md` principal, em *Quick start*.
+Em vez de `vagrant up`, você pode usar o `start-kit` da pasta principal com
+`--probe` (`-Probe` no PowerShell). Ele confere a virtualização, o VirtualBox e o
+Vagrant antes e cria a VM, com a chave no fim, como o `vagrant up`. No dia a dia, o `start-kit`
+sem opção liga a VM e a aplicação (dashboard) juntas, e o `stop-kit` desliga as
+duas. Com `--probe` ou `--app`, cada um cuida só de uma parte: por exemplo,
+`stop-kit --app` desliga só a aplicação e deixa a probe ganhando créditos. Os
+comandos estão no `README.md` principal, em *Quick start*.
 
 ## Ativar a probe
 
@@ -85,7 +89,7 @@ sudo systemctl enable --now ripe-atlas
 | `vagrant up` | Liga a VM de novo; a probe inicia sozinha |
 | `vagrant reload` | Reinicia a VM (desliga e liga) sem apagar nada |
 | `vagrant reload --provision` | Reinicia e reaplica a configuração |
-| `vagrant destroy -f` | Apaga a VM e a chave |
+| `vagrant destroy -f` | Apaga a VM e a chave (leia antes "Recriar ou remover") |
 
 Desligue sempre com `vagrant halt`. Fechar a janela do VirtualBox com
 "Salvar o estado" e retomar depois deixa a probe desconectada; nesse caso,
@@ -107,8 +111,54 @@ Na pasta `lab/`:
 Status público: `https://atlas.ripe.net/probes/<ID>/` (*Connected* = funcionando).
 Depois de reiniciar o computador, `vagrant up` religa a VM e a probe volta sozinha.
 
-Recriou a VM? A chave muda. Atualize-a na probe existente em
-*atlas.ripe.net → My Probes → Manage*, em vez de cadastrar outra probe.
+## Recriar ou remover
+
+Recriar a VM (`vagrant destroy -f` e depois `vagrant up` ou `start-kit --probe`)
+gera uma chave nova. O que fazer depende do cadastro:
+
+- **Antes de cadastrar a probe:** pode recriar à vontade. O RIPE ainda não
+  conhece a chave antiga.
+- **Depois de cadastrar:** a probe fica *Disconnected*, porque a chave antiga só
+  existia dentro da VM. Atualize a chave nova na probe que você já tem, em
+  *atlas.ripe.net → My Probes → (sua probe) → Manage*. Não cadastre outra probe:
+  ela ganharia outro ID, o RIPE aceita no máximo 2 software probes por IP
+  público, e o dashboard continuaria acompanhando a probe antiga. O mesmo vale
+  ao reinstalar o sistema de um Debian ou Raspberry Pi que roda a probe.
+
+Recriar a VM não apaga as medições do dashboard: elas ficam no banco, fora da VM.
+
+**Apagou a pasta do projeto sem `vagrant destroy`?** A VM continua no
+VirtualBox, às vezes ligada, mas o Vagrant não a controla mais, e um clone novo
+falha com "A VirtualBox machine with the name 'kit-ripe-atlas-probe' already
+exists". Abra o VirtualBox, desligue a VM `kit-ripe-atlas-probe`, escolha
+**Remover** e, na pergunta, a opção que apaga todos os arquivos. Depois, crie a
+VM pelo clone novo e veja acima o que fazer com a chave.
+
+**Duas cópias do projeto no mesmo computador?** Cada cópia cria a própria VM, ou
+seja, mais uma probe, com chave própria. Antes do primeiro `vagrant up` na
+segunda cópia, troque o `VM_NAME` no `Vagrantfile` por outro nome, senão aparece
+o mesmo erro acima. A aplicação da segunda cópia também precisa de outras portas
+(veja o `README.md` principal, em *Quick start*).
+
+**Desinstalar tudo**, nesta ordem:
+
+1. Na pasta principal: `docker compose down -v --rmi all`. Apaga a aplicação,
+   as imagens baixadas e construídas por ela e **todo o histórico de medições**.
+2. Na pasta `lab/`: `vagrant destroy -f`. Apaga a VM e a chave da probe.
+3. Opcional: `vagrant box remove bento/debian-13`, que apaga a imagem do Debian
+   baixada pelo Vagrant.
+4. Opcional: `docker builder prune`, que apaga o cache de build do Docker. Ele
+   guarda as imagens de base (Python e Node) e as versões antigas da aplicação
+   e pode passar de vários GB. Vale para todos os projetos Docker do
+   computador, que só ficam mais lentos no próximo build.
+5. Apague a pasta do projeto.
+6. Se não usar para mais nada, desinstale o VirtualBox, o Vagrant e o Docker.
+
+A probe continua na sua conta do RIPE, aparecendo como *Disconnected* e, depois
+de alguns meses, *Abandoned*. Para tirá-la da conta, use **Write off your probe**
+na página da probe em atlas.ripe.net. O RIPE não apaga a probe de vez, porque o
+histórico dela é usado pelas medições antigas. Fazer nada também não causa
+problema.
 
 ## Observações
 

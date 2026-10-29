@@ -1,0 +1,26 @@
+.group-rank { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 4px; }
+.group-rank caption { text-align: left; font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.group-rank th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 0 12px 6px 0; border-bottom: 1px solid var(--line); }
+.group-rank td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.group-rank th:first-child, .group-rank td:first-child { width: 44px; padding-left: 10px; }
+.group-rank th:last-child { width: 300px; }
+.group-rank tr[data-yours='true'] td { background: var(--accent-bg); }
+.group-rank-position { font-variant-numeric: tabular-nums; color: var(--muted); }
+.group-rank-place { font-weight: 600; display: flex; align-items: center; }
+.group-rank-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.group-rank-detail code { font-size: 12px; }
+.group-rank-time { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.group-rank-bar { display: block; height: 10px; border-radius: 0 4px 4px 0; background: var(--bar); }
+.group-rank tr[data-yours='true'] .group-rank-bar { background: var(--bar-highlight); }
+.group-rank-none { color: var(--muted); }
+
+.continent-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; margin-top: 16px; border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); }
+.continent-strip > div { padding: 10px 12px; }
+.continent-strip > div + div { border-left: 1px solid var(--line); }
+.continent-name { font-size: 13px; font-weight: 500; }
+.continent-dots { display: flex; gap: 4px; margin-top: 8px; min-height: 10px; }
+.continent-dots > span { width: 10px; height: 10px; border-radius: 50%; background: var(--bar); }
+.continent-own .continent-dots > span { background: var(--bar-highlight); }
+.continent-own .continent-name { color: var(--brand-text); }
+.continent-own[data-off='true'] .continent-name { color: var(--muted); }
+.continent-own[data-off='true'] .continent-dots > span { background: none; border: 1.5px dashed var(--bar-axis); }

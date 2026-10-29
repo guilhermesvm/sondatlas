@@ -12,7 +12,7 @@ const rootDestination = (root: Root) => ({ name: root.name, root: true })
 function RootPicker({ root, onChange }: { root: Root, onChange: (root: Root) => void }) {
   return <div className="lesson-picker">
     <Text size="sm" maw={680}>
-      A sua probe mede sozinha os 13 servidores raiz do DNS. Cada um é mantido por uma organização diferente e tem cópias em vários lugares do mundo.
+      A sua probe mede sozinha os 13 servidores raiz do DNS, cada um mantido por uma organização diferente e com cópias em vários lugares do mundo.
       Troque o destino e compare: a rota passa pelos mesmos pontos de troca? Quantos saltos e quanto tempo leva? A cópia que responde fica no Brasil?
     </Text>
     <NativeSelect label="Destino" mt="sm" maw={340} value={String(root.measurement)}
@@ -36,7 +36,7 @@ function YourData({ data, root, onRoot }: { data: ReturnType<typeof useTracerout
     {data.loaded && !data.route && <Text size="sm" mt="md">O RIPE Atlas ainda não tem uma rota desta probe até o {root.name}. A medição roda a cada 30 minutos.</Text>}
     {data.route && <>
       {data.route.missing.length > 0 && <MissingSources missing={data.route.missing} onRetry={data.retry} />}
-      <Terminal route={data.route} destination={rootDestination(root)} caption={`Última rota da sua probe até o ${root.name}`} />
+      <Terminal route={data.route} destination={rootDestination(root)} caption={<>Última rota da <strong>probe {data.probeId}</strong> até o {root.name}</>} />
       <HopTable route={data.route} destination={rootDestination(root)} />
     </>}
   </>
@@ -80,7 +80,7 @@ export default function TracerouteLesson() {
         <li><Text size="sm">O caminho de volta pode ser outro. O traceroute só mostra a ida.</Text></li>
         <li><Text size="sm">Um roteador no meio pode demorar para responder e mostrar um tempo maior que o do salto seguinte. Isso não quer dizer que o pacote atrasou ali.</Text></li>
         <li><Text size="sm">O nome da rede vem do registro público do endereço, não de onde o roteador fica.</Text></li>
-        <li><Text size="sm">É uma rodada só, e o caminho muda. Em outra rede ou em outro dia, quem responde pode ser outra cópia do mesmo servidor, porque os servidores raiz têm cópias espalhadas pelo mundo. Compare com o tempo do K-root na <Anchor href="#/aprender/ping">lição de ping</Anchor>.</Text></li>
+        <li><Text size="sm">É uma rodada só, e o caminho muda. Em outra rede ou em outro dia, quem responde pode ser outra cópia do mesmo servidor. Compare com o tempo do K-root na <Anchor href="#/aprender/ping">lição de ping</Anchor>.</Text></li>
       </ul>,
     },
     {

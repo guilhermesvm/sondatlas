@@ -1,5 +1,8 @@
 import { Anchor, Badge, Breadcrumbs, Button, Text, Title } from '@mantine/core'
 import type { ComponentType } from 'react'
+import Exercises from '../features/exercises/Exercises'
+import { lastResult, savedRound } from '../features/exercises/progress'
+import { exerciseLessons } from '../features/exercises/questions'
 import { lessons, type Lesson } from '../features/lessons/lessons'
 import CreditsLesson from '../features/lessons/CreditsLesson'
 import IpLesson from '../features/lessons/IpLesson'
@@ -20,6 +23,24 @@ const courses = [
   { title: 'IPv6', text: 'Do webinar de introdução ao curso IPv6 Fundamentals.', href: 'https://academy.ripe.net/mod/page/view.php?id=928' },
 ]
 
+// True while every ready lesson of the basics group has exercises, which a test checks.
+const withExercises = 'As lições de Fundamentos de redes terminam com exercícios, alguns com os dados da sua probe.'
+
+function ExercisesEntry({ lesson }: { lesson: Lesson }) {
+  const last = lastResult(lesson.id)
+  const round = savedRound(lesson.id)
+  return <section className="lesson-exercises" aria-labelledby="lesson-exercises">
+    <div>
+      <Title order={2} size="h4" id="lesson-exercises">Exercícios</Title>
+      <Text size="sm" mt={4}>Perguntas sobre esta lição, e algumas com os dados da sua probe. Responda e veja se acertou.</Text>
+      {last && <Text size="sm" mt={4}>Último resultado: <strong>{last.score} de {last.total}</strong>, em {new Date(last.at).toLocaleDateString('pt-BR')}.</Text>}
+    </div>
+    <Button component="a" href={`#/aprender/${lesson.id}/exercicios`} className="lesson-exercises-button">
+      {round ? 'Continuar os exercícios' : last ? 'Refazer os exercícios' : 'Fazer os exercícios'}
+    </Button>
+  </section>
+}
+
 function LessonPage({ lesson }: { lesson: Lesson }) {
   const Content = contents[lesson.id]
   return <div className="install">
@@ -27,15 +48,18 @@ function LessonPage({ lesson }: { lesson: Lesson }) {
     <Title order={1} size="h2">{lesson.title}</Title>
     <Text size="lg" mt="sm" maw={680}>{lesson.text}</Text>
     <Content />
+    {exerciseLessons.includes(lesson.id) && <ExercisesEntry lesson={lesson} />}
     <Button component="a" href="#/aprender" variant="default" mt="xl">Voltar ao índice</Button>
   </div>
 }
 
-export default function Learn({ lesson }: { lesson?: Lesson | null }) {
+export default function Learn({ lesson, exercises = false }: { lesson?: Lesson | null, exercises?: boolean }) {
+  if (lesson && exercises && exerciseLessons.includes(lesson.id)) return <Exercises key={lesson.id} lesson={lesson} />
   if (lesson) return <LessonPage lesson={lesson} />
   return <div className="install">
     <Title order={1} size="h2">Aprender</Title>
-    <Text size="lg" mt="sm" maw={680}>Entenda o que a sua probe mede, com os dados dela. Cada lição explica o conceito, mostra o seu dado, ensina a ler e diz o que ele não mostra.</Text>
+    <Text size="lg" mt="sm" maw={1000}>Entenda o que a sua probe mede, com os dados dela. Cada lição explica o conceito, mostra o seu dado, ensina a ler e diz o que ele não mostra.</Text>
+    <Text mt="xs" maw={900}>{withExercises}</Text>
 
     {groups.map((group, index) => <section key={group.id} className="lesson-group" aria-labelledby={`lessons-${index}`}>
       <Title order={2} size="h4" id={`lessons-${index}`}>{group.title}</Title>

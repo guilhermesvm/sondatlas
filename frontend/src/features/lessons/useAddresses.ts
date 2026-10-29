@@ -47,7 +47,7 @@ async function readJson<T>(url: string, signal: AbortSignal) {
   return await response.json() as T
 }
 
-async function fetchAddresses(probeId: number, signal: AbortSignal): Promise<Addresses> {
+export async function fetchAddresses(probeId: number, signal: AbortSignal): Promise<Addresses> {
   const probe = await readJson<{ tags?: { slug: string }[], asn_v4: number | null, address_v6: string | null, first_connected: number | null }>(
     `https://atlas.ripe.net/api/v2/probes/${probeId}/?fields=tags,asn_v4,address_v6,first_connected`, signal)
   const tags = (probe.tags ?? []).map(tag => tag.slug)

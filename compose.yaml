@@ -1,8 +1,8 @@
 services:
   init:
     build: .
-    image: ripe-atlas-tcc-app
-    command: ["python", "-m", "ripe_atlas_tcc.init_secrets"]
+    image: sondatlas-app
+    command: ["python", "-m", "sondatlas.init_secrets"]
     user: "0"
     env_file:
       - path: .env
@@ -33,8 +33,8 @@ services:
 
   pipeline:
     build: .
-    image: ripe-atlas-tcc-app
-    command: ["python", "fetch_results.py", "--poll"]
+    image: sondatlas-app
+    command: ["python", "-m", "sondatlas", "--poll"]
     restart: unless-stopped
     stop_signal: SIGINT
     env_file:
@@ -53,7 +53,7 @@ services:
 
   api:
     build: .
-    image: ripe-atlas-tcc-app
+    image: sondatlas-app
     restart: unless-stopped
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
@@ -73,6 +73,7 @@ services:
 
   web:
     build: ./frontend
+    image: sondatlas-web
     init: true
     restart: unless-stopped
     ports:

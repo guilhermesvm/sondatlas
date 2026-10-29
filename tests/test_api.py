@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 import pytest
 import requests
 
-from ripe_atlas_tcc import api, atlas_account
-from ripe_atlas_tcc.probe_state import save_selected_probe
+from sondatlas.api import app as api, atlas_account
+from sondatlas.shared.probe_state import save_selected_probe
 
 
 PARAMS = {
@@ -572,7 +572,11 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
         def json(self):
             return {"count": 61, "results": [{
                 "id": 228260804, "type": "ping", "target": "github.com", "creation_time": 1793110783,
-                "probes": [{"id": 1017210, "url": "https://atlas.ripe.net/api/v2/probes/1017210/"}],
+                "probes": [{"id": 1017210, "url": "https://atlas.ripe.net/api/v2/probes/1017210/"}], "tags": ["sondatlas"], "participant_count": 1,
+                "status": {"id": 4, "name": "Stopped", "when": 1793110800},
+            }, {
+                "id": 228739189, "type": "ping", "target": "google.com", "creation_time": 1793200375,
+                "probes": [], "tags": ["sondatlas"], "participant_count": 0, "status": {"id": 7, "name": "Failed", "when": 1793200680},
             }]}
 
         def raise_for_status(self):
@@ -586,17 +590,25 @@ def test_challenge_list_shows_only_the_sondatlas_measurements_of_the_account(cha
     response = client.get("/challenges")
     assert response.status_code == 200
     assert response.json() == {"count": 61, "challenges": [
-        {"id": 228260804, "type": "ping", "target": "github.com", "created": 1793110783, "probe_id": 1017210},
+        {"id": 228260804, "type": "ping", "target": "github.com", "created": 1793110783, "probe_id": 1017210, "group": False, "probes": 1,
+         "status": {"id": 4, "name": "Stopped"}},
+        {"id": 228739189, "type": "ping", "target": "google.com", "created": 1793200375, "probe_id": None, "group": False, "probes": 0,
+         "status": {"id": 7, "name": "Failed"}},
     ]}
     assert "good-key" not in response.text
     assert asked == [("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=-id&page_size=50"
-                      "&fields=id,type,target,creation_time,probes&optional_fields=probes", "Key good-key")]
+                      "&fields=id,type,target,creation_time,probes,tags,participant_count,status&optional_fields=probes", "Key good-key")]
     assert created == []
     client.get("/challenges", params={"oldest": True})
     assert asked[1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&fields=")
     client.get("/challenges", params={"oldest": True, "type": "traceroute"})
     assert asked[2][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&type=traceroute&fields=")
     assert client.get("/challenges", params={"type": "dns"}).status_code == 422
+    client.get("/challenges", params={"oldest": True, "group": True})
+    assert asked[-1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas-grupo&sort=id&")
+    assert "status__in" not in asked[-1][0]
+    client.get("/challenges", params={"oldest": True, "made": True})
+    assert asked[-1][0].startswith("https://atlas.ripe.net/api/v2/measurements/my/?tags=sondatlas&sort=id&page_size=50&status__in=0,1,2,4,8&fields=")
 
 
 @pytest.mark.parametrize("status, expected, detail", [
@@ -618,3 +630,31 @@ def test_challenge_list_says_what_is_missing_or_unavailable(challenge_api, monke
     assert response.json() == {"detail": detail}
     atlas_account.delete_key(state_path)
     assert client.get("/challenges").status_code == 409
+
+
+def test_group_ping_splits_the_probes_among_the_continents_and_adds_the_account_probe(challenge_api):
+    client, _, created, _ = challenge_api
+    response = client.post("/challenges/group-ping", json={"target": "Google.com", "total": 10, "probe_id": 1017210})
+    assert response.json() == {"measurement_id": 123456789}
+    body = created[0][2]
+    assert body["definitions"] == [{
+        "type": "ping", "af": 4, "target": "google.com", "packets": 3, "description": "Sondatlas: ping de várias probes para google.com",
+        "tags": ["sondatlas", "sondatlas-grupo"], "resolve_on_probe": True,
+    }]
+    assert body["probes"] == [{"type": "region", "value": region, "requested": 2} for region in ("africa", "americas", "asia", "europe", "oceania")] + [
+        {"type": "probes", "value": "1017210", "requested": 1},
+    ]
+    client.post("/challenges/group-ping", json={"target": "1.1.1.1", "total": 5})
+    assert created[1][2]["probes"] == [{"type": "region", "value": region, "requested": 1} for region in ("africa", "americas", "asia", "europe", "oceania")]
+
+
+@pytest.mark.parametrize("headers, body", [
+    ({"Host": "evil.example"}, {"target": "google.com", "total": 5}),
+    ({}, {"target": "google.com", "total": 7}),
+    ({}, {"target": "google.com", "total": 5, "probe_id": 1018246}),
+    ({}, {"target": "192.168.1.1", "total": 5}),
+])
+def test_group_ping_refuses_other_sizes_foreign_probes_hosts_and_targets_without_spending(challenge_api, headers, body):
+    client, _, created, _ = challenge_api
+    assert client.post("/challenges/group-ping", json=body, headers=headers).status_code in (403, 422)
+    assert created == []

@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState, type ReactNode, type SubmitEvent } from 
 import { disconnectAccount, fetchAccount, KeyRefusedError, saveAccountKey, type Account, type AccountProbe } from '../features/atlas-account/account'
 import { keyAllows, missingPermissions, permissions } from '../features/atlas-account/permissions'
 import { useProbe } from '../features/probe-status/ProbeProvider'
+import { saveSelectedProbe } from '../lib/api'
 import Loading from '../lib/Loading'
 import SystemError from '../lib/SystemError'
 import './pages.css'
@@ -43,23 +44,62 @@ function KeyGuide() {
   </aside>
 }
 
+// A shortcut to the Follow phase for the account's own probes: the same save and the same notice when switching.
 function ProbeList({ probes }: { probes: AccountProbe[] }) {
-  const { probeId } = useProbe()
+  const { probeId, select } = useProbe()
+  const [switching, setSwitching] = useState<AccountProbe | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function follow() {
+    if (!switching) return
+    setBusy(true)
+    setError('')
+    try {
+      select((await saveSelectedProbe(switching.id)).probe_id)
+      setSwitching(null)
+    } catch (reason) {
+      setError((reason as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (probes.length === 0) return <Text size="sm">
     O RIPE Atlas não encontrou probes nesta conta. Confira se a chave foi criada na mesma conta em que você cadastrou a probe.
   </Text>
-  return <ul className="settings-list">
-    {probes.map(probe => <li key={probe.id}>
-      <div>
-        <Text size="sm" fw={600}>Probe {probe.id}</Text>
-        {probe.description && <Text size="sm" c="dimmed">{probe.description}</Text>}
-      </div>
-      {probe.id === probeId && <Group gap="sm">
-        <Badge variant="light" tt="none">Acompanhada</Badge>
-        <Anchor href="#/minha-probe" size="sm">Ver Minha probe</Anchor>
-      </Group>}
-    </li>)}
-  </ul>
+  return <>
+    <ul className="settings-list">
+      {probes.map(probe => <li key={probe.id}>
+        <div>
+          <Text size="sm" fw={600}>Probe {probe.id}</Text>
+          {probe.description && <Text size="sm" c="dimmed">{probe.description}</Text>}
+        </div>
+        {probe.id === probeId
+          ? <Group gap="sm">
+            <Badge variant="light" tt="none">Acompanhada</Badge>
+            <Anchor href="#/minha-probe" size="sm">Ver Minha probe</Anchor>
+          </Group>
+          : <Button variant="default" size="xs" onClick={() => { setError(''); setSwitching(probe) }}>Acompanhar esta probe</Button>}
+      </li>)}
+    </ul>
+    <Modal opened={switching !== null} onClose={() => setSwitching(null)} closeOnClickOutside={false} centered title={`Acompanhar a probe ${switching?.id}?`}>
+      <Text size="sm">
+        {probeId
+          ? `A coleta passa da probe ${probeId} para a probe ${switching?.id}. Os dados da probe ${probeId} continuam guardados.`
+          : `A Sondatlas passa a coletar o histórico da probe ${switching?.id}.`}
+        {' '}Minha probe e as lições passam a mostrar a probe {switching?.id}.
+      </Text>
+      {switching?.is_public === false && <Alert color="yellow" mt="sm" title="Esta probe não é pública">
+        A Sondatlas só lê dados públicos do RIPE Atlas, então os resultados desta probe podem não aparecer aqui.
+      </Alert>}
+      {error && <SystemError title="Não foi possível trocar a probe">{error}</SystemError>}
+      <Group gap="sm" mt="lg" justify="flex-end">
+        <Button variant="default" onClick={() => setSwitching(null)}>Cancelar</Button>
+        <Button loading={busy} onClick={follow}>Acompanhar esta probe</Button>
+      </Group>
+    </Modal>
+  </>
 }
 
 const unlocks = [
