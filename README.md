@@ -231,8 +231,9 @@ runs the Python and frontend tests on every push and pull request.
 - The measurement catalog is fixed: two pings, K-root and Google.
 - The application is meant to run locally, for one person and one probe at a
   time.
-- A probe only measures while its machine is on and connected; a computer that
-  is always on works best.
+- A probe only measures while its machine is on and connected. A computer that
+  is always on and wired to the router works best: Wi-Fi can add delay and
+  variation to the measurements.
 
 ## Uninstalling
 
