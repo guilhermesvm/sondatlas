@@ -77,5 +77,10 @@ it('shows only start commands that the kit README documents', async () => {
   await userEvent.click(screen.getByText('Direto no sistema'))
   commands.push(...shown())
   expect(commands).toHaveLength(2)
-  for (const command of commands) expect(readme, command).toContain(command)
+  // The page runs from the project root, so the VM command enters lab and comes back. The ; works in Windows PowerShell 5.1, which rejects &&.
+  expect(commands[0]).toMatch(/^cd lab; .+; cd \.\.$/)
+  for (const command of commands) {
+    const documented = command.replace(/^cd lab; (.+); cd \.\.$/, '$1')
+    expect(readme, command).toContain(documented)
+  }
 })

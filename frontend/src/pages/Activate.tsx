@@ -82,7 +82,7 @@ export default function Activate() {
         <SegmentedControl size="sm" my="sm" value={method} onChange={setMethod} aria-label="Como você instalou a probe"
           data={[{ value: 'vm', label: 'Máquina virtual' }, { value: 'native', label: 'Direto no sistema' }]} />
         {method === 'vm'
-          ? <><Text size="sm">Na pasta lab do projeto:</Text><Command>{'vagrant ssh -c "sudo systemctl enable --now ripe-atlas"'}</Command></>
+          ? <><Text size="sm">Na pasta principal do projeto, a mesma onde você rodou o start-kit:</Text><Command>{'cd lab; vagrant ssh -c "sudo systemctl enable --now ripe-atlas"; cd ..'}</Command></>
           : <Command>sudo systemctl enable --now ripe-atlas</Command>}
       </Step>
       <Step title="Confira se a probe está conectada">
