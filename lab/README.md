@@ -145,9 +145,8 @@ o mesmo erro acima. A aplicação da segunda cópia também precisa de outras po
 1. Na pasta principal: `docker compose down -v --rmi all`. Apaga a aplicação,
    as imagens baixadas e construídas por ela e **todo o histórico de medições**.
 2. Na pasta `lab/`: `vagrant destroy -f`. Apaga a VM e a chave da probe.
-3. Opcional: `vagrant box remove sondatlas/bento-debian-13-202510.26.0`, que
-   apaga a imagem do Debian baixada pelo Vagrant (em instalações anteriores a
-   29/10/2026, o nome é `bento/debian-13`; `vagrant box list` mostra qual existe).
+3. Opcional: `vagrant box remove bento/debian-13`, que apaga a imagem do Debian
+   baixada pelo Vagrant.
 4. Opcional: `docker builder prune`, que apaga o cache de build do Docker. Ele
    guarda as imagens de base (Python e Node) e as versões antigas da aplicação
    e pode passar de vários GB. Vale para todos os projetos Docker do
@@ -163,11 +162,9 @@ problema.
 
 ## Observações
 
-- Box: `bento/debian-13` 202510.26.0, de terceiros (projeto Bento), salva com o
-  nome `sondatlas/bento-debian-13-202510.26.0`. O Debian não publica boxes
-  oficiais para VirtualBox desde 2025. A box não traz checksum, então o kit
-  confere o SHA-256 da cópia testada e o `vagrant up` recusa um arquivo
-  diferente.
+- Box: `bento/debian-13` 202510.26.0, de terceiros (projeto Bento). O Debian
+  não publica boxes oficiais para VirtualBox desde 2025. A box não traz
+  checksum publicado.
 - Rede: a VM entra na sua rede local como um aparelho próprio (bridge) e a
   probe mede por ela. A placa NAT existe só para o Vagrant gerenciar a VM.
 - Segurança: a VM só aceita SSH por chave (sem senha), não abre outras portas
