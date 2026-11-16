@@ -17,6 +17,15 @@ def write_secret(path, value):
         os.chown(path, APP_USER_ID, APP_USER_ID)
 
 
+# O entrypoint do InfluxDB passa a senha e o token ao "influx setup" como
+# argumentos; um valor começando com "-" seria lido como opção.
+def new_secret():
+    value = secrets.token_urlsafe(32)
+    while value.startswith("-"):
+        value = secrets.token_urlsafe(32)
+    return value
+
+
 def prepare_secrets(secrets_directory, bolt_path, environment):
     token_path = secrets_directory / TOKEN_FILE
     password_path = secrets_directory / PASSWORD_FILE
@@ -33,12 +42,19 @@ def prepare_secrets(secrets_directory, bolt_path, environment):
             )
         return []
 
+    for name in ("INFLUXDB_ADMIN_PASSWORD", "INFLUXDB_TOKEN"):
+        if environment.get(name, "").startswith("-"):
+            raise RuntimeError(
+                f"{name} no .env não pode começar com hífen (-), porque o InfluxDB "
+                "o leria como opção. Troque o valor."
+            )
+
     created = []
     if environment.get("INFLUXDB_ADMIN_PASSWORD"):
         write_secret(password_path, environment["INFLUXDB_ADMIN_PASSWORD"])
     for path in (password_path, token_path):
         if not path.exists():
-            write_secret(path, secrets.token_urlsafe(32))
+            write_secret(path, new_secret())
             created.append(path.name)
     return created
 

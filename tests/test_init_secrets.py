@@ -1,5 +1,6 @@
 import pytest
 
+from sondatlas import init_secrets
 from sondatlas.init_secrets import PASSWORD_FILE, TOKEN_FILE, prepare_secrets
 
 
@@ -21,6 +22,21 @@ def test_first_start_generates_secrets_and_later_starts_keep_them(tmp_path):
     bolt_path.touch()
     assert prepare_secrets(tmp_path, bolt_path, {}) == []
     assert read_secrets(tmp_path) == generated
+
+
+def test_generated_secrets_never_start_with_a_hyphen(tmp_path, monkeypatch):
+    values = iter(["-first", "password", "-second", "token"])
+    monkeypatch.setattr(init_secrets.secrets, "token_urlsafe", lambda size: next(values))
+
+    prepare_secrets(tmp_path, tmp_path / "influxd.bolt", {})
+
+    assert read_secrets(tmp_path) == {PASSWORD_FILE: "password", TOKEN_FILE: "token"}
+
+
+def test_env_password_starting_with_a_hyphen_stops_before_setup(tmp_path):
+    with pytest.raises(RuntimeError, match="INFLUXDB_ADMIN_PASSWORD no .env não pode começar com hífen"):
+        prepare_secrets(tmp_path, tmp_path / "influxd.bolt", {"INFLUXDB_ADMIN_PASSWORD": "-password"})
+    assert not (tmp_path / PASSWORD_FILE).exists()
 
 
 def test_values_from_env_file_are_used(tmp_path):
