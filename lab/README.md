@@ -126,6 +126,8 @@ gera uma chave nova. O que fazer depende do cadastro:
   ao reinstalar o sistema de um Debian ou Raspberry Pi que roda a probe.
 
 Recriar a VM não apaga as medições do dashboard: elas ficam no banco, fora da VM.
+O `start-kit --probe` apaga a imagem do Debian (1,1 GB) depois de criar a VM,
+então recriar baixa a imagem de novo.
 
 **Apagou a pasta do projeto sem `vagrant destroy`?** A VM continua no
 VirtualBox, às vezes ligada, mas o Vagrant não a controla mais, e um clone novo
@@ -145,8 +147,9 @@ o mesmo erro acima. A aplicação da segunda cópia também precisa de outras po
 1. Na pasta principal: `docker compose down -v --rmi all`. Apaga a aplicação,
    as imagens baixadas e construídas por ela e **todo o histórico de medições**.
 2. Na pasta `lab/`: `vagrant destroy -f`. Apaga a VM e a chave da probe.
-3. Opcional: `vagrant box remove bento/debian-13`, que apaga a imagem do Debian
-   baixada pelo Vagrant.
+3. Se você criou a VM com `vagrant up` em vez do `start-kit --probe`:
+   `vagrant box remove bento/debian-13`, que apaga a imagem do Debian baixada
+   pelo Vagrant. O `start-kit --probe` já a apaga depois de criar a VM.
 4. Opcional: `docker builder prune`, que apaga o cache de build do Docker. Ele
    guarda as imagens de base (Python e Node) e as versões antigas da aplicação
    e pode passar de vários GB. Vale para todos os projetos Docker do

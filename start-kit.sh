@@ -70,6 +70,12 @@ ligar_vm() {
     passo "Ligando a VM da probe"
   fi
   (cd "$RAIZ/lab" && vagrant up) || erro "A VM da probe não ligou. Veja a mensagem acima. Se ela fala em VT-x, AMD-V ou virtualização, ative a virtualização na BIOS. Mais dicas em lab/README.md."
+  if [ "$estado" = not_created ]; then
+    passo "Apagando a imagem do Debian usada para criar a VM (1,1 GB). A VM já tem a própria cópia. Se você recriar a VM, ela será baixada de novo"
+    # --force: sem ele, o Vagrant pede confirmação porque esta VM veio da box.
+    (cd "$RAIZ/lab" && vagrant box remove bento/debian-13 --box-version 202510.26.0 --force) ||
+      echo "Não foi possível apagar a imagem. A VM funciona mesmo assim. Para apagar depois: vagrant box remove bento/debian-13"
+  fi
   if [ "$estado" = saved ]; then
     echo "A VM estava com o estado salvo. Se a probe não aparecer como conectada em alguns minutos, rode vagrant reload na pasta lab."
   fi
