@@ -97,8 +97,9 @@ Validated on Windows 11. Linux as a host has not been tested yet.
 
 3. **Install the probe.** Follow the *Instalar* phase in the dashboard. With
    the VM, run `start-kit` with `--probe` (`-Probe` in PowerShell): it checks
-   virtualization, VirtualBox and Vagrant, creates the VM and shows the probe's
-   public key at the end. Without the VM, run `sudo bash lab/install-probe.sh`
+   virtualization, VirtualBox and Vagrant, creates the VM on the network
+   adapter that reaches the internet and shows, at the end, the registration
+   link with the probe's public key already filled in. Without the VM, run `sudo bash lab/install-probe.sh`
    on the Debian or Raspberry Pi. Details in [`lab/README.md`](lab/README.md).
 
 4. **Register and activate the probe.** Registration at RIPE Atlas is manual:

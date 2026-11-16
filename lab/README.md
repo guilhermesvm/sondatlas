@@ -46,7 +46,8 @@ Escolheu a placa errada? Rode `vagrant halt`. No VirtualBox, abra
 **Configurações → Rede → Adaptador 2** da VM `kit-ripe-atlas-probe`, troque o
 **Nome** pela placa certa e salve. Depois rode `vagrant up --provision`.
 
-No fim, aparecem a **chave pública** e o link de cadastro.
+No fim, aparecem o **link de cadastro**, que já abre com a chave preenchida, e
+a **chave pública**.
 
 Em vez de `vagrant up`, você pode usar o `start-kit` da pasta principal com
 `--probe` (`-Probe` no PowerShell). Ele confere a virtualização, o VirtualBox e o
@@ -58,7 +59,9 @@ comandos estão no `README.md` principal, em *Quick start*.
 
 ## Ativar a probe
 
-1. Cadastre a chave em <https://atlas.ripe.net/register/swprobe> (requer conta RIPE).
+1. Abra o link de cadastro do fim da instalação, que já vem com a chave
+   preenchida (requer conta RIPE). Sem o link, cadastre a chave em
+   <https://atlas.ripe.net/register/swprobe>.
 2. Depois do cadastro:
 
 ```bash
