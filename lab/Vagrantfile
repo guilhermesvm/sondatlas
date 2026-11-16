@@ -74,7 +74,13 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--nat-localhostreachable1", "off"]
   end
 
+  # Fuso deste computador no formato POSIX (sinal invertido: UTC-3 vira
+  # "<-0300>3:00"), só para os horários das mensagens; a VM continua em UTC.
+  off = Time.now.utc_offset
+  hh_mm = format("%d:%02d", off.abs / 3600, off.abs % 3600 / 60)
+  host_tz = format("<%s%s>%s%s", off < 0 ? "-" : "+", hh_mm.delete(":").rjust(4, "0"), off > 0 ? "-" : "", hh_mm)
+
   # Rodam nesta ordem: preparar a VM e depois instalar a probe.
-  config.vm.provision "shell", path: "prepare-vm.sh"
-  config.vm.provision "shell", path: "install-probe.sh", env: { "KIT_VAGRANT" => "1" }
+  config.vm.provision "shell", path: "prepare-vm.sh", env: { "TZ" => host_tz }
+  config.vm.provision "shell", path: "install-probe.sh", env: { "KIT_VAGRANT" => "1", "TZ" => host_tz }
 end

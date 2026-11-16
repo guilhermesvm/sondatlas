@@ -9,7 +9,7 @@ if ($Probe -and $App) { Write-Host 'Use -Probe ou -App, não os dois.' -Foregrou
 $arquivoCompose = Join-Path $PSScriptRoot 'compose.yaml'
 $pastaLab = Join-Path $PSScriptRoot 'lab'
 
-function Passo($texto) { Write-Host "==> $texto" }
+function Passo($texto) { Write-Host "==> [$(Get-Date -Format HH:mm:ss)] $texto" }
 function Erro($texto) { Write-Host "ERRO: $texto" -ForegroundColor Red; exit 1 }
 
 if (-not $Probe) {

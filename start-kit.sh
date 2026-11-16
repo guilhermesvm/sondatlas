@@ -22,7 +22,7 @@ case "$(uname -s)" in
   *) WINDOWS=0 ;;
 esac
 
-passo() { echo "==> $*"; }
+passo() { echo "==> [$(date +%T)] $*"; }
 erro() { echo "ERRO: $*" >&2; exit 1; }
 
 estado_da_vm() {
@@ -64,7 +64,7 @@ ligar_vm() {
     return
   fi
   if [ "$estado" = not_created ]; then
-    passo "Criando a VM da probe pela primeira vez (leva uns 6 minutos)"
+    passo "Criando a VM da probe pela primeira vez (pode levar de 10 a 20 minutos, conforme o computador e a internet)"
     echo "A probe vai usar a placa de rede pela qual este computador acessa a internet. Se o Vagrant perguntar qual placa usar, escolha essa (Wi-Fi ou cabo)."
   else
     passo "Ligando a VM da probe"

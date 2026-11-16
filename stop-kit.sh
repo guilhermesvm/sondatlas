@@ -14,7 +14,7 @@ case "${1:-}" in
   *) echo "Uso: bash stop-kit.sh [--probe | --app]" >&2; exit 2 ;;
 esac
 
-passo() { echo "==> $*"; }
+passo() { echo "==> [$(date +%T)] $*"; }
 erro() { echo "ERRO: $*" >&2; exit 1; }
 
 if [ "$MODO" != probe ]; then

@@ -11,7 +11,7 @@ if ($Probe -and $App) { Write-Host 'Use -Probe ou -App, não os dois.' -Foregrou
 $arquivoCompose = Join-Path $PSScriptRoot 'compose.yaml'
 $pastaLab = Join-Path $PSScriptRoot 'lab'
 
-function Passo($texto) { Write-Host "==> $texto" }
+function Passo($texto) { Write-Host "==> [$(Get-Date -Format HH:mm:ss)] $texto" }
 function Erro($texto) { Write-Host "ERRO: $texto" -ForegroundColor Red; exit 1 }
 
 function EstadoDaVM {
@@ -59,7 +59,7 @@ function LigarVM($estado) {
         return
     }
     if ($estado -eq 'not_created') {
-        Passo 'Criando a VM da probe pela primeira vez (leva uns 6 minutos)'
+        Passo 'Criando a VM da probe pela primeira vez (pode levar de 10 a 20 minutos, conforme o computador e a internet)'
         Write-Host 'A probe vai usar a placa de rede pela qual este computador acessa a internet. Se o Vagrant perguntar qual placa usar, escolha essa (Wi-Fi ou cabo).'
     } else {
         Passo 'Ligando a VM da probe'
