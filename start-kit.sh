@@ -129,7 +129,7 @@ if [ "$MODO" = tudo ]; then
 fi
 
 passo "Ligando a aplicação (banco, coleta, API e dashboard)"
-"${COMPOSE[@]}" up -d --build || erro "A aplicação não subiu. Veja a mensagem acima. Se ela fala em \"port is already allocated\", outro programa ou outra cópia do projeto já usa a porta. Veja como trocar no README, em Quick start."
+"${COMPOSE[@]}" up -d --build || erro "A aplicação não subiu. Veja a mensagem acima. Se ela fala em \"port is already allocated\" ou \"address already in use\", outro programa ou outra cópia do projeto já usa a porta. Veja como trocar no README, em Quick start."
 
 passo "Esperando a API e o dashboard responderem"
 api=$("${COMPOSE[@]}" port api 8000)

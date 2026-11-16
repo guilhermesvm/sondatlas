@@ -128,7 +128,7 @@ if (-not $App) {
 
 Passo 'Ligando a aplicação (banco, coleta, API e dashboard)'
 docker compose -f $arquivoCompose up -d --build
-if ($LASTEXITCODE -ne 0) { Erro 'A aplicação não subiu. Veja a mensagem acima. Se ela fala em "port is already allocated", outro programa ou outra cópia do projeto já usa a porta. Veja como trocar no README, em Quick start.' }
+if ($LASTEXITCODE -ne 0) { Erro 'A aplicação não subiu. Veja a mensagem acima. Se ela fala em "port is already allocated" ou "address already in use", outro programa ou outra cópia do projeto já usa a porta. Veja como trocar no README, em Quick start.' }
 
 Passo 'Esperando a API e o dashboard responderem'
 $api = docker compose -f $arquivoCompose port api 8000

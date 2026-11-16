@@ -85,7 +85,7 @@ Validated on Windows 11. Linux as a host has not been tested yet.
 
 2. **Start the application.** On the first run there is no probe VM yet, so
    only the application starts, and the dashboard opens at
-   `http://127.0.0.1:8080/`.
+   `http://127.0.0.1:8088/`.
 
    | Terminal | Start | Stop |
    |---|---|---|
@@ -121,12 +121,12 @@ and never delete data.
 
 ### If a port is already in use
 
-If start-up reports `port is already allocated`, another program or another
-copy of the project uses the port. Choose other ports in a `.env` file at the
-project root and start again:
+If start-up reports `port is already allocated` or `address already in use`,
+another program or another copy of the project uses the port. Choose other
+ports in a `.env` file at the project root and start again:
 
 ```dotenv
-WEB_PORT=8081       # dashboard, default 8080
+WEB_PORT=8081       # dashboard, default 8088
 API_PORT=8001       # HTTP API, default 8000
 INFLUXDB_PORT=8087  # InfluxDB, default 8086
 ```
