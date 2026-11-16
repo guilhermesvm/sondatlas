@@ -72,7 +72,9 @@ deletes your history.
 - About 5 GB of disk (VM, Debian box, images and data) and about 1.3 GB of RAM
   for the VM and the containers, plus Docker itself.
 
-Validated on Windows 11. Linux as a host has not been tested yet.
+Validated on Windows 11 and Ubuntu 26.04 with the probe VM, and on Debian 13
+with the probe installed directly. The Raspberry Pi and other Linux
+distributions have not been tested.
 
 ## Quick start
 
@@ -228,7 +230,8 @@ runs the Python and frontend tests on every push and pull request.
 
 ## Limitations
 
-- Linux as a host, the Raspberry Pi and IPv6 have not been tested.
+- The Raspberry Pi and
+  other Linux distributions have not been tested.
 - The measurement catalog is fixed: two pings, K-root and Google.
 - The application is meant to run locally, for one person and one probe at a
   time.

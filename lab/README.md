@@ -71,7 +71,10 @@ vagrant ssh -c "sudo systemctl enable --now ripe-atlas"
 ## Já tem Debian ou Raspberry Pi OS?
 
 Sem VM: Debian 11, 12 ou 13 (amd64) ou Debian / Raspberry Pi OS 12 ou 13
-(arm64, Raspberry Pi de 64 bits). *Raspberry Pi: documentado, não testado.*
+(arm64, Raspberry Pi de 64 bits). *Testado no Debian 13 (amd64). Raspberry Pi:
+documentado, não testado.* Com a probe e o dashboard no mesmo computador, não
+use a porta 8080 para o dashboard (`WEB_PORT`): a probe usa essa porta para
+enviar os resultados ao RIPE.
 
 ```bash
 git clone <URL deste repositório>
