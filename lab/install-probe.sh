@@ -64,15 +64,18 @@ else
   ACTIVATE="sudo systemctl enable --now ripe-atlas"
   SHOW_KEY="sudo cat $KEY"
 fi
+# Mesma codificação do instalador oficial: o site do RIPE abre com a chave preenchida.
+REGISTER_URL="https://atlas.ripe.net/register/swprobe?key=$(sed -e 's/%/%25/g' -e 's/ /%20/g' -e 's/+/%2B/g' -e 's,/,%2F,g' -e 's/=/%3D/g' "$KEY")"
 
 cat <<EOF
 
 ------------------------------------------------------------
 Probe instalada, mas ainda NÃO ativada.
 
-1. Cadastre a probe com esta chave pública:
+1. Cadastre a probe neste link, que já abre com a chave preenchida:
+     $REGISTER_URL
+   A chave pública, se precisar copiar:
      $(cat "$KEY")
-   em https://atlas.ripe.net/register/swprobe
 
 2. Depois do cadastro, ative a probe:
      $ACTIVATE
