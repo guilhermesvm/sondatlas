@@ -1,6 +1,6 @@
 # VM Debian com a Software Probe oficial do RIPE Atlas.
 #
-# A VM entra na rede local em bridge (o Vagrant pergunta qual placa usar), para
+# A VM entra na rede local em bridge (pela placa que acessa a internet), para
 # a probe medir pelo mesmo caminho dos outros aparelhos da rede. A placa NAT
 # continua existindo só para o Vagrant gerenciar a VM.
 #
@@ -24,6 +24,26 @@ rescue SystemCallError
   nil
 end
 
+# Placa física pela qual o computador sai para a internet (rota padrão; com
+# cabo e Wi-Fi, a de menor métrica). VPN e vEthernet não são físicas e ficam
+# de fora. Sem resposta, ou se o VirtualBox não conhecer o nome, o Vagrant
+# pergunta qual placa usar.
+def internet_bridge
+  name = if Vagrant::Util::Platform.windows?
+    IO.popen(["powershell", "-NoProfile", "-Command",
+              "Get-NetRoute -DestinationPrefix 0.0.0.0/0 | " \
+              "Sort-Object { $_.RouteMetric + (Get-NetIPInterface -InterfaceIndex $_.ifIndex -AddressFamily IPv4).InterfaceMetric } | " \
+              "ForEach-Object { Get-NetAdapter -InterfaceIndex $_.ifIndex } | Where-Object HardwareInterface | " \
+              "Select-Object -First 1 -ExpandProperty InterfaceDescription"],
+             err: File::NULL, &:read).strip
+  else
+    IO.popen(["ip", "-o", "route", "get", "1.1.1.1"], err: File::NULL, &:read)[/ dev (\S+)/, 1]
+  end
+  name unless name.to_s.empty?
+rescue SystemCallError
+  nil
+end
+
 Vagrant.configure("2") do |config|
   # Não há box oficial do Debian para VirtualBox; o Bento a constrói a partir da
   # ISO oficial. Versão fixada para que todos partam do mesmo disco.
@@ -35,7 +55,7 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
   # Sem "bridge:", o Vagrant lista as placas desta máquina e pergunta qual usar.
-  bridge = saved_bridge
+  bridge = saved_bridge || internet_bridge
   if bridge
     config.vm.network "public_network", bridge: bridge
   else

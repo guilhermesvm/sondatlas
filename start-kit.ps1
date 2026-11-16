@@ -60,7 +60,7 @@ function LigarVM($estado) {
     }
     if ($estado -eq 'not_created') {
         Passo 'Criando a VM da probe pela primeira vez (leva uns 6 minutos)'
-        Write-Host 'O Vagrant vai perguntar qual placa de rede usar. Escolha a que você usa para acessar a internet (Wi-Fi ou cabo).'
+        Write-Host 'A probe vai usar a placa de rede pela qual este computador acessa a internet. Se o Vagrant perguntar qual placa usar, escolha essa (Wi-Fi ou cabo).'
     } else {
         Passo 'Ligando a VM da probe'
     }

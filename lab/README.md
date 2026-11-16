@@ -34,11 +34,13 @@ Nesta pasta (`lab/`):
 vagrant up
 ```
 
-O Vagrant pergunta qual placa de rede usar. Escolha a que você usa para
-acessar a internet (Wi-Fi ou cabo). **Não** escolha `Hyper-V Virtual Ethernet
-Adapter`, `vEthernet` ou `VirtualBox Host-Only`. A escolha fica salva na VM e
-não é perguntada de novo; só volta a ser perguntada depois de `vagrant destroy`
-ou se a placa deixar de existir.
+A VM usa a placa de rede pela qual o computador acessa a internet (com cabo e
+Wi-Fi ligados, o sistema costuma preferir o cabo). VPN e placas virtuais ficam
+de fora. Se o kit não conseguir descobrir a placa, o Vagrant pergunta qual usar:
+escolha a que você usa para acessar a internet (Wi-Fi ou cabo), **não**
+`Hyper-V Virtual Ethernet Adapter`, `vEthernet` ou `VirtualBox Host-Only`. A
+placa fica salva na VM e só volta a ser escolhida depois de `vagrant destroy`
+ou se ela deixar de existir.
 
 Escolheu a placa errada? Rode `vagrant halt`. No VirtualBox, abra
 **Configurações → Rede → Adaptador 2** da VM `kit-ripe-atlas-probe`, troque o

@@ -65,7 +65,7 @@ ligar_vm() {
   fi
   if [ "$estado" = not_created ]; then
     passo "Criando a VM da probe pela primeira vez (leva uns 6 minutos)"
-    echo "O Vagrant vai perguntar qual placa de rede usar. Escolha a que você usa para acessar a internet (Wi-Fi ou cabo)."
+    echo "A probe vai usar a placa de rede pela qual este computador acessa a internet. Se o Vagrant perguntar qual placa usar, escolha essa (Wi-Fi ou cabo)."
   else
     passo "Ligando a VM da probe"
   fi
