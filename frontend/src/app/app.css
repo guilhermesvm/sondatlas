@@ -7,13 +7,14 @@
 .topbar .mantine-ActionIcon-root:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
 
 .navbar { background: var(--ink); border-inline-end: 0; --nav-active: rgba(79, 227, 193, 0.14); }
-.navbar .mantine-NavLink-root { min-height: 44px; border-radius: 12px; color: var(--ink-text); font-size: 15px; }
+.navbar .mantine-NavLink-root { min-height: 44px; border-radius: 12px; color: var(--ink-text); font-size: 15px; font-weight: 500; }
 .navbar .mantine-NavLink-root:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
 .navbar .mantine-NavLink-root[data-active] { background: var(--nav-active); color: #fff; font-weight: 700; }
 .navbar .mantine-NavLink-label { font-weight: inherit; }
 .navbar .mantine-NavLink-description { color: var(--ink-text); }
 .navbar .mantine-NavLink-chevron { color: var(--ink-label); }
 .navbar .nav-label { color: var(--ink-label); letter-spacing: 0.09em; }
+.navbar .nav-journey .mantine-NavLink-label { font-weight: 600; color: #fff; }
 .navbar .status-label, .header-status .status-label { --status-connected: #4fe3c1; --status-disconnected: #f08a74; --status-never: #e59a52; --status-abandoned: #8fa3b5; }
 .nav-journey + .mantine-NavLink-collapse { padding-inline-start: 12px; margin-bottom: 4px; }
 .nav-group { margin-top: 18px; }

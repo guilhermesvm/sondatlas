@@ -3,7 +3,7 @@
 .status-disconnected { --status-color: var(--status-disconnected); }
 .status-never { --status-color: var(--status-never); }
 .status-card .mantine-Text-root[data-size='sm'] { font-size: 16px; }
-.status-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; font-family: var(--mantine-font-family-headings); font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; color: var(--status-color); }
+.status-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; font-family: var(--mantine-font-family-headings); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; color: var(--status-color); }
 .status-name .status-dot { align-self: center; width: 14px; height: 14px; }
 /* Each status has its own shape, so it never depends on color alone. */
 .status-dot { box-sizing: border-box; width: 10px; height: 10px; flex-shrink: 0; border-radius: 2px; background: var(--status-abandoned); }

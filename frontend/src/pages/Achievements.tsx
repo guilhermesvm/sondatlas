@@ -21,7 +21,7 @@ function BadgeTile({ badge }: { badge: Badge }) {
     <BadgeMark mark={badge.mark} />
     <h3 className="badge-title" id={`badge-${badge.id}`}>{badge.title}</h3>
     <p className="badge-rule">{badge.rule}</p>
-    {badge.progress !== undefined && <Progress className="badge-progress" value={Math.min(badge.progress, 1) * 100} color="orange.7" size="sm"
+    {badge.progress !== undefined && <Progress className="badge-progress" value={Math.min(badge.progress, 1) * 100} color="var(--badge-text)" size="sm"
       aria-label={`Progresso de ${badge.title}`} />}
     <p className="badge-status">{badge.status === checking && <Loader size={10} aria-hidden="true" className="badge-loader" />}{statusText(badge)}</p>
   </li>
@@ -35,7 +35,10 @@ export default function Achievements() {
   return <div className="install">
     <Title order={1} className="page-title">Conquistas</Title>
     <Text size="lg" mt="sm" maw={680}>Marcos das suas probes no RIPE Atlas, calculados com os dados do próprio RIPE.</Text>
-    {linked && <Text fw={600} mt="md">{earned} de {badges.length} conquistadas</Text>}
+    {linked && <div className="badge-summary">
+      <p className="badge-summary-text">{earned} de {badges.length} conquistadas</p>
+      <Progress value={badges.length ? 100 * earned / badges.length : 0} color="var(--badge-text)" size="md" aria-hidden="true" />
+    </div>}
 
     {linked && (account?.missing_permissions ?? []).some(permission => ['probes', 'credits', 'my_measurements'].includes(permission)) && <Alert color="yellow" mt="lg" maw={720} title="Falta uma permissão na chave">
       Algumas conquistas precisam de uma permissão que a chave não tem. Veja o que falta em Configurações.
