@@ -76,16 +76,22 @@ export default function Learn({ lesson, exercises = false }: { lesson?: Lesson |
     </section>)}
 
     <section className="lesson-group academy" aria-labelledby="academy">
-      <Title order={2} size="h4" id="academy">Para ir mais fundo: RIPE NCC Academy</Title>
-      <Text size="sm" mt={4} maw={680}>
+      <div className="academy-heading">
+        <Title order={2} size="h4" id="academy">Para ir mais fundo: RIPE NCC Academy</Title>
+        <span className="academy-badge">Em inglês</span>
+      </div>
+      <Text size="sm" mt={6} maw={760} className="academy-text">
         Cursos gratuitos do RIPE NCC, que mantém o RIPE Atlas. Para se inscrever, use uma conta RIPE NCC Access, a mesma do RIPE Atlas. Os cursos estão em inglês.
       </Text>
-      <ul className="lesson-list">
-        {courses.map(course => <li key={course.title} className="lesson-row">
+      <ul className="academy-courses">
+        {courses.map(course => <li key={course.title} className="academy-course">
           <div>
-            <Anchor href={course.href} target="_blank" rel="noreferrer" fw={600}>{course.title}</Anchor>
-            <Text size="sm">{course.text}</Text>
+            <a href={course.href} target="_blank" rel="noreferrer">{course.title}</a>
+            <p>{course.text}</p>
           </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+          </svg>
         </li>)}
       </ul>
     </section>
