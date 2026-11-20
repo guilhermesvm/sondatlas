@@ -95,3 +95,17 @@ code, kbd, pre { font-family: var(--mantine-font-family-monospace); }
 .system-error .mantine-Alert-message { color: var(--mantine-color-text); }
 /* Collapsible items look like the other cards: Mantine's light gray fill matched the page background. */
 .mantine-Accordion-root .mantine-Accordion-item { background-color: var(--surface); border: 1px solid var(--line); }
+/* Components of the visual system: rounder buttons, warm borders, mono numbers. */
+.mantine-Button-root { font-weight: 700; }
+.mantine-Paper-root[data-with-border] { --paper-border-color: var(--line); border-radius: 20px; }
+.mantine-Accordion-root .mantine-Accordion-item { border-radius: 14px; }
+:root[data-mantine-color-scheme='light'] .mantine-Input-input { --input-bd: #8a8571; }
+:root[data-mantine-color-scheme='light'] .mantine-SegmentedControl-root { background: #e6e2d6; }
+.mantine-SegmentedControl-root { padding: 4px; border-radius: 14px; }
+.mantine-SegmentedControl-indicator { border-radius: 10px; }
+.mantine-SegmentedControl-label { font-weight: 600; }
+.mantine-Stepper-stepIcon { font-family: var(--mantine-font-family-monospace); font-weight: 600; }
+.mantine-Stepper-stepLabel { font-weight: 700; }
+.mantine-Stepper-separator { height: 0; background: none; border-top: 2px dashed var(--bar-axis); }
+.mantine-Stepper-separator[data-active] { border-top-style: solid; border-top-color: var(--mantine-primary-color-filled); }
+.mantine-Stepper-step:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 3px; border-radius: 12px; }
