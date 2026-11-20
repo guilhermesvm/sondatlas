@@ -1,13 +1,16 @@
-.status-card { max-width: 720px; padding: 14px 16px; border-left: 4px solid var(--line); border-radius: var(--mantine-radius-sm); background: var(--surface); }
-.status-connected { border-left-color: var(--status-connected); background: var(--mantine-color-green-light); }
-.status-disconnected { border-left-color: var(--status-disconnected); background: var(--mantine-color-red-light); }
-.status-never { border-left-color: var(--status-never); background: var(--mantine-color-yellow-light); }
-.status-abandoned { border-left-color: var(--status-abandoned); background: var(--mantine-color-gray-light); }
-.status-name { font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.status-dot { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: var(--status-abandoned); }
-.status-dot[data-status='connected'] { background: var(--status-connected); }
-.status-dot[data-status='disconnected'] { background: var(--status-disconnected); }
-.status-dot[data-status='never'] { background: var(--status-never); }
+.status-card { --status-color: var(--status-abandoned); max-width: 760px; padding: 28px 32px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+.status-connected { --status-color: var(--status-connected); }
+.status-disconnected { --status-color: var(--status-disconnected); }
+.status-never { --status-color: var(--status-never); }
+.status-card .mantine-Text-root[data-size='sm'] { font-size: 16px; }
+.status-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; font-family: var(--mantine-font-family-headings); font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; color: var(--status-color); }
+.status-name .status-dot { align-self: center; width: 14px; height: 14px; }
+/* Each status has its own shape, so it never depends on color alone. */
+.status-dot { box-sizing: border-box; width: 10px; height: 10px; flex-shrink: 0; border-radius: 2px; background: var(--status-abandoned); }
+.status-dot[data-status='connected'] { border-radius: 50%; background: var(--status-connected); }
+.status-dot[data-status='disconnected'] { border-radius: 50%; background: transparent; border: 2px solid var(--status-disconnected); }
+.status-dot[data-status='never'] { width: 9px; height: 9px; background: var(--status-never); transform: rotate(45deg); }
 .status-label { display: inline-flex; align-items: center; gap: 6px; }
-.status-original { font-weight: 400; font-size: 13px; color: var(--muted); }
-.status-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+.status-original { font-family: var(--mantine-font-family); font-weight: 400; font-size: 15px; letter-spacing: 0; color: var(--muted); }
+.status-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 20px; }
+.status-link { font-weight: 600; color: var(--brand-text); text-underline-offset: 4px; }

@@ -90,7 +90,7 @@ export default function PingExplorer({ active }: { active: boolean }) {
   }
   return (
     <div hidden={!active}>
-    <Title order={2} size="h3" mt="xl" mb="sm">Explorador de ping</Title>
+    <Title order={2} className="section-title">Explorador de ping</Title>
 
     <section className="filters" aria-label="Filtros do histórico">
       <form onSubmit={consult}>

@@ -1,7 +1,8 @@
-.quick-controls { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.filters { padding: 24px 28px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.quick-controls { display: flex; align-items: flex-end; gap: 20px 40px; flex-wrap: wrap; }
 .target-field { flex: 1; min-width: 150px; }
 .quick-periods { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.quick-periods legend { font-size: var(--mantine-font-size-sm); font-weight: 500; padding: 0 0 8px; }
+.quick-periods legend { font-size: var(--mantine-font-size-sm); font-weight: 700; padding: 0 0 8px; }
 .quick-periods .mantine-Radio-root { padding-bottom: 8px; white-space: nowrap; }
 .custom-toggle { margin-top: 6px; padding-inline: 0; text-decoration: underline; text-underline-offset: 3px; }
 .custom-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; }
@@ -10,21 +11,21 @@
 .measurement-context { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; margin: 8px 0 10px; font-size: 14px; }
 .measurement-context span { color: var(--muted); font-size: 13px; }
 .initial-state { padding: 12px 0; color: var(--muted); font-size: 15px; }
-.period-comparison { margin: 16px 0; }
+.period-comparison { margin: 28px 0 16px; }
 .period-comparison h2 { margin: 0; }
 .summary-detail { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.charts-group { padding: 14px 18px; }
+.charts-group { padding: 28px; }
 .chart-panel { min-width: 0; }
-.chart-panel + .chart-panel { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+.chart-panel + .chart-panel { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 24px; }
 .chart-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.chart-heading h3 { margin: 0; }
+.chart-heading h3 { margin: 0; font-size: 22px; }
 .unit { font-size: 14px; padding-left: 4px; color: var(--muted); }
 .metric-summary { color: var(--muted); font-size: 13px; }
 .chart-canvas { width: 100%; margin-top: 4px; }
 .chart-canvas svg { width: 100%; height: auto; display: block; }
 .grid-line { stroke: var(--line); }
 .axis-label { fill: var(--muted); font-size: 13px; }
-.series-line { fill: none; stroke: var(--chart-rtt); stroke-width: 1.8; vector-effect: non-scaling-stroke; }
+.series-line { fill: none; stroke: var(--chart-rtt); stroke-width: 2.4; vector-effect: non-scaling-stroke; }
 .series-dot, .selected-dot { fill: var(--chart-rtt); }
 .selected-dot { stroke: var(--surface); stroke-width: 2; }
 .loss .series-line { stroke: var(--chart-loss); }
@@ -47,7 +48,8 @@
   .custom-fields { flex-direction: column; }
   .custom-fields > * { min-width: 0; }
   .measurement-context { flex-direction: column; gap: 3px; }
-  .charts-group { padding: 12px; }
+  .filters { padding: 18px 16px; }
+  .charts-group { padding: 16px; }
   .point-detail { gap: 4px 12px; }
   .point-time { font-size: 13px; }
   .record-selector input { min-height: 36px; }

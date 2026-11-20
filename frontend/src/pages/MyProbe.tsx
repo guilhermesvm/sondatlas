@@ -11,7 +11,7 @@ export default function MyProbe() {
   useEffect(() => { if (checkedBefore.current) check() }, [check])
 
   if (probeId === null) return <>
-    <Title order={1} size="h2" mb="sm">Minha probe</Title>
+    <Title order={1} className="page-title">Minha probe</Title>
     <Text maw={640}>A Sondatlas ainda não acompanha nenhuma probe. Quando você escolher uma, o status e o histórico de ping dela aparecem aqui.</Text>
     <Text maw={640} mt="xs">Ainda não tem uma probe? A jornada mostra como instalar uma em casa.</Text>
     <Group mt="lg">
@@ -20,7 +20,7 @@ export default function MyProbe() {
     </Group>
   </>
   return <>
-    <Title order={1} size="h2" mb="sm">Minha probe{probeId ? ` ${probeId}` : ''}</Title>
+    <Title order={1} className="page-title">Minha probe {probeId ? <span className="probe-id">{probeId}</span> : null}</Title>
     {loadError ? <SystemError title="Não foi possível falar com a aplicação local" mt="0">{loadError}</SystemError> : <><ProbeStatusCard /><ProbeWorld /></>}
   </>
 }

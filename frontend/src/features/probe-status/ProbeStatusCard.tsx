@@ -46,8 +46,8 @@ export function StatusCard({ probeId, probe, error, checking, onCheck, next }: {
   probeId: number, probe: ProbeStatus | null, error: boolean, checking: boolean, onCheck?: () => void, next?: NextStep
 }) {
   const actions = <div className="status-actions">
-    {onCheck && <Button size="compact-sm" variant="default" loading={checking} onClick={onCheck}>Verificar de novo</Button>}
-    <Anchor size="sm" href={`https://atlas.ripe.net/probes/${probeId}/`} target="_blank" rel="noreferrer">Abrir a página da probe no RIPE Atlas</Anchor>
+    {onCheck && <Button variant="outline" loading={checking} onClick={onCheck}>Verificar de novo</Button>}
+    <Anchor className="status-link" href={`https://atlas.ripe.net/probes/${probeId}/`} target="_blank" rel="noreferrer">Abrir a página da probe no RIPE Atlas</Anchor>
   </div>
   if (!probe && error) return <>
     <SystemError title="Não foi possível consultar o RIPE Atlas" mt="0">Tente de novo em instantes.</SystemError>
