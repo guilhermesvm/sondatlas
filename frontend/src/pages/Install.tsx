@@ -216,7 +216,7 @@ export default function Install() {
   const where = system !== 'windows' ? 'Num terminal' : terminal === 'powershell' ? 'No PowerShell' : 'No Git Bash'
   const problems = virtualMachine ? vmProblems(shell).filter(problem => system === 'windows' || !problem.windowsOnly) : []
   return <div className="install">
-    <Title order={1} size="h2">Instalar a probe</Title>
+    <Title order={1} className="page-title">Instalar a probe</Title>
     <Text size="lg" mt="sm" maw={1000}>
       A Sondatlas já está rodando no seu computador, e é por isso que você vê esta página. Falta instalar a software probe oficial do RIPE Atlas. Onde ela vai rodar?
     </Text>

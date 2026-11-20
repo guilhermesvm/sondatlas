@@ -33,7 +33,7 @@ export default function Achievements() {
   const earned = badges.filter(badge => badge.earned).length
 
   return <div className="install">
-    <Title order={1} size="h2">Conquistas</Title>
+    <Title order={1} className="page-title">Conquistas</Title>
     <Text size="lg" mt="sm" maw={680}>Marcos das suas probes no RIPE Atlas, calculados com os dados do próprio RIPE.</Text>
     {linked && <Text fw={600} mt="md">{earned} de {badges.length} conquistadas</Text>}
 

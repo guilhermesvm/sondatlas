@@ -34,18 +34,22 @@
   .mantine-Stepper-stepBody { display: none; }
   .mantine-Stepper-separator { margin-inline: 6px; }
 }
-.discover .reasons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 40px; margin-top: 8px; max-width: 900px; }
-.scale { display: grid; grid-template-columns: 1fr 1fr 1.6fr; background: var(--accent-bg); border-radius: var(--mantine-radius-md); }
+.discover .reasons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; max-width: 980px; }
+.discover .reasons > p { margin: 0; padding: 22px 24px; border: 1px solid var(--line); border-top: 4px solid var(--mantine-primary-color-filled); border-radius: 20px; background: var(--surface); font-size: 16px; line-height: 1.6; }
+.discover .reasons strong { display: block; margin-bottom: 6px; font-family: var(--mantine-font-family-headings); font-size: 19px; }
+.scale { display: grid; grid-template-columns: 1fr 1fr 1.6fr; background: var(--accent-bg); border-radius: 20px; }
 .scale-step { padding: 20px 24px; position: relative; }
 .scale-step + .scale-step { border-left: 1px solid var(--accent-line); }
-.scale-step.yours { background: var(--surface); border: 2px solid var(--mantine-primary-color-filled); border-radius: var(--mantine-radius-md); margin: -1px; }
+.scale-step.yours { background: var(--surface); border: 2px solid var(--mantine-primary-color-filled); border-radius: 20px; margin: -1px; }
 .scale-place { font-size: 14px; font-weight: 600; color: var(--brand-text); }
-.scale-number { font-size: 32px; font-weight: 700; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.scale-number { font-family: var(--mantine-font-family-monospace); font-size: 32px; font-weight: 600; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; color: var(--brand-text); }
 .scale-note { grid-column: 1 / -1; padding: 0 24px 14px; }
-.visibility { display: grid; grid-template-columns: 3fr 2fr; gap: 32px; max-width: 900px; }
-.visibility-side { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }
-.visibility-side.private { border-left-color: var(--bar); }
-.visibility-title { font-weight: 600; margin-bottom: 6px; }
+.visibility { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; max-width: 980px; }
+.visibility-side { padding: 22px 24px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.visibility-side.private { background: transparent; border-style: dashed; }
+.visibility-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-family: var(--mantine-font-family-headings); font-size: 19px; font-weight: 700; }
+.visibility-title::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--mantine-primary-color-filled); }
+.private .visibility-title::before { box-sizing: border-box; background: transparent; border: 2px solid var(--bar); }
 .spec { margin: 0; max-width: 820px; border-top: 1px solid var(--line); }
 .spec > div { display: grid; grid-template-columns: 170px 1fr; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .spec dt { font-weight: 600; }
@@ -70,7 +74,7 @@
 .install-steps > li { counter-increment: step; position: relative; padding: 0 0 24px 48px; }
 .install-steps > li::before { content: counter(step); position: absolute; left: 0; top: -6px; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mantine-font-family-monospace); font-weight: 600; color: var(--mantine-primary-color-contrast); background: var(--mantine-primary-color-filled); }
 .install-steps > li:not(:last-child)::after { content: ''; position: absolute; left: 17px; top: 38px; bottom: 4px; border-left: 2px dashed var(--bar-axis); }
-.install-step-title { font-family: var(--mantine-font-family-headings); font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+.install-step-title { font-family: var(--mantine-font-family-headings); font-size: 22px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 6px; }
 .install code, .install-note code { font-size: 0.92em; }
 .install p code { white-space: nowrap; }
 .command { display: flex; align-items: center; gap: 4px; margin: 8px 0; max-width: 680px; background: var(--ink); border-radius: 14px; padding: 4px 4px 4px 20px; color: #e8eef3; }
@@ -85,7 +89,7 @@
 .install-manual-control:hover { background-color: transparent; }
 .install-manual-label { font-size: 14px; font-weight: 600; padding-top: 6px; padding-bottom: 6px; }
 .install-manual-control:hover .install-manual-label { text-decoration: underline; }
-.install-manual-content { margin-left: 7px; padding: 4px 0 4px 18px; border-left: 2px solid var(--accent-line); }
+.install-manual-content { margin-top: 4px; padding: 20px 24px 8px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
 .install-substeps { list-style: none; counter-reset: substep; padding: 0; margin: 0; }
 .install-substeps > li { counter-increment: substep; position: relative; padding: 0 0 8px 32px; }
 .install-substeps > li::before { content: counter(substep); position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--brand-text); background: var(--accent-bg); }
@@ -94,8 +98,9 @@
 .settings-rows.install-actions dt { padding-top: 11px; }
 .install-actions .command { margin: 0; }
 .install-manual .settings-rows.install-actions { margin-top: 12px; }
-.install-note { border-left: 4px solid var(--mantine-primary-color-filled); padding-left: 16px; }
-.install-choice { margin-top: 16px; padding-left: 16px; border-left: 4px solid var(--accent-line); }
+.install-note { padding: 14px 18px; border: 1px solid var(--notice-line); border-radius: 14px; background: var(--notice-bg); color: var(--notice-text); }
+.install-choice { margin-top: 20px; }
+.install-choice > .mantine-Text-root:first-child { font-weight: 700; }
 .follow-box { margin-top: 28px; max-width: 720px; padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--mantine-radius-md); background: var(--surface); }
 .challenge-list { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
 .challenge-list > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }

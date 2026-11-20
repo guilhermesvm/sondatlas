@@ -67,7 +67,7 @@ export default function Follow() {
   const errorText = error && <SystemError title={error.title}>{error.message}</SystemError>
 
   return <div className="install">
-    <Title order={1} size="h2">Acompanhar a probe</Title>
+    <Title order={1} className="page-title">Acompanhar a probe</Title>
     <Text size="lg" mt="sm" maw={1000}>
       A Sondatlas pode guardar os resultados da sua probe no seu computador. Assim você vê como a sua conexão se comportou ao longo dos dias, e não só agora.
     </Text>

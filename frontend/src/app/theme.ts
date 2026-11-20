@@ -15,5 +15,9 @@ export const theme = createTheme({
   radius: { md: '12px', lg: '20px' },
   fontFamily: "'Hanken Grotesk Variable', system-ui, sans-serif",
   fontFamilyMonospace: "'JetBrains Mono Variable', ui-monospace, monospace",
-  headings: { fontFamily: "'Bricolage Grotesque Variable', system-ui, sans-serif", fontWeight: '700' },
+  headings: {
+    fontFamily: "'Bricolage Grotesque Variable', system-ui, sans-serif",
+    fontWeight: '700',
+    sizes: { h2: { fontSize: '1.75rem', lineHeight: '1.2' }, h3: { fontSize: '1.3rem', lineHeight: '1.3' } },
+  },
 })

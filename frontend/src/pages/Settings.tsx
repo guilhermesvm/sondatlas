@@ -186,7 +186,7 @@ export default function Settings() {
     autoComplete="off" value={typed} onChange={event => setTyped(event.currentTarget.value)} flex={1} maw={label ? undefined : 320} error={fieldError} data-autofocus={label ? true : undefined} />
 
   return <div className="install">
-    <Title order={1} size="h2">Configurações</Title>
+    <Title order={1} className="page-title">Configurações</Title>
     <Text size="lg" mt="sm" maw={680}>O que a Sondatlas guarda neste computador para funcionar do seu jeito.</Text>
 
     <div className={`settings-layout ${showForm ? 'with-guide' : ''}`}>

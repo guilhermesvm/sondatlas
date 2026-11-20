@@ -31,7 +31,7 @@ export default function Exercises({ lesson }: { lesson: Lesson }) {
       <Anchor href={lessonHref} size="sm">{lesson.title}</Anchor>
       <Text size="sm">Exercícios</Text>
     </Breadcrumbs>
-    <Title order={1} size="h2">Exercícios: {lesson.title}</Title>
+    <Title order={1} className="page-title">Exercícios: {lesson.title}</Title>
   </>
   if (fromData === null) return <div className="install">{header}<Loading mt="lg">Preparando as perguntas com os dados da sua probe…</Loading></div>
 

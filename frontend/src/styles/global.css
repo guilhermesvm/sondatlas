@@ -27,6 +27,9 @@
   --badge-text: #8a4308;
   --badge-bg: #fbebd7;
   --badge-line: #e6c88a;
+  --notice-bg: #fff4df;
+  --notice-line: #e6c88a;
+  --notice-text: #5c3a07;
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-text: #13202d;
@@ -60,6 +63,9 @@
   --badge-text: #f2c08a;
   --badge-bg: #3d2a12;
   --badge-line: #8a4308;
+  --notice-bg: #3a2a12;
+  --notice-line: #8a5a1a;
+  --notice-text: #f6dcb4;
 }
 body { background: var(--ink); line-height: 1.5; }
 summary { cursor: pointer; }
@@ -109,7 +115,8 @@ code, kbd, pre { font-family: var(--mantine-font-family-monospace); }
 .mantine-Stepper-separator { height: 0; background: none; border-top: 2px dashed var(--bar-axis); }
 .mantine-Stepper-separator[data-active] { border-top-style: solid; border-top-color: var(--mantine-primary-color-filled); }
 .mantine-Stepper-step:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 3px; border-radius: 12px; }
-.page-title { margin-bottom: 24px; font-size: clamp(32px, 4vw, 44px); line-height: 1.1; letter-spacing: -0.025em; }
+.page-title { margin-bottom: 16px; font-size: clamp(32px, 4vw, 44px); line-height: 1.1; letter-spacing: -0.025em; }
+.page-title + .mantine-Text-root[data-size='lg'] { max-width: 760px; font-size: 19px; line-height: 1.6; }
 .probe-id { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; margin-left: 8px; vertical-align: middle; border-radius: 10px; background: var(--accent-bg); color: var(--mantine-color-text); font-family: var(--mantine-font-family-monospace); font-size: 15px; font-weight: 500; letter-spacing: 0; }
 .section-title { margin: 64px 0 20px; font-size: 30px; letter-spacing: -0.02em; }
 @media (max-width: 650px) {

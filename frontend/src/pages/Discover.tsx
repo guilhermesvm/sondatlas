@@ -57,7 +57,7 @@ export default function Discover({ understood, onUnderstoodChange }: { understoo
   }, [])
 
   return <div className="discover">
-    <Title order={1} size="h2">Conhecer o RIPE Atlas</Title>
+    <Title order={1} className="page-title">Conhecer o RIPE Atlas</Title>
     <Text size="lg" mt="sm" maw={1000}>
       O RIPE Atlas é uma rede de medição da Internet mantida pelo RIPE NCC, uma organização sem fins lucrativos. Voluntários do mundo
       todo hospedam probes: medidores que fazem testes como ping, traceroute e DNS o tempo todo, e os resultados são abertos. A

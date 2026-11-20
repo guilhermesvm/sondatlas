@@ -129,7 +129,7 @@ export default function Explore() {
   const milestones = [probe, followed, exercises, made, won]
 
   return <div className="install">
-    <Title order={1} size="h2">Explorar</Title>
+    <Title order={1} className="page-title">Explorar</Title>
     <Text size="lg" mt="sm" maw={1000}>Você chegou à última fase. Veja o que já fez com a sua probe e por onde continuar no RIPE Atlas.</Text>
 
     <section className="explore-section" aria-labelledby="explore-done">

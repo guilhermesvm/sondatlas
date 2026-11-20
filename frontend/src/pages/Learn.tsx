@@ -45,7 +45,7 @@ function LessonPage({ lesson }: { lesson: Lesson }) {
   const Content = contents[lesson.id]
   return <div className="install">
     <Breadcrumbs aria-label="Você está em" mb="xs"><Anchor href="#/aprender" size="sm">Aprender</Anchor><Text size="sm">{lesson.title}</Text></Breadcrumbs>
-    <Title order={1} size="h2">{lesson.title}</Title>
+    <Title order={1} className="page-title">{lesson.title}</Title>
     <Text size="lg" mt="sm" maw={680}>{lesson.text}</Text>
     <Content />
     {exerciseLessons.includes(lesson.id) && <ExercisesEntry lesson={lesson} />}
@@ -57,7 +57,7 @@ export default function Learn({ lesson, exercises = false }: { lesson?: Lesson |
   if (lesson && exercises && exerciseLessons.includes(lesson.id)) return <Exercises key={lesson.id} lesson={lesson} />
   if (lesson) return <LessonPage lesson={lesson} />
   return <div className="install">
-    <Title order={1} size="h2">Aprender</Title>
+    <Title order={1} className="page-title">Aprender</Title>
     <Text size="lg" mt="sm" maw={1000}>Entenda o que a sua probe mede, com os dados dela. Cada lição explica o conceito, mostra o seu dado, ensina a ler e diz o que ele não mostra.</Text>
     <Text mt="xs" maw={900}>{withExercises}</Text>
 

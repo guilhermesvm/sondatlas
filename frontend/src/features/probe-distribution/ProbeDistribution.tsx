@@ -62,7 +62,7 @@ export default function ProbeDistribution({ active }: { active: boolean }) {
   const maximum = Math.max(1, ...distribution?.top_countries.map(row => row.probes) ?? [])
   return <section hidden={!active} aria-label="Distribuição global de probes">
     <div className="distribution-heading">
-      <div><Title order={1} size="h2">Rede global</Title><p className="result-count">Onde observamos pontos públicos conectados do RIPE Atlas.</p></div>
+      <div><Title order={1} className="page-title">Rede global</Title><p className="result-count">Onde observamos pontos públicos conectados do RIPE Atlas.</p></div>
       <Button disabled={refreshing || reading} onClick={refresh} leftSection={refreshing && <Loader size={16} color="currentColor" />}>
         {refreshing ? 'Atualizando…' : 'Atualizar distribuição'}
       </Button>

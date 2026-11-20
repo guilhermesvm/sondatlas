@@ -625,7 +625,7 @@ export default function Challenges() {
 
   const missing = (account?.missing_permissions ?? []).filter(permission => permission === 'measurements' || permission === 'probes')
   return <div className="install">
-    <Title order={1} size="h2">Desafios</Title>
+    <Title order={1} className="page-title">Desafios</Title>
     <Text size="lg" mt="sm" maw={900}>
       Medições criadas por você, com os seus créditos. Antes de criar, a Sondatlas mostra quanto custa. Para entender de onde vêm os créditos, veja a <Anchor href="#/aprender/creditos">lição de créditos</Anchor>.
     </Text>
