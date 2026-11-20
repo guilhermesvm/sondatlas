@@ -1,6 +1,6 @@
 .lesson-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 40px; margin-top: 28px; max-width: 980px; }
 .lesson-toc { position: sticky; top: 76px; align-self: start; }
-.lesson-toc ul { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+.lesson-toc ul { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
 .lesson-toc button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 4px 12px; font: inherit; font-size: 14px; color: var(--mantine-color-text); cursor: pointer; }
 .lesson-toc button:hover { color: var(--brand-text); text-decoration: underline; }
 .lesson-toc button:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 2px; }
@@ -9,10 +9,11 @@
 .lesson-part + .lesson-part { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
 .lesson-figure { margin: 12px 0 0; }
 .lesson-parts :not(pre) > code { padding: 1px 6px; border-radius: 4px; background: var(--accent-bg); color: var(--brand-text); font-size: 0.92em; font-weight: 600; white-space: nowrap; }
-.lesson-terminal { margin: 8px 0 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); font-size: 13px; line-height: 1.6; overflow-x: auto; }
+.lesson-terminal { margin: 8px 0 0; padding: 14px 20px; background: var(--ink); color: #e8eef3; border-radius: 14px; font-size: 13px; line-height: 1.6; overflow-x: auto; }
 .address-path { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px; }
-.address-path li { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); background: var(--surface); font-size: 13px; }
+.address-path li { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-size: 13px; }
 .address-path li strong { font-size: 14px; }
+.address-path li:last-child { border: 2px solid var(--mantine-primary-color-filled); }
 .address-path li:not(:last-child)::after { content: "→" / ""; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
 .lesson-networks { list-style: none; margin: 6px 0 0; padding: 0; font-size: 14px; }
 .lesson-networks li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 6px 0; border-bottom: 1px solid var(--line); }
@@ -22,7 +23,7 @@
 .lesson-route th { text-align: left; font-weight: 600; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .lesson-route td { padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .lesson-route td:first-child, .lesson-route td:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.lesson-picker { padding: 12px 14px; border-left: 3px solid var(--mantine-primary-color-filled); background: var(--accent-bg); border-radius: 0 var(--mantine-radius-sm) var(--mantine-radius-sm) 0; }
+.lesson-picker { padding: 16px 20px; border: 1px solid var(--accent-line); border-radius: 14px; background: var(--accent-bg); }
 .route-stages { list-style: none; margin: 4px 0 0; padding: 0; }
 .route-stages li { position: relative; display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 4px 20px; padding: 0 0 18px 24px; }
 .route-stages li::before { content: ''; position: absolute; left: 0; top: 5px; width: 11px; height: 11px; border-radius: 50%; background: var(--mantine-primary-color-filled); }
@@ -30,22 +31,22 @@
 .route-stages li[data-kind='lost']::before { background: var(--muted); }
 .route-stage-head { display: flex; flex-direction: column; }
 .lesson-reminders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
-.lesson-reminders > div { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--mantine-radius-sm); background: var(--surface); }
-.lesson-reminders strong { display: block; margin-bottom: 2px; font-size: 14px; }
+.lesson-reminders > div { padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.lesson-reminders strong { display: block; margin-bottom: 4px; font-family: var(--mantine-font-family-headings); font-size: 16px; }
 .lesson-chips { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .root-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 24px; font-size: 14px; }
 .root-list li { display: flex; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); }
-.root-list strong { min-width: 56px; }
+.root-list strong { min-width: 56px; font-family: var(--mantine-font-family-monospace); font-weight: 600; color: var(--brand-text); }
 .lesson-reading { margin: 0; }
 .lesson-reading > div { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4px 24px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .lesson-reading > div:first-child { border-top: 1px solid var(--line); }
 .lesson-reading > div:last-child { border-bottom: 0; padding-bottom: 0; }
-.lesson-reading dt { font-weight: 700; font-variant-numeric: tabular-nums; }
+.lesson-reading dt { font-family: var(--mantine-font-family-monospace); font-weight: 600; font-variant-numeric: tabular-nums; }
 .lesson-reading dd { margin: 0; font-size: 14px; }
 .lesson-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 32px; margin: 12px 0 0; }
 .lesson-numbers dt { font-weight: 600; }
 .lesson-numbers dd { margin: 0; font-size: 14px; }
-.lesson-numbers .lesson-number-value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lesson-numbers .lesson-number-value { font-family: var(--mantine-font-family-monospace); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--brand-text); }
 .lesson-chart { background: var(--surface); }
 .lesson-notes { list-style: none; margin: 0; padding: 0; }
 .lesson-notes li + li { margin-top: 10px; }

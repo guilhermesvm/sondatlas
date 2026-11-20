@@ -30,6 +30,7 @@
   --notice-bg: #fff4df;
   --notice-line: #e6c88a;
   --notice-text: #5c3a07;
+  --error-bg: #fbe3de;
 }
 :root[data-mantine-color-scheme='light'] {
   --mantine-color-text: #13202d;
@@ -66,6 +67,7 @@
   --notice-bg: #3a2a12;
   --notice-line: #8a5a1a;
   --notice-text: #f6dcb4;
+  --error-bg: #3a1a14;
 }
 body { background: var(--ink); line-height: 1.5; }
 summary { cursor: pointer; }
@@ -103,6 +105,13 @@ code, kbd, pre { font-family: var(--mantine-font-family-monospace); }
 .mantine-Accordion-root .mantine-Accordion-item { background-color: var(--surface); border: 1px solid var(--line); }
 /* Components of the visual system: rounder buttons, warm borders, mono numbers. */
 .mantine-Button-root { font-weight: 700; }
+/* Secondary buttons: white with the signal outline, as in the design. */
+.mantine-Button-root[data-variant='default'] { border: 1.5px solid var(--mantine-primary-color-filled); background: var(--surface); color: var(--brand-text); }
+.mantine-Button-root[data-variant='default']:hover:not(:disabled) { background: var(--accent-bg); }
+.mantine-Button-root[data-variant='default'].danger-button { border-color: var(--status-disconnected); color: var(--error-text); }
+.mantine-Button-root[data-variant='default'].danger-button:hover:not(:disabled) { background: var(--error-bg); }
+.mantine-Button-root.danger-filled { background: #b3321c; color: #fff; }
+.mantine-Button-root.danger-filled:hover:not(:disabled) { background: #8f2815; }
 .mantine-Paper-root[data-with-border] { --paper-border-color: var(--line); border-radius: 20px; }
 .mantine-Accordion-root .mantine-Accordion-item { border-radius: 14px; }
 :root[data-mantine-color-scheme='light'] .mantine-Input-input { --input-bd: #8a8571; }

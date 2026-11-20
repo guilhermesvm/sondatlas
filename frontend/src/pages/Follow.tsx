@@ -124,7 +124,7 @@ export default function Follow() {
           {errorText}
           <Group gap="sm" mt="lg" justify="flex-end">
             <Button variant="default" onClick={() => setConfirming(false)}>Cancelar</Button>
-            <Button color="red.9" loading={busy} onClick={stop}>Sim, parar</Button>
+            <Button className="danger-filled" loading={busy} onClick={stop}>Sim, parar</Button>
           </Group>
         </Modal>
       </>}
