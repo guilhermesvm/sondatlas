@@ -17,7 +17,7 @@ students and enthusiasts can replicate.
   official Software Probe (Vagrant + VirtualBox, same command on Windows and
   Linux), or installs the probe directly on Debian or Raspberry Pi OS.
 - **Guides you step by step.** The dashboard is a six-phase journey: *Conhecer*
-  (learn what RIPE Atlas is), *Instalar*, *Ativar*, *Acompanhar* (follow your
+  (learn what RIPE Atlas is), *Instalar*, *Ativar*s, *Acompanhar* (follow your
   probe), *Aprender* (lessons on ping, IP and traceroute, with exercises) and
   *Explorar*.
 - **Keeps your probe's history.** A pipeline collects your probe's results for
@@ -232,7 +232,11 @@ runs the Python and frontend tests on every push and pull request.
 
 - The Raspberry Pi and
   other Linux distributions have not been tested.
-- The measurement catalog is fixed: two pings, K-root and Google.
+- The measurement catalog is fixed: two IPv4 pings, K-root and Google. In the
+  tests, new probes had no Google results in their first half hour.
+- IPv6 is only partly supported. If the probe connects only over IPv6, some
+  dashboard screens show no network or provider, and the pipeline, which reads
+  only IPv4 measurements, collects no data.
 - The application is meant to run locally, for one person and one probe at a
   time.
 - A probe only measures while its machine is on and connected. A computer that
