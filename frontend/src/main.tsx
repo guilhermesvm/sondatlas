@@ -1,3 +1,6 @@
+import '@fontsource-variable/bricolage-grotesque'
+import '@fontsource-variable/hanken-grotesk'
+import '@fontsource-variable/jetbrains-mono'
 import '@mantine/core/styles.css'
 import './styles/global.css'
 import { MantineProvider } from '@mantine/core'

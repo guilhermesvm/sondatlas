@@ -1,65 +1,74 @@
 :root {
-  --page-bg: var(--mantine-color-gray-0);
-  --surface: var(--mantine-color-white);
+  --ink: #0b1724;
+  --ink-raised: #12263a;
+  --ink-text: #bccad6;
+  --ink-label: #8fa3b5;
+  --ink-signal: #4fe3c1;
+  --page-bg: #f3f1ea;
+  --surface: #ffffff;
   --muted: var(--mantine-color-dimmed);
-  --line: var(--mantine-color-gray-3);
-  --brand-text: var(--mantine-color-indigo-8);
+  --line: #dcd6c8;
+  --brand-text: #075e50;
   --bar: #7d858d;
-  --bar-track: var(--mantine-color-gray-0);
-  --bar-axis: var(--mantine-color-gray-4);
+  --bar-track: #f3f1ea;
+  --bar-axis: #c9c2b1;
   --bar-highlight: var(--mantine-primary-color-filled);
-  --chart-rtt: var(--mantine-color-blue-7);
-  --chart-loss: #b26530;
-  --accent-bg: var(--mantine-color-indigo-0);
-  --accent-line: var(--mantine-color-indigo-2);
-  --status-connected: var(--mantine-color-green-8);
-  --status-disconnected: var(--mantine-color-red-7);
-  --status-never: var(--mantine-color-yellow-9);
-  --status-abandoned: var(--mantine-color-gray-7);
-  --error-text: var(--mantine-color-red-9);
-  --available-text: #1b6b31;
-  --available-bg: #e3f6e8;
-  --badge-text: #9a3412;
-  --badge-bg: #ffedd5;
-  --badge-line: #fdba74;
+  --chart-rtt: #0a7a68;
+  --chart-loss: #a8520a;
+  --accent-bg: #ddf3ee;
+  --accent-line: #9fe3d2;
+  --status-connected: #0a7a68;
+  --status-disconnected: #b3321c;
+  --status-never: #a8520a;
+  --status-abandoned: #58626c;
+  --error-text: #8f2815;
+  --available-text: #075e50;
+  --available-bg: #ddf3ee;
+  --badge-text: #8a4308;
+  --badge-bg: #fbebd7;
+  --badge-line: #e6c88a;
 }
 :root[data-mantine-color-scheme='light'] {
-  --mantine-color-dimmed: #5c636a;
+  --mantine-color-text: #13202d;
+  --mantine-color-dimmed: #58626c;
   --mantine-color-error: var(--error-text);
 }
 :root[data-mantine-color-scheme='dark'] {
-  --mantine-color-text: #e8e8e8;
-  --mantine-color-dimmed: #b4b4b4;
-  --page-bg: var(--mantine-color-dark-8);
-  --surface: var(--mantine-color-dark-7);
-  --line: var(--mantine-color-dark-4);
-  --brand-text: var(--mantine-color-indigo-3);
-  --bar: var(--mantine-color-dark-2);
-  --bar-track: var(--mantine-color-dark-6);
-  --bar-axis: var(--mantine-color-dark-4);
-  --bar-highlight: var(--mantine-color-indigo-5);
-  --chart-rtt: var(--mantine-color-blue-4);
-  --chart-loss: #d9894f;
-  --accent-bg: #2a2d3f;
-  --accent-line: var(--mantine-color-dark-4);
-  --status-connected: var(--mantine-color-green-5);
-  --status-disconnected: var(--mantine-color-red-5);
-  --status-never: var(--mantine-color-yellow-5);
-  --status-abandoned: var(--mantine-color-gray-4);
-  --error-text: var(--mantine-color-red-4);
+  --ink: #08111b;
+  --mantine-color-text: #e8eef3;
+  --mantine-color-dimmed: #b0bfcc;
+  --page-bg: #0f1e2e;
+  --surface: #12263a;
+  --line: #2c3f52;
+  --brand-text: #4fe3c1;
+  --bar: #8fa3b5;
+  --bar-track: #0f1e2e;
+  --bar-axis: #2c3f52;
+  --bar-highlight: #4fe3c1;
+  --chart-rtt: #4fe3c1;
+  --chart-loss: #e59a52;
+  --accent-bg: #12352f;
+  --accent-line: #1e5a4f;
+  --status-connected: #4fe3c1;
+  --status-disconnected: #f08a74;
+  --status-never: #e59a52;
+  --status-abandoned: #8fa3b5;
+  --error-text: #f08a74;
   --mantine-color-error: var(--error-text);
-  --available-text: var(--mantine-color-green-3);
-  --available-bg: #16451f;
-  --badge-text: #fdba74;
-  --badge-bg: #43260f;
-  --badge-line: #9a3412;
+  --available-text: #4fe3c1;
+  --available-bg: #12352f;
+  --badge-text: #f2c08a;
+  --badge-bg: #3d2a12;
+  --badge-line: #8a4308;
 }
-body { background: var(--page-bg); line-height: 1.5; }
+body { background: var(--ink); line-height: 1.5; }
 summary { cursor: pointer; }
 a:focus-visible, summary:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 3px; }
 .page { max-width: 1120px; margin: 0 auto; padding: 4px 12px 24px; }
-h2 { font-size: 20px; font-weight: 600; }
-h3 { font-size: 18px; font-weight: 600; }
+h1, h2, h3 { font-family: var(--mantine-font-family-headings); letter-spacing: -0.015em; }
+h2 { font-size: 22px; font-weight: 700; }
+h3 { font-size: 18px; font-weight: 700; }
+code, kbd, pre { font-family: var(--mantine-font-family-monospace); }
 .message { margin: 14px 0; border: 1px solid var(--line); background: var(--mantine-primary-color-light); border-radius: var(--mantine-radius-md); padding: 16px; font-size: 15px; }
 .message h2 { margin-top: 0; }
 .message p { margin: 8px 0; }

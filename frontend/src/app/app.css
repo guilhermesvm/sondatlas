@@ -1,21 +1,45 @@
-.topbar { background: var(--mantine-primary-color-9); color: white; border-bottom: 0; }
-.brand { display: inline-flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 600; color: inherit; text-decoration: none; }
-.logo { width: 1.1em; height: 1.1em; flex-shrink: 0; }
-.header-label { color: var(--mantine-primary-color-1); font-size: 13px; }
-.header-status { display: none; padding: 3px 10px; border-radius: 999px; background: var(--mantine-color-body); color: var(--mantine-color-text); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
-.nav-group + .nav-group { margin-top: 12px; }
-.nav-bottom { padding-top: 6px; border-top: 1px solid var(--line); }
-.main { display: flex; flex-direction: column; }
-.main > .page { width: 100%; margin-bottom: 48px; }
+.topbar { background: var(--ink); color: white; border-bottom: 0; }
+.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-family: var(--mantine-font-family-headings); font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: inherit; text-decoration: none; }
+.logo { width: 1.15em; height: 1.15em; flex-shrink: 0; color: var(--ink-signal); }
+.header-label { color: var(--ink-text); font-size: 13px; }
+.header-status { display: none; padding: 4px 12px; border-radius: 999px; background: rgba(79, 227, 193, 0.14); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.topbar .mantine-ActionIcon-root { color: var(--ink-text); }
+.topbar .mantine-ActionIcon-root:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+.navbar { background: var(--ink); border-inline-end: 0; --nav-active: rgba(79, 227, 193, 0.14); }
+.navbar .mantine-NavLink-root { min-height: 44px; border-radius: 12px; color: var(--ink-text); font-size: 15px; }
+.navbar .mantine-NavLink-root:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.navbar .mantine-NavLink-root[data-active] { background: var(--nav-active); color: #fff; font-weight: 700; }
+.navbar .mantine-NavLink-label { font-weight: inherit; }
+.navbar .mantine-NavLink-description { color: var(--ink-text); }
+.navbar .mantine-NavLink-chevron { color: var(--ink-label); }
+.navbar .nav-label { color: var(--ink-label); letter-spacing: 0.09em; }
+.navbar .status-label, .header-status .status-label { --status-connected: #4fe3c1; --status-disconnected: #f08a74; --status-never: #e59a52; --status-abandoned: #8fa3b5; }
+.nav-journey + .mantine-NavLink-collapse { padding-inline-start: 12px; margin-bottom: 4px; }
+.nav-group { margin-top: 18px; }
+.nav-bottom { padding-top: 8px; border-top: 1px solid rgba(188, 202, 214, 0.18); }
+.navbar a:focus-visible, .navbar button:focus-visible, .topbar a:focus-visible, .topbar button:focus-visible { outline: 2px solid var(--ink-signal); outline-offset: 2px; }
+
+.main { display: flex; flex-direction: column; background: var(--ink); }
+.paper { flex: 1 1 auto; display: flex; flex-direction: column; min-height: calc(100dvh - 64px); padding: var(--mantine-spacing-md) var(--mantine-spacing-md) var(--mantine-spacing-md); background: var(--page-bg); }
+.paper > .page { width: 100%; margin-bottom: 48px; }
+@media (min-width: 48em) {
+  .paper { border-start-start-radius: 24px; padding: 32px 40px var(--mantine-spacing-md); }
+}
+
 .site-footer { margin: auto calc(-1 * var(--mantine-spacing-md)) calc(-1 * var(--mantine-spacing-md)); padding: 24px 32px; background: var(--surface); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 20px 48px; font-size: 14px; color: var(--muted); }
+@media (min-width: 48em) {
+  .site-footer { margin-inline: -40px; }
+}
 .site-footer > div { flex: 0 1 520px; margin-right: auto; }
 .site-footer p { margin: 6px 0 0; }
-.footer-brand { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; color: var(--brand-text); }
+.footer-brand { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mantine-font-family-headings); font-size: 18px; font-weight: 700; color: var(--brand-text); }
+.footer-brand .logo { color: inherit; }
 .site-footer h2 { font-size: 14px; margin: 0 0 6px; color: var(--mantine-color-text); }
 .site-footer ul { list-style: none; margin: 0; padding: 0; }
 .site-footer li + li { margin-top: 4px; }
 .site-footer a { color: inherit; }
-.site-footer a:hover { color: var(--mantine-primary-color-filled); }
+.site-footer a:hover { color: var(--brand-text); }
 @media (max-width: 650px) {
   .site-footer { padding: 20px 16px; }
   .header-label { display: none; }

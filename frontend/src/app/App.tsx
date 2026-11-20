@@ -21,7 +21,6 @@ import { journey, routeFromHash, routes } from './routes'
 import './app.css'
 
 const groups = [
-  { id: 'journey', label: 'Jornada' },
   { id: 'probe', label: 'Sua probe' },
   { id: 'network', label: 'RIPE Atlas' },
 ] as const
@@ -47,9 +46,12 @@ function Layout() {
     return () => window.removeEventListener('hashchange', update)
   }, [menu])
   const route = routeFromHash(hash)
+  const inJourney = route.group === 'journey'
+  const [journeyOpen, setJourneyOpen] = useState(inJourney)
+  useEffect(() => { if (inJourney) setJourneyOpen(true) }, [inJourney])
 
   return (
-    <AppShell header={{ height: 56 }} navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !menuOpen } }} padding="md">
+    <AppShell header={{ height: 64 }} navbar={{ width: 248, breakpoint: 'sm', collapsed: { mobile: !menuOpen } }} padding={0}>
       <AppShell.Header className="topbar">
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
@@ -63,17 +65,19 @@ function Layout() {
           </Group>
         </Group>
       </AppShell.Header>
-      <AppShell.Navbar p="xs" component="nav" aria-label="Páginas do dashboard">
+      <AppShell.Navbar p="xs" className="navbar" component="nav" aria-label="Páginas do dashboard">
         <AppShell.Section grow component={ScrollArea}>
           <NavLink href="#/inicio" label="Início" active={route.id === 'inicio'} aria-current={route.id === 'inicio' ? 'page' : undefined} mb={6} />
+          <NavLink component="button" label="Jornada" className="nav-journey" opened={journeyOpen} onChange={setJourneyOpen}
+            aria-expanded={journeyOpen} childrenOffset={0}>
+            {journey.map((item, step) => <NavLink key={item.id} href={`#/${item.id}`} label={`${step + 1}. ${item.label}`}
+              active={item === route} aria-current={item === route ? 'page' : undefined} />)}
+          </NavLink>
           {groups.map(group => <div key={group.id} className="nav-group">
-            <Text size="xs" fw={600} c="dimmed" tt="uppercase" px="sm" py={6}>{group.label}</Text>
-            {routes.filter(item => item.group === group.id).map(item => {
-              const step = journey.indexOf(item)
-              return <NavLink key={item.id} href={`#/${item.id}`} label={step >= 0 ? `${step + 1}. ${item.label}` : item.label}
-                description={item.id === 'minha-probe' && look ? <StatusLabel look={look} /> : undefined}
-                active={item === route} aria-current={item === route ? 'page' : undefined} />
-            })}
+            <Text className="nav-label" size="xs" fw={700} tt="uppercase" px="sm" py={6}>{group.label}</Text>
+            {routes.filter(item => item.group === group.id).map(item => <NavLink key={item.id} href={`#/${item.id}`} label={item.label}
+              description={item.id === 'minha-probe' && look ? <StatusLabel look={look} /> : undefined}
+              active={item === route} aria-current={item === route ? 'page' : undefined} />)}
           </div>)}
         </AppShell.Section>
         <AppShell.Section className="nav-bottom">
@@ -82,17 +86,19 @@ function Layout() {
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main className="main">
-        <div className="page">
-          {route.id === 'inicio' && <Home />}
-          {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} exercises={exercisesFromHash(hash)} />}
-          {route.id === 'desafios' && <Challenges />}
-          {route.id === 'conquistas' && <Achievements />}
-          {route.id === 'minha-probe' && <MyProbe />}
-          {route.id === 'configuracoes' && <Settings />}
-          {probeId ? <PingExplorer key={probeId} active={route.id === 'minha-probe'} /> : null}
-          <ProbeDistribution active={route.id === 'rede-global'} />
+        <div className="paper">
+          <div className="page">
+            {route.id === 'inicio' && <Home />}
+            {route.group === 'journey' && <JourneyPage route={route} lesson={lessonFromHash(hash)} exercises={exercisesFromHash(hash)} />}
+            {route.id === 'desafios' && <Challenges />}
+            {route.id === 'conquistas' && <Achievements />}
+            {route.id === 'minha-probe' && <MyProbe />}
+            {route.id === 'configuracoes' && <Settings />}
+            {probeId ? <PingExplorer key={probeId} active={route.id === 'minha-probe'} /> : null}
+            <ProbeDistribution active={route.id === 'rede-global'} />
+          </div>
+          <Footer />
         </div>
-        <Footer />
       </AppShell.Main>
     </AppShell>
   )
