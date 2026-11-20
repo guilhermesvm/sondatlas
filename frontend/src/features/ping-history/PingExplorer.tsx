@@ -150,7 +150,12 @@ export default function PingExplorer({ active }: { active: boolean }) {
           </section>
         })}
       </Paper>
-      <details className="reading-help"><summary>Como ler estes números</summary>
+      <details className="reading-help">
+        <summary>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" /></svg>
+          <span>Como ler estes números</span>
+          <svg className="reading-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </summary>
         <p>Mediana dos RTTs médios disponíveis por rodada. Rodadas com perda têm perda acima de zero; a razão não é perda média de pacotes nem disponibilidade.</p>
         <p>0 = valor medido · Indisponível = sem valor · Sem registros = sem rodadas no período</p>
       </details>
