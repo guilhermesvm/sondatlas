@@ -21,12 +21,14 @@ export const theme = createTheme({
       defaultProps: { radius: 14 },
       vars: (_theme, props) => props.color === 'yellow'
         ? { root: { '--alert-bg': 'var(--notice-bg)', '--alert-color': 'var(--notice-text)', '--alert-bd': '1px solid var(--notice-line)' } }
-        : { root: {} },
+        : props.color === 'red'
+          ? { root: { '--alert-bg': 'var(--error-bg)', '--alert-color': 'var(--error-text)', '--alert-bd': '1px solid var(--status-disconnected)' } }
+          : { root: {} },
     }),
   },
   headings: {
     fontFamily: "'Bricolage Grotesque Variable', system-ui, sans-serif",
     fontWeight: '700',
-    sizes: { h2: { fontSize: '1.75rem', lineHeight: '1.2' }, h3: { fontSize: '1.3rem', lineHeight: '1.3' } },
+    sizes: { h2: { fontSize: '1.5rem', lineHeight: '1.25' }, h3: { fontSize: '1.2rem', lineHeight: '1.3' } },
   },
 })

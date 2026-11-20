@@ -1,14 +1,15 @@
 .distribution-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.distribution-chart { margin-top: 16px; padding: 14px 18px; }
+.distribution-heading { align-items: flex-start; }
+.distribution-chart { margin-top: 16px; padding: 24px 28px; }
 .distribution-chart h2, .distribution-heading + .result-count { margin-top: 0; }
 .country-bars { list-style: none; margin: 14px 0 0; padding: 0; }
 .country-bars li { display: grid; grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) 65px; gap: 12px; align-items: center; margin: 10px 0; font-size: 14px; }
 .country-name small { color: var(--muted); }
-.country-count { text-align: right; font-variant-numeric: tabular-nums; }
+.country-count { text-align: right; font-family: var(--mantine-font-family-monospace); font-variant-numeric: tabular-nums; }
 .bar-track { height: 22px; border-left: 1px solid var(--bar-axis); background: var(--bar-track); }
-.bar-track span { display: block; height: 100%; background: var(--bar); }
+.bar-track span { display: block; height: 100%; border-radius: 0 6px 6px 0; background: var(--bar); }
 .brazil .bar-track span { background: var(--bar-highlight); }
-.brazil .country-name, .brazil .country-count { font-weight: 600; }
+.brazil .country-name, .brazil .country-count { font-weight: 700; color: var(--brand-text); }
 .distribution-chart + .reading-note { margin-top: 12px; }
 @media (max-width: 650px) {
   .country-bars li { grid-template-columns: minmax(95px, 120px) minmax(0, 1fr) 50px; gap: 8px; }

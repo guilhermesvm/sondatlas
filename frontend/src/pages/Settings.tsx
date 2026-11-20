@@ -289,7 +289,7 @@ export default function Settings() {
       {errorText}
       <Group gap="sm" mt="lg" justify="flex-end">
         <Button variant="default" onClick={() => setConfirming(false)}>Cancelar</Button>
-        <Button color="red.9" loading={busy} onClick={unlink}>Sim, desvincular</Button>
+        <Button className="danger-filled" loading={busy} onClick={unlink}>Sim, desvincular</Button>
       </Group>
     </Modal>
   </div>

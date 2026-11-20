@@ -1,8 +1,8 @@
 :root {
   --ink: #0b1724;
   --ink-raised: #12263a;
-  --ink-text: #bccad6;
-  --ink-label: #8fa3b5;
+  --ink-text: #dbe4ec;
+  --ink-label: #a9bccb;
   --ink-signal: #4fe3c1;
   --page-bg: #f3f1ea;
   --surface: #ffffff;
@@ -114,6 +114,9 @@ code, kbd, pre { font-family: var(--mantine-font-family-monospace); }
 .mantine-Button-root.danger-filled:hover:not(:disabled) { background: #8f2815; }
 .mantine-Paper-root[data-with-border] { --paper-border-color: var(--line); border-radius: 20px; }
 .mantine-Accordion-root .mantine-Accordion-item { border-radius: 14px; }
+.mantine-Modal-content { border-radius: 20px; }
+.mantine-Modal-title { font-family: var(--mantine-font-family-headings); font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+.mantine-Popover-dropdown { border-radius: 14px; border-color: var(--line); }
 :root[data-mantine-color-scheme='light'] .mantine-Input-input { --input-bd: #8a8571; }
 :root[data-mantine-color-scheme='light'] .mantine-SegmentedControl-root { background: #e6e2d6; }
 .mantine-SegmentedControl-root { padding: 4px; border-radius: 14px; }
@@ -124,11 +127,11 @@ code, kbd, pre { font-family: var(--mantine-font-family-monospace); }
 .mantine-Stepper-separator { height: 0; background: none; border-top: 2px dashed var(--bar-axis); }
 .mantine-Stepper-separator[data-active] { border-top-style: solid; border-top-color: var(--mantine-primary-color-filled); }
 .mantine-Stepper-step:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 3px; border-radius: 12px; }
-.page-title { margin-bottom: 16px; font-size: clamp(32px, 4vw, 44px); line-height: 1.1; letter-spacing: -0.025em; }
-.page-title + .mantine-Text-root[data-size='lg'] { max-width: 760px; font-size: 19px; line-height: 1.6; }
+.page-title { margin-bottom: 12px; font-size: clamp(28px, 3vw, 36px); line-height: 1.1; letter-spacing: -0.025em; }
+.page-title + .mantine-Text-root[data-size='lg'] { max-width: 760px; font-size: 18px; line-height: 1.6; }
 .probe-id { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; margin-left: 8px; vertical-align: middle; border-radius: 10px; background: var(--accent-bg); color: var(--mantine-color-text); font-family: var(--mantine-font-family-monospace); font-size: 15px; font-weight: 500; letter-spacing: 0; }
-.section-title { margin: 64px 0 20px; font-size: 30px; letter-spacing: -0.02em; }
+.section-title { margin: 56px 0 16px; font-size: 26px; letter-spacing: -0.02em; }
 @media (max-width: 650px) {
-  .section-title { margin-top: 44px; font-size: 26px; }
+  .section-title { margin-top: 40px; font-size: 22px; }
   .target-summary { padding: 18px; }
 }
