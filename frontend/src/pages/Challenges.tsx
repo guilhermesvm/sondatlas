@@ -1,5 +1,5 @@
 import { Alert, Anchor, Autocomplete, Button, Checkbox, Group, Modal, SegmentedControl, Select, Text, TextInput, Title } from '@mantine/core'
-import { Fragment, useEffect, useRef, useState, type MouseEvent, type SubmitEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type MouseEvent, type ReactNode, type SubmitEvent } from 'react'
 import { fetchAccount, KeyRefusedError, type Account, type AccountProbe } from '../features/atlas-account/account'
 import { missingPermissions } from '../features/atlas-account/permissions'
 import { ChallengeError, createChallenge, createGroupPing, destinations, dnsFailure, fetchChallenges, fetchKRootAverage, fetchMeasurement, fetchPingResult, fetchTracerouteRoute, kinds, groupSizes, measurementFromHash, preparing, validTarget, waiting, gaveUpStatuses, type Challenge, type Kind, type Measurement, type PingResult } from '../features/challenges/challenge'
@@ -331,13 +331,12 @@ function Result({ id }: { id: number }) {
   </>
 }
 
-function NewChallenge({ account }: { account: Account }) {
+function NewChallenge({ account, kind }: { account: Account, kind: Kind }) {
   const probes = account.probes ?? []
   const connected = probes.filter(probe => probe.status.id === 1)
-  const [kind, setKind] = useState<Kind>('ping')
   const [probeId, setProbeId] = useState<string | null>(connected[0] ? String(connected[0].id) : null)
   const [target, setTarget] = useState('')
-  const [packets, setPackets] = useState(String(kinds.ping.packets[0]))
+  const [packets, setPackets] = useState(String(kinds[kind].packets[0]))
   const [description, setDescription] = useState('')
   const [errors, setErrors] = useState<{ probe?: string, target?: string }>({})
   const [confirming, setConfirming] = useState(false)
@@ -368,12 +367,6 @@ function NewChallenge({ account }: { account: Account }) {
     }
   }
 
-  function choose(value: string) {
-    const next = value as Kind
-    setKind(next)
-    if (!kinds[next].packets.includes(Number(packets))) setPackets(String(kinds[next].packets[0]))
-  }
-
   if (!connected.length) return <Alert color="yellow" mt="md" maw={720} title="Nenhuma probe sua está conectada agora">
     A medição sai de uma probe sua, então ela precisa estar conectada. Veja o que fazer em <Anchor href="#/minha-probe">Minha probe</Anchor>.
   </Alert>
@@ -382,16 +375,19 @@ function NewChallenge({ account }: { account: Account }) {
     ? <Alert color="yellow" mt="sm" title="Falta uma permissão na chave">A chave não tem <Missing ids={error.missing} />. Acrescente no site do RIPE Atlas e tente de novo.</Alert>
     : <SystemError title={`Não foi possível criar ${kinds[kind].noun}`}>{error.message}</SystemError>)
 
-  return <section className="follow-box" aria-labelledby="new-challenge">
-    <Title order={2} size="h4" id="new-challenge">Desafio: uma medição sua</Title>
-    <SegmentedControl mt="sm" value={kind} onChange={choose} aria-label="Tipo de medição"
-      data={[{ value: 'ping', label: 'Ping' }, { value: 'traceroute', label: 'Traceroute' }]} />
-    <Text size="sm" mt="sm" maw={680}>
+  return <section className="challenge-form" aria-label="Desafio: uma medição sua">
+    <details className="challenge-help"><summary>Como funciona e mais opções</summary>
+    <Text size="sm">
       {kind === 'ping'
         ? <>Escolha uma das suas probes e um destino. A probe manda alguns pacotes e mede quanto tempo eles levam para ir e voltar, como na <Anchor href="#/aprender/ping">lição de ping</Anchor>, só que para o destino que você escolher.</>
         : <>Escolha uma das suas probes e um destino. A probe descobre por quais roteadores os pacotes passam até chegar lá, como na <Anchor href="#/aprender/traceroute">lição de traceroute</Anchor>, só que para o destino que você escolher.</>}
       {' '}Com um nome, a probe descobre o endereço pelo DNS da rede dela, como o seu computador faria. Com um endereço IPv4, a probe mede direto.
     </Text>
+    <Text size="sm" mt="xs">
+      Para mais opções, como várias probes, IPv6 ou outros tipos de medição, use o <Anchor href="https://atlas.ripe.net/measurements/form/" target="_blank" rel="noreferrer">formulário de criação de medições</Anchor> do RIPE Atlas.
+    </Text>
+    <Text size="sm" mt={4}>As medições que você já criou ficam na <MineLink />, no RIPE Atlas.</Text>
+    </details>
     <form onSubmit={review}>
       <Group align="flex-start" gap="md" mt="md">
         <Select label="Probe" searchable nothingFoundMessage="Nenhuma probe com esse número" styles={{ input: { textOverflow: 'ellipsis' } }} w={380} maw="100%" value={probeId}
@@ -422,10 +418,6 @@ function NewChallenge({ account }: { account: Account }) {
       <JustConnected probe={probes.find(probe => String(probe.id) === probeId)} />
       <Button type="submit" mt="md">Ver o custo</Button>
     </form>
-    <Text size="sm" c="dimmed" mt="md">
-      Para mais opções, como várias probes, IPv6 ou outros tipos de medição, use o <Anchor href="https://atlas.ripe.net/measurements/form/" target="_blank" rel="noreferrer">formulário de criação de medições</Anchor> do RIPE Atlas.
-    </Text>
-    <Text size="sm" c="dimmed" mt={4}>As medições que você já criou ficam na <MineLink />, no RIPE Atlas.</Text>
     {!confirming && errorText}
     <Modal opened={confirming} onClose={() => setConfirming(false)} closeOnClickOutside={false} centered title={`Criar este ${kind}?`}>
       <Text size="sm">Da probe <strong>{probeId}</strong> até <strong>{target.trim().toLowerCase()}</strong>, com {packets} pacotes{kind === 'traceroute' ? ' por salto' : ''}.</Text>
@@ -495,12 +487,13 @@ function GroupChallenge({ account }: { account: Account }) {
     ? <Alert color="yellow" mt="sm" title="Falta uma permissão na chave">A chave não tem <Missing ids={error.missing} />. Acrescente no site do RIPE Atlas e tente de novo.</Alert>
     : <SystemError title="Não foi possível criar o ping">{error.message}</SystemError>)
 
-  return <section className="follow-box" aria-labelledby="group-challenge">
-    <Title order={2} size="h4" id="group-challenge">Desafio: ping de várias probes</Title>
-    <Text size="sm" mt={4} maw={680}>
+  return <section className="challenge-form" aria-label="Desafio: ping de várias probes">
+    <details className="challenge-help"><summary>Como funciona</summary>
+    <Text size="sm">
       As probes públicas do RIPE Atlas não medem só para os donos. Com créditos, você mede a partir de probes de outras pessoas, em qualquer lugar do mundo.
       Aqui, o mesmo ping sai de probes nos cinco continentes, e você compara o tempo de cada lugar até o mesmo destino.
     </Text>
+    </details>
     {!connected.length && <Alert color="yellow" mt="md" title="Nenhuma probe sua está conectada agora">
       O ping sai só das probes dos cinco continentes. Para incluir a sua, veja o que fazer em <Anchor href="#/minha-probe">Minha probe</Anchor>.
     </Alert>}
@@ -555,10 +548,36 @@ function GroupChallenge({ account }: { account: Account }) {
   </section>
 }
 
+// The three challenges sit side by side, so the choice is made once and in one place.
+type Mode = Kind | 'group'
+const modes: { value: Mode, title: string, text: string, icon: ReactNode }[] = [
+  { value: 'ping', title: 'Ping da sua probe', text: 'Quanto tempo leva para ir e voltar',
+    icon: <><circle cx="12" cy="12" r="2.5" /><path d="M8 16a5.5 5.5 0 0 1 0-8M16 8a5.5 5.5 0 0 1 0 8" /></> },
+  { value: 'traceroute', title: 'Traceroute da sua probe', text: 'Por quais redes o pacote passa',
+    icon: <><circle cx="5" cy="18" r="2" /><circle cx="12" cy="8" r="2" /><circle cx="19" cy="15" r="2" /><path d="M6.4 16.5l4.2-6.8M13.6 9.4l3.9 4.2" /></> },
+  { value: 'group', title: 'Ping de várias probes', text: 'Dos cinco continentes até o mesmo destino',
+    icon: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></> },
+]
+
+function ChallengePicker({ mode, onChange }: { mode: Mode, onChange: (mode: Mode) => void }) {
+  return <fieldset className="challenge-types">
+    <legend className="visually-hidden">Tipo de desafio</legend>
+    {modes.map(item => <label key={item.value} className="challenge-type" data-checked={item.value === mode}>
+      <input type="radio" name="challenge-type" value={item.value} checked={item.value === mode} onChange={() => onChange(item.value)} />
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{item.icon}</svg>
+      <span className="challenge-type-title">{item.title}</span>
+      <span className="challenge-type-text">{item.text}</span>
+    </label>)}
+  </fieldset>
+}
+
+const shown = 8
+
 function ChallengeList({ account }: { account: Account }) {
   const missing = account.missing_permissions?.includes('my_measurements')
   const [list, setList] = useState<{ count: number, challenges: Challenge[] } | null>(null)
   const [error, setError] = useState<ChallengeError | null>(null)
+  const [all, setAll] = useState(false)
 
   useEffect(() => {
     if (missing) return
@@ -570,7 +589,15 @@ function ChallengeList({ account }: { account: Account }) {
   }, [missing])
 
   const lacking = missing ? ['my_measurements'] : error?.missing ?? []
-  return <section className="follow-box" aria-labelledby="my-challenges">
+  const visible = list ? (all ? list.challenges : list.challenges.slice(0, shown)) : []
+  const days = visible.reduce<{ day: string, items: { challenge: Challenge, time: string }[] }[]>((groups, challenge) => {
+    const [day, time] = formatLocal(challenge.created * 1000).split(', ')
+    const last = groups[groups.length - 1]
+    if (last?.day === day) last.items.push({ challenge, time })
+    else groups.push({ day, items: [{ challenge, time }] })
+    return groups
+  }, [])
+  return <section className="challenge-panel" aria-labelledby="my-challenges">
     <Title order={2} size="h4" id="my-challenges">Seus desafios</Title>
     {lacking.length > 0 && <Alert color="yellow" mt="sm" title="Falta uma permissão na chave">
       Para listar os seus desafios aqui, falta na chave <Missing ids={lacking} />. Edite a chave no site do RIPE Atlas e volte aqui. Enquanto isso, eles ficam na <MineLink />.
@@ -583,9 +610,12 @@ function ChallengeList({ account }: { account: Account }) {
         {list.count === 1 ? 'Você criou 1 desafio pela Sondatlas.' : `Você criou ${count(list.count)} desafios pela Sondatlas.`}
         {list.count > list.challenges.length ? ` Aqui estão os ${list.challenges.length} mais recentes.` : ''} Abra um para ver o resultado explicado.
       </Text>
+      {days.map(group => <div key={group.day}>
+      <p className="challenge-day">{group.day}</p>
       <ul className="challenge-list">
-        {list.challenges.map(challenge => <li key={challenge.id}>
-          <div>
+        {group.items.map(({ challenge, time }) => <li key={challenge.id}>
+          <span className="challenge-tag" aria-hidden="true">{challenge.group ? 'várias' : challenge.type === 'traceroute' ? 'trace' : 'ping'}</span>
+          <div className="challenge-text">
             <Anchor href={`#/desafios/${challenge.id}`} fw={600}>{challenge.group ? 'Ping de várias probes' : titles[challenge.type as Kind] ?? challenge.type} até {challenge.target}</Anchor>
             {challenge.status?.id != null && gaveUpStatuses.includes(challenge.status.id)
               ? <Text size="xs" className="challenge-failed">Não foi feita. O RIPE Atlas marcou como {challenge.status.name}</Text>
@@ -593,9 +623,13 @@ function ChallengeList({ account }: { account: Account }) {
               ? <Text size="xs" c="dimmed">{challenge.probes ? `De ${challenge.probes} probes` : 'De várias probes'}</Text>
               : challenge.probe_id && <Text size="xs" c="dimmed">Da probe {challenge.probe_id}</Text>}
           </div>
-          <Text size="sm" c="dimmed" className="challenge-date">{formatLocal(challenge.created * 1000)}</Text>
+          <Text size="sm" className="challenge-date">{time}</Text>
         </li>)}
       </ul>
+      </div>)}
+      {list.challenges.length > shown && <Button variant="default" fullWidth mt="md" onClick={() => setAll(!all)}>
+        {all ? 'Mostrar menos' : `Mostrar todos os ${list.challenges.length}`}
+      </Button>}
     </>}
   </section>
 }
@@ -604,6 +638,7 @@ export default function Challenges() {
   const [account, setAccount] = useState<Account | null>(null)
   const [error, setError] = useState('')
   const [hash, setHash] = useState(location.hash)
+  const [mode, setMode] = useState<Mode>('ping')
   const resultId = measurementFromHash(hash)
 
   useEffect(() => {
@@ -624,11 +659,17 @@ export default function Challenges() {
   }, [])
 
   const missing = (account?.missing_permissions ?? []).filter(permission => permission === 'measurements' || permission === 'probes')
+  const balance = account?.credits?.current_balance
   return <div className="install">
-    <Title order={1} className="page-title">Desafios</Title>
-    <Text size="lg" mt="sm" maw={900}>
-      Medições criadas por você, com os seus créditos. Antes de criar, a Sondatlas mostra quanto custa. Para entender de onde vêm os créditos, veja a <Anchor href="#/aprender/creditos">lição de créditos</Anchor>.
-    </Text>
+    <div className="challenge-header">
+      <div>
+        <Title order={1} className="page-title">Desafios</Title>
+        <Text size="lg" mt="sm" maw={720}>
+          Medições criadas por você, com os seus créditos. Antes de criar, a Sondatlas mostra quanto custa. Para entender de onde vêm os créditos, veja a <Anchor href="#/aprender/creditos">lição de créditos</Anchor>.
+        </Text>
+      </div>
+      {!resultId && balance != null && <p className="credit-balance">Seus créditos<strong>{count(balance)}</strong></p>}
+    </div>
     {resultId ? <Result key={resultId} id={resultId} /> : <>
       {error && <SystemError title="Não foi possível consultar a sua conta">{error}</SystemError>}
       {!account && !error && <Loading mt="lg">Consultando a sua conta…</Loading>}
@@ -640,8 +681,14 @@ export default function Challenges() {
         Para os desafios, falta na chave <Missing ids={missing} />. Edite a chave no site do RIPE Atlas e volte aqui.
         <div><Button component="a" href="#/configuracoes" size="sm" mt="sm">Ir para Configurações</Button></div>
       </Alert>}
-      {account?.connected && missing.length === 0 && <><NewChallenge account={account} /><GroupChallenge account={account} /></>}
-      {account?.connected && <ChallengeList account={account} />}
+      {account?.connected && <div className="challenge-layout">
+        {missing.length === 0 ? <section className="challenge-panel" aria-labelledby="new-challenge-title">
+          <Title order={2} size="h4" id="new-challenge-title">Novo desafio</Title>
+          <ChallengePicker mode={mode} onChange={setMode} />
+          {mode === 'group' ? <GroupChallenge account={account} /> : <NewChallenge key={mode} account={account} kind={mode} />}
+        </section> : <div />}
+        <ChallengeList account={account} />
+      </div>}
     </>}
   </div>
 }

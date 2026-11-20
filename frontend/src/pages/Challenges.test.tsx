@@ -215,8 +215,9 @@ const route = {
 it('creates a traceroute with the cost of the packets per hop and reads the route like the lesson', async () => {
   const mock = stubBackend(linked, [route], [noChallenges], { ...detail, type: 'traceroute' })
   renderChallenges()
-  await userEvent.click((await single()).getByRole('radio', { name: 'Traceroute' }))
-  expect((await single()).getAllByRole('radio').map(radio => radio.getAttribute('value'))).toEqual(['ping', 'traceroute', '3', '10'])
+  await userEvent.click(await screen.findByRole('radio', { name: /^Traceroute da sua probe/ }))
+  expect(screen.getAllByRole('radio', { name: /da sua probe|várias probes/ }).map(radio => radio.getAttribute('value'))).toEqual(['ping', 'traceroute', 'group'])
+  expect((await single()).getAllByRole('radio').map(radio => radio.getAttribute('value'))).toEqual(['3', '10'])
   await userEvent.type((await single()).getByRole('combobox', { name: 'Destino' }), 'google.com')
   await userEvent.click((await single()).getByRole('radio', { name: '10' }))
   expect(screen.getByLabelText('Descrição (opcional)')).toHaveAttribute('placeholder', 'Sondatlas: traceroute para google.com')
@@ -283,6 +284,7 @@ const groupRounds = [
 it('creates a ping from probes on every continent, with the cost of each probe and the own probe optional', async () => {
   const mock = stubBackend(linked)
   renderChallenges()
+  await userEvent.click(await screen.findByRole('radio', { name: /^Ping de várias probes/ }))
   const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
   await userEvent.type(group.getByRole('combobox', { name: 'Destino' }), 'google.com')
   expect(group.getByRole('img', { name: '1 probe em cada continente, mais a sua probe 1017210' })).toBeInTheDocument()
@@ -308,6 +310,7 @@ it('warns in the group ping when no own probe is connected, and still pings from
   const offline = { ...linked, probes: linked.probes.map(probe => ({ ...probe, status: { id: 2, name: 'Disconnected', since: null } })) }
   const mock = stubBackend(offline)
   renderChallenges()
+  await userEvent.click(await screen.findByRole('radio', { name: /^Ping de várias probes/ }))
   const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
   expect(group.getByText('Nenhuma probe sua está conectada agora')).toBeInTheDocument()
   expect(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' })).not.toBeChecked()
@@ -402,6 +405,7 @@ it('warns before creating when the chosen probe connected a few minutes ago', as
   stubBackend({ ...linked, probes: [{ ...linked.probes[0], status: { id: 1, name: 'Connected', since } }, linked.probes[1]] })
   renderChallenges()
   expect(await (await single()).findByText('A 1017210 conectou há 3 minutos')).toBeInTheDocument()
+  await userEvent.click(await screen.findByRole('radio', { name: /^Ping de várias probes/ }))
   const group = within(await screen.findByRole('region', { name: 'Desafio: ping de várias probes' }))
   expect(group.getByText('A 1017210 conectou há 3 minutos')).toBeInTheDocument()
   await userEvent.click(group.getByRole('checkbox', { name: 'Incluir a minha probe, para comparar' }))
