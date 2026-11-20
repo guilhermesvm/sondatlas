@@ -12,7 +12,7 @@ export default function Footer() {
   return <footer className="site-footer">
     <div>
       <span className="footer-brand"><Logo />Sondatlas</span>
-      <p>Trabalho de Conclusão de Curso em Ciência da Computação na Universidade de Passo Fundo (UPF). A Sondatlas não é um site oficial do RIPE NCC: ela usa os dados públicos do RIPE Atlas.</p>
+      <p>A Sondatlas é um Trabalho de Conclusão de Curso de Ciência da Computação da Universidade de Passo Fundo (UPF). Ela usa os dados públicos do RIPE Atlas, mas não é um site oficial do RIPE NCC.</p>
     </div>
     <nav aria-label="RIPE Atlas, fontes oficiais">
       <h2>RIPE Atlas</h2>

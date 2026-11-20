@@ -3,7 +3,7 @@ import './pages.css'
 
 const steps = [
   { title: 'Conheça', text: 'Entenda o que é o RIPE Atlas, o que a sua probe mede e o que fica público.' },
-  { title: 'Instale', text: 'Instale uma probe em casa: num computador com Windows ou Linux (como máquina virtual) ou num Raspberry Pi.' },
+  { title: 'Instale', text: 'Instale uma probe em casa, num computador com Windows ou Linux. Ela roda numa máquina virtual ou direto no Debian.' },
   { title: 'Ative', text: 'Cadastre a probe no site do RIPE Atlas e confira se ela está conectada.' },
   { title: 'Acompanhe', text: 'Escolha a probe que a Sondatlas acompanha e guarde o histórico das medições dela.' },
   { title: 'Aprenda', text: 'Use as medições da sua probe, como ping, traceroute e DNS, para aprender como a Internet funciona.' },
@@ -59,7 +59,7 @@ export default function Home() {
 
     <section className="home-section home-audience" aria-labelledby="audience-title">
       <Title order={2} id="audience-title" className="home-heading">Para quem</Title>
-      <Text>Estudantes de redes e entusiastas que querem ver a Internet funcionando com medições reais, usando um computador comum ou um Raspberry Pi.</Text>
+      <Text>Estudantes de redes e entusiastas que querem ver a Internet funcionando com medições reais, usando o próprio computador.</Text>
     </section>
   </>
 }

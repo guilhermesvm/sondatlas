@@ -101,7 +101,7 @@ export default function Discover({ understood, onUnderstoodChange }: { understoo
 
     <Title order={2} mt={40} mb="sm">Do que você precisa</Title>
     <ul className="checklist">
-      <li>Um computador com Windows ou Linux que possa ficar ligado, porque os créditos só contam com a probe conectada; ou um Raspberry Pi</li>
+      <li>Um computador com Windows ou Linux que possa ficar ligado, porque os créditos só contam com a probe conectada</li>
       <li>Virtualização ativada na BIOS/UEFI</li>
       <li>Cerca de 4 GB livres em disco e 1 GB de memória para a máquina virtual (a probe usa cerca de 270 MB)</li>
       <li>Permissão de administrador para instalar o VirtualBox e o Vagrant, na fase Instalar</li>

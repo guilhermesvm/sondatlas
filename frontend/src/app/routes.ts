@@ -8,7 +8,7 @@ export type Route = {
 export const routes: Route[] = [
   { id: 'inicio', label: 'Início', group: 'home', summary: 'Apresentação da plataforma e da jornada.' },
   { id: 'conhecer', label: 'Conhecer', group: 'journey', summary: 'O que é o RIPE Atlas, por que participar (o Brasil tem poucas probes), o que fica público e o que você precisa para instalar.' },
-  { id: 'instalar', label: 'Instalar', group: 'journey', summary: 'Passo a passo do kit (VM com Vagrant ou Debian/Raspberry Pi), comandos para copiar e problemas comuns.' },
+  { id: 'instalar', label: 'Instalar', group: 'journey', summary: 'Passo a passo do kit (máquina virtual com Vagrant ou direto no Debian), comandos para copiar e problemas comuns.' },
   { id: 'ativar', label: 'Ativar', group: 'journey', summary: 'Cadastro da probe no site do RIPE Atlas e a pergunta principal: sua probe está conectada?' },
   { id: 'acompanhar', label: 'Acompanhar', group: 'journey', summary: 'Escolha a probe que a Sondatlas acompanha para guardar o histórico das medições dela.' },
   { id: 'aprender', label: 'Aprender', group: 'journey', summary: 'Lições curtas de redes e do RIPE Atlas, com os dados da sua probe e cursos gratuitos do RIPE NCC para ir mais fundo.' },
