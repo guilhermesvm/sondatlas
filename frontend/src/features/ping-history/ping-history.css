@@ -1,11 +1,9 @@
 .filters { padding: 24px 28px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
 .quick-controls { display: flex; align-items: flex-end; gap: 20px 40px; flex-wrap: wrap; }
 .target-field { flex: 1; min-width: 150px; }
-.quick-periods { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.quick-periods legend { font-size: var(--mantine-font-size-sm); font-weight: 700; padding: 0 0 8px; }
-.quick-periods .mantine-Radio-root { padding-bottom: 8px; white-space: nowrap; }
-.custom-toggle { margin-top: 6px; padding-inline: 0; text-decoration: underline; text-underline-offset: 3px; }
-.custom-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; }
+.quick-periods { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field-label { font-size: var(--mantine-font-size-sm); font-weight: 700; }
+.custom-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
 .custom-fields > * { flex: 1; min-width: 200px; }
 .filter-help { font-size: 13px; color: var(--muted); margin: 6px 0; }
 .measurement-context { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; margin: 8px 0 10px; font-size: 14px; }
@@ -13,6 +11,31 @@
 .initial-state { padding: 12px 0; color: var(--muted); font-size: 15px; }
 .period-comparison { margin: 28px 0 16px; }
 .period-comparison h2 { margin: 0; }
+.comparison-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.comparison { padding: 4px 28px; }
+.comparison-head, .comparison-row { display: grid; grid-template-columns: minmax(130px, 0.8fr) repeat(3, minmax(0, 1fr)); gap: 8px 24px; align-items: start; }
+.comparison-head { padding: 14px 0 10px; border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--muted); }
+.comparison-row { padding: 18px 0; }
+.comparison-row + .comparison-row { border-top: 1px solid var(--line); }
+.comparison-row h3 { display: flex; flex-direction: column; margin: 0; font-size: 22px; }
+.comparison-row h3 .metric-summary { font-family: var(--mantine-font-family); font-weight: 500; letter-spacing: 0; }
+.comparison-row dl { display: contents; }
+.comparison-row dd { margin: 0; }
+.comparison-row dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.comparison-empty { grid-column: 2 / -1; margin: 4px 0 0; color: var(--muted); }
+.point-value.rtt { color: var(--chart-rtt); }
+.point-value.loss { color: var(--chart-loss); }
+.reading-help { margin-top: 12px; font-size: 14px; }
+.reading-help summary { padding: 6px 0; font-weight: 600; color: var(--brand-text); }
+.reading-help p { margin: 6px 0; color: var(--muted); }
+@media (max-width: 800px) {
+  .comparison { padding: 4px 18px; }
+  .comparison-head { display: none; }
+  .comparison-row { grid-template-columns: minmax(0, 1fr); }
+  .comparison-row dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 20px; margin: 0; }
+  .comparison-row dt { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-size: 13px; color: var(--muted); }
+  .comparison-empty { grid-column: auto; }
+}
 .summary-detail { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .charts-group { padding: 28px; }
 .chart-panel { min-width: 0; }
@@ -37,10 +60,31 @@
 .record-selector { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 460px; margin-top: 4px; font-size: 13px; color: var(--muted); }
 .record-selector span { flex-shrink: 0; }
 .record-selector input { flex: 1; min-width: 0; height: 24px; padding: 0; border: 0; accent-color: var(--mantine-primary-color-filled); background: transparent; }
-.measurement-about { margin-top: 10px; }
-.measurement-about summary { font-size: 14px; padding: 6px 0; }
-.about-content { font-size: 14px; overflow-wrap: anywhere; }
-.about-content p { margin: 8px 0; }
+.measurement-about { margin-top: 24px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.measurement-about summary { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 24px; list-style: none; border-radius: 20px; }
+.measurement-about summary::-webkit-details-marker { display: none; }
+.measurement-about summary:hover { background: var(--accent-bg); }
+.measurement-about[open] summary { border-radius: 20px 20px 0 0; border-bottom: 1px solid var(--line); }
+.about-icon { flex: none; color: var(--brand-text); }
+.about-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.about-title { font-family: var(--mantine-font-family-headings); font-size: 19px; font-weight: 700; }
+.about-hint { font-size: 14px; color: var(--muted); }
+.about-chevron { flex: none; color: var(--muted); transition: transform 150ms ease; }
+.measurement-about[open] .about-chevron { transform: rotate(180deg); }
+.about-content { padding: 24px; font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; }
+.about-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; margin: 0; padding: 18px 20px; border-radius: 14px; background: var(--page-bg); }
+.about-facts:empty { display: none; }
+.about-facts dt { font-size: 13px; font-weight: 700; color: var(--muted); }
+.about-facts dd { margin: 2px 0 0; font-family: var(--mantine-font-family-monospace); font-size: 14px; }
+.about-facts .about-wide { grid-column: span 2; }
+.about-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 40px; margin-top: 8px; }
+.about-sections h3 { margin: 20px 0 6px; font-size: 17px; }
+.about-sections p { margin: 0 0 10px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .about-chevron { transition: none; } }
+@media (max-width: 800px) {
+  .about-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .about-sections { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 650px) {
   .quick-controls { gap: 8px; }
   .target-field, .quick-periods { flex-basis: 100%; }
@@ -53,4 +97,8 @@
   .point-detail { gap: 4px 12px; }
   .point-time { font-size: 13px; }
   .record-selector input { min-height: 36px; }
+  .measurement-about summary { padding: 12px 16px; }
+  .about-content { padding: 16px; }
+  .about-facts { grid-template-columns: minmax(0, 1fr); }
+  .about-facts .about-wide { grid-column: auto; }
 }

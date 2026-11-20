@@ -13,7 +13,7 @@ afterEach(() => vi.unstubAllGlobals())
 
 async function fillPeriod() {
   await screen.findByRole('option', { name: /K-root/ })
-  await userEvent.click(screen.getByRole('button', { name: 'Período personalizado' }))
+  await userEvent.click(screen.getByLabelText('Período personalizado'))
   fireEvent.change(screen.getByLabelText('Início (horário local)'), { target: { value: localInput(new Date('2026-08-26T02:03:41Z')) } })
   fireEvent.change(screen.getByLabelText('Fim (horário local)'), { target: { value: localInput(new Date('2026-10-10T19:13:27Z')) } })
 }
@@ -34,8 +34,9 @@ it('keeps Brazilian input and queried bounds consistent for the reported ambiguo
   await userEvent.click(screen.getByRole('button', { name: /^Consultar$/ }))
   await screen.findByRole('region', { name: 'Comparação dos pings do período' })
   const summary = screen.getByRole('region', { name: 'Comparação dos pings do período' })
-  expect(summary).toHaveTextContent('09/10/2026, 00:00:00 GMT-3 → 09/10/2026, 18:00:00 GMT-3')
-  expect(summary).not.toHaveTextContent('10/09/2026')
+  expect(summary).toHaveTextContent('09/10, 00:00 → 09/10, 18:00')
+  expect(summary).not.toHaveTextContent('10/09')
+  expect(screen.getByText('Sobre esta medição').closest('details')).toHaveTextContent('09/10/2026, 00:00:00 GMT-3 → 09/10/2026, 18:00:00 GMT-3')
   expect(start).toHaveValue('09/10/2026 00:00:00')
   expect(stop).toHaveValue('09/10/2026 18:00:00')
   for (const [path] of mock.mock.calls.slice(1)) {
@@ -233,7 +234,7 @@ it('inspects actual loss and packet counts, with causal caveats in the secondary
   await userEvent.click(summary)
   expect(summary.closest('details')).toHaveAttribute('open')
   expect(summary.closest('details')).toHaveTextContent('não comprova a causa')
-  expect(summary.closest('details')).toHaveTextContent('IP de destino observado: 193.0.14.129')
+  expect(summary.closest('details')).toHaveTextContent('IP de destino observado193.0.14.129')
 })
 
 it('keeps separate same-timestamp records selectable and displays null as unavailable', () => {
